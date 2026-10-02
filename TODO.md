@@ -4,10 +4,10 @@ Tracking progress across workstreams as defined in the handoff specification.
 
 ## Workstream A: Repo and Project Hygiene
 - [x] Check GitHub CLI auth (`gh auth status`)
-- [ ] Initialize git repo, `.gitignore`, GPL-3.0 `LICENSE`
-- [ ] Create public remote repository `chesssrs-site` via `gh repo create`
-- [ ] Commit "Import starting block" and push to `origin main`
-- [ ] Add GitHub Actions CI workflow for test and build validation
+- [x] Initialize git repo, `.gitignore`, GPL-3.0 `LICENSE`
+- [x] Create public remote repository `chesssrs-site` via `gh repo create`
+- [x] Commit "Import starting block" and push to `origin main`
+- [x] Add GitHub Actions CI workflow for test and build validation
 
 ## Workstream B: Real-Browser QA Harness
 - [ ] Install Playwright (`@playwright/test`)
