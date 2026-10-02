@@ -1,0 +1,1 @@
+{"name":"chesssrs-site","private":true,"scripts":{"test":"node tests/demo.test.js","build":"python3 build.py"}}

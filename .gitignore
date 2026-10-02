@@ -1,0 +1,21 @@
+# Build output and archives
+dist/
+node_modules/
+*.zip
+
+# Playwright & test artifacts
+test-results/
+playwright-report/
+blob-report/
+coverage/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Local handoff prompts / notes
+糸口_HANDOFF_PROMPT.md
