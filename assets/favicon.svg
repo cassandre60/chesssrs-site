@@ -1,1 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#12100D"/><rect x="7" y="7" width="9" height="9" fill="#E2A84B"/><rect x="16" y="16" width="9" height="9" fill="#E2A84B"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <pattern id="favi-h" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width=".9" height="2.4" fill="#8A9BFF"/>
+    </pattern>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="#0D0F13"/>
+  <rect x="5.5" y="5.5" width="21" height="21" fill="none" stroke="#ECEEF1" stroke-width="1.5"/>
+  <rect x="16" y="6.25" width="9.75" height="9.75" fill="url(#favi-h)"/>
+  <rect x="6.25" y="16" width="9.75" height="9.75" fill="url(#favi-h)"/>
+</svg>

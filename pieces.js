@@ -1,16 +1,43 @@
-/* ChessSRS vector piece set (original artwork, 45x45 grid). Each piece: silhouette #X and detail strokes #Xd. */
-window.PIECE_DEFS = "<g id=\"P\"><path d=\"M17.8 18.2C15.7 16.8 15.5 12.7 17.8 10.3C20.1 7.9 24.9 7.9 27.2 10.3C29.5 12.7 29.3 16.8 27.2 18.2C31 20 31.5 25 30.2 29.5C29.6 31.5 31.5 33.2 33 34.5V38.5H12V34.5C13.5 33.2 15.4 31.5 14.8 29.5C13.5 25 14 20 17.8 18.2Z\"/></g><g id=\"Pd\"><path d=\"M14.5 34.5H30.5\"/></g><g id=\"R\"><path d=\"M11 38.5V34L14.5 30.5V17.5L11.5 14.5V8H16.5V11H20V8H25V11H28.5V8H33.5V14.5L30.5 17.5V30.5L34 34V38.5Z\"/></g><g id=\"Rd\"><path d=\"M14.5 17.5H30.5M14.5 30.5H30.5M11.5 14.5H33.5M11 34H34\"/></g><g id=\"B\"><circle cx=\"22.5\" cy=\"5.4\" r=\"2.4\"/><path d=\"M22.5 7.5C27.5 11 29.5 15 29.5 18.5C29.5 21 27.5 23 25.5 24.5V26H29L30.5 29.5C29.5 30.5 28 31 26.5 31L31.5 34V38.5H13.5V34L18.5 31C17 31 15.5 30.5 14.5 29.5L16 26H19.5V24.5C17.5 23 15.5 21 15.5 18.5C15.5 15 17.5 11 22.5 7.5Z\"/></g><g id=\"Bd\"><path d=\"M22.5 11.5V17.5M19.5 14.5H25.5M19.5 26H25.5M15 34H30\"/></g><g id=\"Q\"><circle cx=\"9.5\" cy=\"13\" r=\"2.1\"/><circle cx=\"16\" cy=\"10\" r=\"2.1\"/><circle cx=\"22.5\" cy=\"8.2\" r=\"2.1\"/><circle cx=\"29\" cy=\"10\" r=\"2.1\"/><circle cx=\"35.5\" cy=\"13\" r=\"2.1\"/><path d=\"M11.5 38.5V34C11.5 33 12 32.5 12.5 32L9.5 14.5L15.5 24L16 11.5L20.5 23L22.5 10L24.5 23L29 11.5L29.5 24L35.5 14.5L32.5 32C33 32.5 33.5 33 33.5 34V38.5Z\"/></g><g id=\"Qd\"><path d=\"M12.5 32C18 30.5 27 30.5 32.5 32M12 36H33\"/></g><g id=\"K\"><path d=\"M21 3H24V6H27V9H24V18.5H21V9H18V6H21Z\"/><path d=\"M11.5 38.5V34C11.5 33 12 32.5 12.5 32C9 28 8 20 11 16.5C13.5 13.5 19 13.5 22.5 18C26 13.5 31.5 13.5 34 16.5C37 20 36 28 32.5 32C33 32.5 33.5 33 33.5 34V38.5Z\"/></g><g id=\"Kd\"><path d=\"M12.5 32C18 30.5 27 30.5 32.5 32M12 36H33M22.5 18.5V28\"/></g><g id=\"N\"><path d=\"M12 38.5C12 31 14 26 19 22C16.5 22 14.5 23.5 13 25.5C11.5 26.5 9.5 25.5 9.5 24C9.5 21.5 13.5 16.5 16 13C17 11.5 17.5 9.5 17.5 8L19 6L21 7.5C22 7 23.5 6.5 25 7C32 9 36.5 16 36.5 25C36.5 30 35 34 35 38.5Z\"/></g><g id=\"Nd\"><path d=\"M18.8 13H20.2M11 24L12.5 23.5M25 11.5C29 14 31.5 19 31.5 26M12 34.5H35\"/></g>";
+/* ChessSRS Vector Piece Definitions — original Diagram artwork from assets/pieces/silhouettes.svg
+   ViewBox: 0 0 100 100.
+   Each piece contains silhouette (gK, gQ, gR, gB, gN, gP) and interior details (dK, dQ, dR, dB, dN, dP).
+   Layers when rendered:
+     <use href="#g{P}" class="halo" />   (halo around piece)
+     <use href="#g{P}" class="line" />   (outer stroke)
+     <use href="#g{P}" class="fill" />   (inner fill)
+     <use href="#d{P}" class="det" />    (interior detail strokes)
+*/
+window.PIECE_DEFS = `<defs>
+<g id="gK"><path d="M47 6H53V14H61V20H53V28H47V20H39V14H47z"/><path d="M29 42C29 33 39 29 50 29S71 33 71 42C71 51 64 58 62 66H38C36 58 29 51 29 42z"/><path d="M31 66h38a3 3 0 0 1 0 6H31a3 3 0 0 1 0-6z"/><path d="M37 72h26l5 10H32z"/><path d="M27 88h46v-3q0-4-4-4H31q-4 0-4 4z"/></g>
+<g id="dK"><path d="M34 47C44 52 56 52 66 47" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>
+<g id="gQ"><path d="M26 30L32 52L38 30L44 52L50 27L56 52L62 30L68 52L74 30L70 68H30z"/><circle cx="26" cy="26" r="3.6"/><circle cx="38" cy="26" r="3.6"/><circle cx="50" cy="22" r="3.6"/><circle cx="62" cy="26" r="3.6"/><circle cx="74" cy="26" r="3.6"/><path d="M31 66h38a3 3 0 0 1 0 6H31a3 3 0 0 1 0-6z"/><path d="M37 72h26l5 10H32z"/><path d="M27 88h46v-3q0-4-4-4H31q-4 0-4 4z"/></g>
+<g id="dQ"><path d="M35 58H65" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>
+<g id="gR"><path d="M31 16H41V22H45V16H55V22H59V16H69V34H31z"/><path d="M33 34H67L65 41H35z"/><path d="M37 41H63L66 76H34z"/><path d="M29 76H71V82H29z"/><path d="M27 88h46v-3q0-4-4-4H31q-4 0-4 4z"/></g>
+<g id="dR"><path d="M34 35H66" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>
+<g id="gB"><circle cx="50" cy="15" r="4.6"/><path d="M50 20c12 8 16 20 10 30-2 3-4 5-4 7H44c0-2-2-4-4-7-6-10-2-22 10-30z"/><path d="M33 57h34a3 3 0 0 1 0 6H33a3 3 0 0 1 0-6z"/><path d="M41 63h18c0 7 3 13 9 19H32c6-6 9-12 9-19z"/><path d="M27 88h46v-3q0-4-4-4H31q-4 0-4 4z"/></g>
+<g id="dB"><path d="M55 27L47 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></g>
+<g id="gN"><path d="M27 88C27 78 31 70 38 64C42 60 46 58 44 55C38 55 30 58 26 60C22 61 20 56 22 51C24 46 30 40 33 34L35 28L38 12L47 21C56 16 68 22 74 36C80 52 76 70 73 88Z"/><path d="M26 88h48v-4q0-4-4-4H30q-4 0-4 4z"/></g>
+<g id="dN"><circle cx="46" cy="33" r="2.4" fill="currentColor"/><path d="M61 29C68 40 69 54 64 68" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>
+<g id="gP"><circle cx="50" cy="27" r="10.5"/><path d="M38 41h24a3 3 0 0 1 0 6H38a3 3 0 0 1 0-6z"/><path d="M40 82c1-12 5-22 6-35h8c1 13 5 23 6 35z"/><path d="M30 88v-3q0-4 4-4h32q4 0 4 4v3z"/></g>
+<g id="dP"></g>
+</defs>`;
 
-/* Static position for the "How it works" story: French Advance after 3...c5, with the expected move c3 drawn as an arrow. */
+/* Static position for the "How it works" story: French Advance after 3...c5, with expected move c3 arrow. */
 (function () {
   const el = document.getElementById("story-board"); if (!el) return;
   const fen = "rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR", sqs = [];
   for (let i = 0; i < 64; i++) if (((i & 7) + (i >> 3)) % 2) sqs.push(`<rect x="${i & 7}" y="${i >> 3}" width="1" height="1" fill="url(#hatch2)"/>`);
   let pcs = "";
-  fen.split("/").forEach((row, r) => { let c = 0; for (const ch of row) { if (+ch) { c += +ch; continue; } const t = ch.toUpperCase();
-    pcs += `<g class="p ${ch < "a" ? "w" : "b"}" transform="translate(${c} ${r})"><g transform="translate(-.058,-.058) scale(.0248)"><use href="#${t}" class="h"/><use href="#${t}" class="f"/><use href="#${t}d" class="l"/></g></g>`; c++; } });
-  el.innerHTML = `<defs><pattern id="hatch2" width=".1" height=".1" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".1" height=".028" fill="#0D0F13" opacity=".62"/></pattern>${window.PIECE_DEFS}</defs>
-    <rect width="8" height="8" fill="#E9ECEF"/>${sqs.join("")}<rect x="2" y="1" width="1" height="1" fill="#8C96F0" opacity=".4"/><rect x="2" y="3" width="1" height="1" fill="#8C96F0" opacity=".4"/>${pcs}
-    <g color="#8C96F0" opacity=".85"><path d="M2.5 6.5Q2.38 6 2.5 5.62" fill="none" stroke="currentColor" stroke-width=".17" stroke-linecap="round"/><path d="M2.5 5.2L2.25 5.64L2.75 5.64Z" fill="currentColor"/></g>
-    <rect width="8" height="8" fill="none" stroke="#0D0F13" stroke-width=".04"/>`;
+  fen.split("/").forEach((row, r) => { let c = 0; for (const ch of row) { if (+ch) { c += +ch; continue; }
+    const t = ch.toUpperCase(), isWhite = ch < "a";
+    pcs += `<g class="pc-g ${isWhite ? "w" : "b"}" transform="translate(${c} ${r}) scale(0.01)">
+      <use href="#g${t}" class="halo"/>
+      <use href="#g${t}" class="line"/>
+      <use href="#g${t}" class="fill"/>
+      <use href="#d${t}" class="det"/>
+    </g>`; c++; } });
+  el.innerHTML = `<defs><pattern id="hatch2" width=".1" height=".1" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".012" height=".1" fill="currentColor"/></pattern>${window.PIECE_DEFS}</defs>
+    <rect width="8" height="8" class="sq-l"/>${sqs.join("")}<rect x="2" y="1" width="1" height="1" class="sq-hl"/><rect x="2" y="3" width="1" height="1" class="sq-hl"/>${pcs}
+    <g class="story-arr"><path d="M2.5 6.5Q2.38 6 2.5 5.62" fill="none" stroke="currentColor" stroke-width=".14" stroke-linecap="round"/><path d="M2.5 5.2L2.25 5.64L2.75 5.64Z" fill="currentColor"/></g>
+    <rect width="8" height="8" fill="none" stroke="currentColor" stroke-width=".035" class="board-frame"/>`;
 })();

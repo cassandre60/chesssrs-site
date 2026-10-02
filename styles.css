@@ -1,4 +1,50 @@
 /* ChessSRS site — design tokens */
+/* ============================================================
+   SELF-HOSTED FONTS (OFL)
+   ============================================================ */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('assets/fonts/Geist-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('assets/fonts/Geist-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('assets/fonts/Geist-SemiBold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('assets/fonts/GeistMono-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('assets/fonts/GeistMono-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('assets/fonts/InstrumentSerif-Regular.ttf') format('truetype');
+}
+
 :root{--bg:#F5F3EF;--bg2:#ECE9E3;--sf:#fff;--ln:#17140f1f;--tx:#17140F;--mu:#5F584D;--ac:#9A5F0B;--bb:#17140F;--bt:#F5F3EF;
 --serif:"Instrument Serif",Georgia,"Times New Roman",serif;--sans:Geist,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 --g:clamp(20px,4vw,48px);--sp:clamp(88px,12vw,168px);--r:20px;
@@ -131,18 +177,87 @@ h2{font:400 clamp(36px,4.8vw,68px)/1.04 var(--serif);letter-spacing:-.02em;max-w
 .sk:hover kbd{color:var(--at)}
 @media(max-width:860px){.ab{grid-template-columns:1fr}.ap{min-height:0}.sk{margin-top:6px}}
 
-/* board + vector pieces (SVG) */
+/* board + vector pieces (SVG) — authentic Diagram artwork */
 .bd{display:block;width:100%;height:auto;aspect-ratio:1;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.board-frame{color:var(--ink)}
+.board-squares{color:var(--hatch)}
+.sq-l{fill:var(--sq-l)}
+.sq-d{fill:var(--sq-d)}
+.sq-hl{fill:var(--aa);opacity:.35}
+.story-arr{color:var(--aa);opacity:.95}
 .p{transition:transform .2s ease-out}
-.p .h{fill:#E9ECEF;stroke:#E9ECEF;stroke-width:3.4;stroke-linejoin:round}
-.p .f{stroke:#0D0F13;stroke-width:1.4;stroke-linejoin:round}.p .l{fill:none;stroke-width:1;stroke-linecap:round}
-.p.w .f{fill:#fff}.p.w .l{stroke:#0D0F13}
-.p.b .f{fill:#1d2027}.p.b .l{stroke:#E8EBF0}
-.pi{width:56px;height:56px;color:var(--aa);fill:currentColor;stroke:none;vertical-align:middle}
+.pc-g use{stroke-linejoin:round;stroke-linecap:round}
+.pc-g .halo{fill:var(--halo);stroke:var(--halo);stroke-width:7}
+.pc-g .det{fill:none;stroke:none}
+.pc-g.w .line{fill:var(--ws);stroke:var(--ws);stroke-width:4.4}
+.pc-g.w .fill{fill:var(--wf);stroke:none}
+.pc-g.w .det{color:var(--wd);stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.pc-g.b .line{fill:var(--bs);stroke:var(--bs);stroke-width:4.4}
+.pc-g.b .fill{fill:var(--bf);stroke:none}
+.pc-g.b .det{color:var(--bd);stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.pi{width:56px;height:56px;vertical-align:middle;display:inline-block}
+
+/* legacy fallbacks */
+.p .h{fill:var(--halo);stroke:var(--halo);stroke-width:5;stroke-linejoin:round}
+.p .f{stroke:var(--ws);stroke-width:2.4;stroke-linejoin:round}.p .l{fill:none;stroke-width:1.4;stroke-linecap:round}
+.p.w .f{fill:var(--wf)}.p.w .l{stroke:var(--wd)}
+.p.b .f{fill:var(--bf)}.p.b .l{stroke:var(--bd)}
 
 /* demo: header, sheets, controls */
-.app{position:relative;--al:#ffffff1c;--as:#171b22}
-.app.light{--ab:#F4F5F7;--at:#14161C;--am:#667085;--al:#14161c1c;--as:#fff}
+.app{
+  position:relative;
+  --page:#050608;
+  --bg:#0D0F13;
+  --surface:#151920;
+  --ink:#ECEEF1;
+  --ink2:#9BA2AE;
+  --ink3:#666D79;
+  --hair:rgba(236,238,241,.14);
+  --hair2:rgba(236,238,241,.06);
+  --scrim:rgba(0,0,0,.5);
+  --sq-l:#232A36;
+  --sq-d:#10141B;
+  --hatch:rgba(236,238,241,.22);
+  --wf:#ECEEF1; --ws:#0D0F13; --wd:#0D0F13;
+  --bf:#0D0F13; --bs:#ECEEF1; --bd:#ECEEF1;
+  --halo:#11141A;
+  --aa:#8A9BFF;
+  --at:var(--ink);
+  --ab:var(--bg);
+  --am:var(--ink2);
+  --al:var(--hair);
+  --as:var(--surface);
+  background:var(--ab);
+  color:var(--at);
+  border-radius:14px;
+  padding:clamp(14px,2.6vw,30px);
+  box-shadow:0 0 0 1px var(--ln),0 40px 80px -30px #0008;
+  font-size:16px;
+  min-height:620px;
+}
+.app.light{
+  --page:#E2E6E9;
+  --bg:#F1F3F4;
+  --surface:#FAFBFB;
+  --ink:#101318;
+  --ink2:#4B5361;
+  --ink3:#868D98;
+  --hair:rgba(16,19,24,.13);
+  --hair2:rgba(16,19,24,.055);
+  --scrim:rgba(16,19,24,.22);
+  --sq-l:#F8F9FA;
+  --sq-d:#E7EAED;
+  --hatch:rgba(16,19,24,.30);
+  --wf:#FFFFFF; --ws:#101318; --wd:#101318;
+  --bf:#101318; --bs:#101318; --bd:#F1F3F4;
+  --halo:#F8F9FA;
+  --aa:#2A3FD9;
+  --at:var(--ink);
+  --ab:var(--bg);
+  --am:var(--ink2);
+  --al:var(--hair);
+  --as:var(--surface);
+}
 .app [hidden]{display:none!important}
 .app button{font-family:inherit}
 .ah{gap:10px}.ah .gap{flex:1}

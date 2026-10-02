@@ -15,8 +15,8 @@
     { name: "black-vs-sicilian", side: "b", lines: [
       { t: "Black Vs [Sicilian]: Najdorf, English Attack", s: "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5 Nb3 Be6" }] }];
   const SAMPLE = `[Event "My Rep for White"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 5. d4 exd4 6. cxd4 Bb4+ 7. Nc3 Nxe4 8. O-O Bxc3 9. d5 Bf6 10. Re1 Ne7 *`;
-  const ACC = [["Periwinkle", "#8C96F0"], ["Amber", "#E2A84B"], ["Mint", "#6FD3A8"], ["Rose", "#F08CA8"]];
-  const set = { theme: "dark", accent: "#8C96F0", sound: false, coords: true, arrows: true, retention: 90, limit: 20 };
+  const ACC = [["Ultramarine", "#8A9BFF", "#2A3FD9"], ["Violet", "#B7A0FF", "#6B3FD4"], ["Verdigris", "#5FCBD3", "#0B7A83"], ["Ochre", "#F2B04D", "#9A5500"]];
+  const set = { theme: "dark", accent: "#8A9BFF", sound: false, coords: true, arrows: true, retention: 88, limit: 20 };
   let studies = [], uid = 0, sel = 0, practice = false, queue = [], cur = null, an = null, isrc = "file";
   const mkStudy = (name, side, lines) => {
     const s = { id: ++uid, name, side, active: true, lines: [] };
@@ -31,16 +31,21 @@
   const ico = { chev: '<path d="m6 9 6 6 6-6"/>', dots: '<g fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></g>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>', check: '<path d="m5 12.5 5 5 9-10"/>', x: '<path d="M6 6l12 12M18 6 6 18"/>' };
   const I = k => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ico[k]}</svg>`;
-  const squares = [...Array(64)].map((_, i) => ((i & 7) + (i >> 3)) % 2 ? `<rect x="${i & 7}" y="${i >> 3}" width="1" height="1" fill="url(#hatch)"/>` : "").join("");
+  const squares = [...Array(64)].map((_, i) => {
+    const f = i & 7, r = i >> 3;
+    const isDark = (f + r) % 2 === 1;
+    return `<rect x="${f}" y="${r}" width="1" height="1" class="${isDark ? 'sq-d' : 'sq-l'}"/>` +
+      (isDark ? `<rect x="${f}" y="${r}" width="1" height="1" fill="url(#hatch)"/>` : '');
+  }).join("");
   host.innerHTML = `
   <div class="ah"><button class="as" data-a="picker" aria-haspopup="dialog"><span id="a-study"></span>${I("chev")}</button><span class="ad" id="a-due"></span>
     <span class="gap"></span><button class="ib2" data-a="settings" aria-label="Settings">${I("gear")}</button><button class="ib2" data-a="more" aria-label="Study menu">${I("dots")}</button></div>
   <div class="ab">
     <div class="bw"><div class="rk"></div>
       <svg class="bd" viewBox="0 0 8 8" role="application" tabindex="0" aria-label="Chess board. Arrow keys move the cursor, Enter picks up or drops a piece.">
-        <defs><pattern id="hatch" width=".1" height=".1" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".1" height=".028" fill="#0D0F13" opacity=".62"/></pattern>${window.PIECE_DEFS}</defs>
-        <rect width="8" height="8" fill="#E9ECEF"/>${squares}<g class="ov"></g><g class="pcs"></g><g class="arr" style="color:var(--aa)" opacity=".85"></g>
-        <rect width="8" height="8" fill="none" stroke="#0D0F13" stroke-width=".04"/>
+        <defs><pattern id="hatch" width=".1" height=".1" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".012" height=".1" fill="currentColor"/></pattern>${window.PIECE_DEFS}</defs>
+        <g class="board-squares">${squares}</g><g class="ov"></g><g class="pcs"></g><g class="arr" style="color:var(--aa)" opacity=".95"></g>
+        <rect width="8" height="8" fill="none" stroke="currentColor" stroke-width=".035" class="board-frame"/>
       </svg><div class="fl"></div></div>
     <div class="ap">
       <div id="a-rev"><p class="at" id="a-title"></p><p class="aw"><i class="tn"></i><span id="a-turn"></span></p>
@@ -55,7 +60,7 @@
   let flip = false, pcs = [], selSq = -1, dests = [], drag = null, enabled = false, timer = 0, user = "w", lastMove = null, ac = null, opener = null, kb = -1, kbOn = false;
   const kc = { c: 4, r: 6 }, PN = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" };
   const at = i => pcs.find(p => p.i === i), D = i => [flip ? 7 - (i & 7) : i & 7, flip ? 7 - (i >> 3) : i >> 3];
-  const art = ch => { const t = ch.toUpperCase(); return `<g transform="translate(-.058,-.058) scale(.0248)"><use href="#${t}" class="h"/><use href="#${t}" class="f"/><use href="#${t}d" class="l"/></g>`; };
+  const art = ch => { const t = ch.toUpperCase(), isWhite = ch < "a"; return `<g class="pc-g ${isWhite ? "w" : "b"}" transform="scale(0.01)"><use href="#g${t}" class="halo"/><use href="#g${t}" class="line"/><use href="#g${t}" class="fill"/><use href="#d${t}" class="det"/></g>`; };
   const place = (p, i) => { p.i = i; const [c, r] = D(i); p.el.style.transform = `translate(${c}px,${r}px)`; };
   const labels = () => { $(".rk").innerHTML = [...Array(8)].map((_, r) => `<span>${flip ? r + 1 : 8 - r}</span>`).join(""); $(".fl").innerHTML = [...Array(8)].map((_, c) => `<span>${F[flip ? 7 - c : c]}</span>`).join(""); };
   function ping() { if (!set.sound) return; try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = 620; g.gain.value = .04; o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + .05); } catch (e) {} }
@@ -153,7 +158,12 @@
   function play(m) { const f = sq(m.slice(0, 2)), t = sq(m.slice(2, 4)); move(f, t); lastMove = [f, t]; mark(lastMove, -1); ping(); }
   function reveal(m) {
     $("#a-rv").hidden = !m; arrow(m); if (!m) return;
-    $(".pi").innerHTML = `<use href="#${at(sq(m.slice(0, 2))).ch.toUpperCase()}"/>`; $("#a-sq").textContent = m.slice(2, 4); say(`Play ${m.slice(2, 4)} to continue.`);
+    const p = at(sq(m.slice(0, 2)));
+    const isW = p && p.ch < "a";
+    const pieceId = p ? p.ch.toUpperCase() : "P";
+    $(".pi").setAttribute("viewBox", "0 0 100 100");
+    $(".pi").innerHTML = `<g class="pc-g ${isW ? "w" : "b"}"><use href="#g${pieceId}" class="halo"/><use href="#g${pieceId}" class="line"/><use href="#g${pieceId}" class="fill"/><use href="#d${pieceId}" class="det"/></g>`;
+    $("#a-sq").textContent = m.slice(2, 4); say(`Play ${m.slice(2, 4)} to continue.`);
   }
   function rate(c, ok) { if (practice) return; if (ok) { c.ivl = nextInterval(c.ivl, set.retention); c.due = false; } else { c.lapses++; c.ivl = 0; c.due = true; } head(); }
   function miss() { if (!cur.missed) { cur.missed = true; rate(cur.c, false); } }
@@ -200,7 +210,7 @@
   const switchRow = (k, label) => `<label class="row"><span>${label}</span><input type="checkbox" role="switch" data-k="${k}" ${set[k] ? "checked" : ""}></label>`;
   const settings = () => modal("Settings", `<div class="grp">
     <div class="row"><span>Theme</span><span class="seg">${["dark", "light"].map(v => `<button data-a="theme" data-v="${v}" aria-pressed="${set.theme === v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join("")}</span></div>
-    <div class="row"><span>Accent</span><span class="swt">${ACC.map(([n, c]) => `<button data-a="accent" data-v="${c}" style="--c:${c}" aria-label="${n}" aria-pressed="${set.accent === c}"></button>`).join("")}</span></div>
+    <div class="row"><span>Accent</span><span class="swt">${ACC.map(([n, cd, cl]) => { const c = set.theme === "light" ? cl : cd; return `<button data-a="accent" data-v="${c}" style="--c:${c}" aria-label="${n}" aria-pressed="${set.accent === c}"></button>`; }).join("")}</span></div>
     ${switchRow("sound", "Sound")}${switchRow("coords", "Show move notation")}${switchRow("arrows", "Show arrows and circles")}</div>
     <div class="grp"><label class="row col"><span>Target retention <b id="v-ret">${set.retention}%</b></span><input type="range" min="80" max="95" value="${set.retention}" data-k="retention"></label>
     <label class="row col"><span>Daily limit <b id="v-lim">${set.limit}</b></span><input type="range" min="5" max="50" step="5" value="${set.limit}" data-k="limit"></label></div>
