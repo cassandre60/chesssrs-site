@@ -8,6 +8,7 @@ test-results/
 playwright-report/
 blob-report/
 coverage/
+tests/screenshots/
 
 # OS and editor files
 .DS_Store

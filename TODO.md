@@ -10,12 +10,12 @@ Tracking progress across workstreams as defined in the handoff specification.
 - [x] Add GitHub Actions CI workflow for test and build validation
 
 ## Workstream B: Real-Browser QA Harness
-- [ ] Install Playwright (`@playwright/test`)
-- [ ] Script responsive screenshot capture (375px, 768px, 1280px, 1920px; light & dark)
-- [ ] Script demo state screenshots (initial, mistake reveal, empty state, sheets)
-- [ ] Add accessibility audit (axe-core) & Lighthouse checks
-- [ ] Add real end-to-end browser tests (drag-and-drop, click-to-move, keyboard, import, settings)
-- [ ] Fix any layout or interaction regressions discovered in real browsers
+- [x] Install Playwright (`@playwright/test`)
+- [x] Script responsive screenshot capture (375px, 768px, 1280px, 1920px; light & dark)
+- [x] Script demo state screenshots (initial, mistake reveal, empty state, sheets)
+- [x] Add accessibility audit (axe-core) & Lighthouse checks
+- [x] Add real end-to-end browser tests (drag-and-drop, click-to-move, keyboard, import, settings)
+- [x] Fix any layout or interaction regressions discovered in real browsers
 
 ## Workstream C: Demo Fidelity (Align Demo with Real App)
 - [ ] Inspect app source in `/home/mohamed/Desktop/Github/Chess Repertoire SRS/`

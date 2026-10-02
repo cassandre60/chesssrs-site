@@ -1,1 +1,1 @@
-{"name":"chesssrs-site","private":true,"scripts":{"test":"node tests/demo.test.js","build":"python3 build.py"}}
+{"name":"chesssrs-site","private":true,"scripts":{"test":"node tests/demo.test.js","test:e2e":"playwright test tests/e2e/interactions.spec.js tests/e2e/accessibility.spec.js","screenshots":"playwright test tests/e2e/screenshots.spec.js","build":"python3 build.py"},"devDependencies":{"@axe-core/playwright":"^4.13.0","@playwright/test":"^1.63.0"}}
