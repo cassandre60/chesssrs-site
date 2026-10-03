@@ -4,9 +4,24 @@ Tracking progress across workstreams as defined in the handoff specification.
 
 ## Active High-Priority Tasks
 - [x] Task 1: Update repository URLs across all files from deprecated `chess-repertoire-srs` to active `ChessSRS` (`https://github.com/mansourvery-hub/ChessSRS`).
-- [x] Task 2: Re-architect web demo to pixel-faithfully replicate the actual Flutter app review screen shown in screenshots (`All Studies ∨`, `3 due`, `⋯`, side column with `Game 1`, `○ White to play`, `1. ·······` headline move, note slot with vertical rule, and bottom `Skip` / `Continue` pill button).
-- [x] Task 3: Establish a dynamic sync architecture (`scripts/sync-app-meta.js` / build hooks) to keep demo studies, menus, strings, and tokens mirrored directly from the app codebase.
+- [x] Task 3: Dynamic sync of the demo's design inputs from the app repo (`scripts/sync-design.js`, `--check` fails on stale output). Replaces the earlier `sync-app-meta.js`, which only read a version string and hardcoded the accent list it claimed to extract.
+- [ ] Task 2: Finish review-screen fidelity. Tokens, fonts, piece art, top bar, meta row, turn indicator, dashed blank, board frame and chapter titles are done and verified against the real app. Remaining:
+  - [ ] Notation line: full move history with figurines (`SrsNotationLine` truncates to the last 8 plies behind a `…`), answer rendered as SAN in the accent, not a coordinate
+  - [ ] Answer slot: SAN plus figurines; currently shows the raw coordinate
+  - [ ] Menus: replace the demo's invented sheets with the app's real ones (`SrsLibrarySheet`, `StudyActionsSheet`, `SrsSettingsScreen`)
+  - [ ] Re-verify against the app's own screenshot harness (`SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`)
 - [ ] Task 4: Complete launch items (Liberapay handle placeholder, custom domain docs). Blocked on user: replace `liberapay.com/YOUR_NAME` in `index.html` and optionally set custom domain per `README.md` launch checklist.
+
+## Ground truth for fidelity work
+
+Do not review the demo against the app's markdown. Review it against the app's code and its
+own captured screenshots:
+
+- `design/tokens/tokens.{css,json}` — the app's design system, machine-readable
+- `test/view/screenshot_capture_test.dart` — renders the real screens headlessly. Committed
+  screenshots under `docs/screenshots/` had drifted: the prompt state is **46% different pixels**
+  from what the current code renders.
+
 
 ## Workstream A: Repo and Project Hygiene
 - [x] Check GitHub CLI auth (`gh auth status`)
