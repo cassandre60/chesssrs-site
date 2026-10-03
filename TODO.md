@@ -6,9 +6,10 @@ Tracking progress across workstreams as defined in the handoff specification.
 - [x] Task 1: Update repository URLs across all files from deprecated `chess-repertoire-srs` to active `ChessSRS` (`https://github.com/mansourvery-hub/ChessSRS`).
 - [x] Task 3: Dynamic sync of the demo's design inputs from the app repo (`scripts/sync-design.js`, `--check` fails on stale output). Replaces the earlier `sync-app-meta.js`, which only read a version string and hardcoded the accent list it claimed to extract.
 - [ ] Task 2: Finish review-screen fidelity. Tokens, fonts, piece art, top bar, meta row, turn indicator, dashed blank, board frame and chapter titles are done and verified against the real app. Remaining:
-  - [ ] Notation line: full move history with figurines (`SrsNotationLine` truncates to the last 8 plies behind a `…`), answer rendered as SAN in the accent, not a coordinate
-  - [ ] Answer slot: SAN plus figurines; currently shows the raw coordinate
-  - [ ] Menus: replace the demo's invented sheets with the app's real ones (`SrsLibrarySheet`, `StudyActionsSheet`, `SrsSettingsScreen`)
+  - [x] Notation line: full move history with figurines (`SrsNotationLine` truncates to the last 8 plies behind a `…`), answer rendered as SAN in the accent
+  - [x] Answer slot: SAN plus figurines
+  - [x] Menus: Library sheet (Settings, About) and Study Actions sheet (Analyze, Practice, Export, Pause/Resume, Rename, Delete) match the app
+  - [ ] Settings screen: replace the demo's invented settings with the app's real `SrsSettingsScreen`
   - [ ] Re-verify against the app's own screenshot harness (`SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`)
 - [ ] Task 4: Complete launch items (Liberapay handle placeholder, custom domain docs). Blocked on user: replace `liberapay.com/YOUR_NAME` in `index.html` and optionally set custom domain per `README.md` launch checklist.
 

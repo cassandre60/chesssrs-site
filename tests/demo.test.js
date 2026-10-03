@@ -77,6 +77,7 @@ click("isrc",{v:"lichess"});click("doimport");ok(/can't reach Lichess/.test(q("#
 click("picker");click("sacts",{i:"2"});flush();click("rename");q("#r-in").value="french-rep";click("dorename");ok(q("#a-study").textContent==="french-rep","rename");
 click("picker");click("sacts",{i:"2"});flush();click("pause");flush();ok(q("#a-due").textContent==="Paused"&&q("#a-empty").innerHTML.includes("Paused"),"pause");click("picker");click("sacts",{i:"2"});flush();click("pause");flush();ok(/due/.test(q("#a-due").textContent),"resume");
 // settings
+// Library sheet (from more) then Settings row inside it
 click("more");click("settings");ok(mo.innerHTML.includes("Target retention")&&mo.innerHTML.includes("Daily limit")&&mo.innerHTML.includes("About"),"settings sheet");
 mo._h.input[0]({type:"input",target:{dataset:{k:"retention"},type:"range",value:"85"}});ok(q("#v-ret").textContent==="85%","retention slider updates");
 mo._h.change[0]({type:"change",target:{dataset:{k:"limit"},type:"range",value:"5"}});flush();ok(true,"daily limit change restarts session");

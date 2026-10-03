@@ -71,7 +71,7 @@
   const MOTION = META.motion || {};
   const QUICK_ADVANCE_MS = MOTION.quietAdvanceMs ?? 560;
   const OPPONENT_REPLY_MS = MOTION.pieceMoveMs ?? 170;
-  const set = { theme: "dark", accent: (ACC.find(a => a.default) || ACC[0] || {}).id, sound: false, coords: true, arrows: true, retention: 88, limit: 20 };
+  const set = { theme: "dark", accent: (ACC.find(a => a.default) || ACC[0] || {}).id, sound: false, coords: true, arrows: true, retention: 88, limit: 20, scheduler: "fsrs", showHistory: false, showArrows: true, showNotes: true, diagnostics: false, soundTheme: "Classic", masterVolume: 1 };
   let studies = [], uid = 0, sel = 0, practice = false, queue = [], cur = null, an = null, isrc = "file", sa = 0;
 
   const mkStudy = (name, side, lines) => {
@@ -727,13 +727,87 @@
 
   const switchRow = (k, label) => `<label class="row"><span>${label}</span><input type="checkbox" role="switch" data-k="${k}" ${set[k] ? "checked" : ""}></label>`;
 
-  const settings = () => modal("Settings", `<div class="grp">
-    <div class="row"><span>Theme</span><span class="seg">${["dark", "light"].map(v => `<button data-a="theme" data-v="${v}" aria-pressed="${set.theme === v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join("")}</span></div>
-    <div class="row"><span>Accent</span><span class="swt">${ACC.map(a => `<button data-a="accent" data-v="${a.id}" style="--c:${a[set.theme] || a.dark}" aria-label="${a.name}" aria-pressed="${set.accent === a.id}"></button>`).join("")}</span></div>
-    ${switchRow("sound", "Sound")}${switchRow("coords", "Show move notation")}${switchRow("arrows", "Show arrows and circles")}</div>
-    <div class="grp"><label class="row col"><span>Target retention <b id="v-ret">${set.retention}%</b></span><input type="range" min="80" max="95" value="${set.retention}" data-k="retention"></label>
-    <label class="row col"><span>Daily limit <b id="v-lim">${set.limit}</b></span><input type="range" min="5" max="50" step="5" value="${set.limit}" data-k="limit"></label></div>
-    <div class="grp">${row("about", "About and licences")}</div>`);
+  /* Segmented control: single-select pill group. The app's SrsSegmented wraps in a rounded
+     container with hairline border; selected pill is ink on ground, others are transparent. */
+  const seg = (opts, val, onChange, name) => {
+    const b = Object.entries(opts).map(([k, v]) => `<button class="seg-btn${k == val ? " on" : ""}" data-a="${onChange}" data-v="${k}" aria-pressed="${k == val}">${v}</button>`).join("");
+    return `<span class="seg" data-n="${name}">${b}</span>`;
+  };
+
+  /* Switch: 44x26 toggle with animated thumb. The app's SrsSwitch uses a 44x44 hit area,
+     the thumb is 20x20, track is 26px wide. */
+  const sw = (k, label) => `<label class="sw"><span>${label}</span><span class="tog${set[k] ? " on" : ""}" data-k="${k}" role="switch" aria-checked="${set[k]}"><i></i></span></label>`;
+
+  /* Accent dots: the app's SrsAccentDots shows circles in a rounded container, selected has an
+     ink ring. Values are the accent IDs. */
+  const accentDots = () => `<span class="adots">${ACC.map(a => `<button class="adot${a.id === set.accent ? " on" : ""}" data-a="accent" data-v="${a.id}" aria-label="${a.name}" aria-pressed="${a.id === set.accent}" style="--c:${a[set.theme] || a.dark}"></button>`).join("")}</span>`;
+
+  /* Settings row: label + optional help text + trailing control. Below 520px the control stacks
+     under the text (app's SrsSettingsRow reflows at 520). */
+  const sr = (label, help, control) => `<div class="sr"><div class="sr-text"><b>${label}</b>${help ? `<small>${help}</small>` : ""}</div><div class="sr-trail">${control}</div></div>`;
+
+  /* Navigation row: label + help + value on the right, acts as a button. */
+  const nav = (label, help, value, action) => `<button class="sr sr-nav" data-a="${action}"><div class="sr-text"><b>${label}</b>${help ? `<small>${help}</small>` : ""}</div><div class="sr-trail">${esc(value)}</div></button>`;
+
+  const settings = () => modal(null, `<h4 class="gh" style="margin-top:-6px">Settings</h4>` + [
+    /* 1. Account — only present if we had auth; in demo we show a placeholder. */
+    // `<div class="grp"><h5 class="gh">Account</h5>${sr("Lichess account", "Sign in to import private and unlisted studies.", `<span class="sr-val">Not signed in</span>`)}</div>`,
+
+    /* 2. Review & Spaced Repetition */
+    `<div class="grp"><h5 class="gh">Review & Spaced Repetition</h5>` +
+    sr("Daily limit", "Positions reviewed per day.",
+       seg({25:"25",50:"50",100:"100",150:"150",200:"200",0:"None"}, set.limit, "limit")) +
+    sr("Target retention", "Higher means more reviews. 88% suits most players; 95% is for tournament preparation.",
+       seg({0.80:"80%",0.85:"85%",0.88:"88%",0.90:"90%",0.95:"95%"}, set.retention, "retention")) +
+    sr("Scheduling algorithm", "FSRS adapts to how well you remember each position.",
+       seg({fsrs:"FSRS",simple:"Simple",easeScaling:"Ease"}, set.scheduler || "fsrs", "scheduler")) +
+    sr("Show move notation", "Display preceding moves (e.g. 1. e4 e5) in the review screen.",
+       sw("showHistory", "")) +
+    sr("Show arrows and circles", "Drawn from your study, only after you answer.",
+       sw("showArrows", "")) +
+    sr("Show notes after a move", "Comments from your study appear once you have answered.",
+       sw("showNotes", "")) +
+    sr("Review Diagnostics HUD", "Show real-time FSRS retrievability, stability, and difficulty HUD in review.",
+       sw("diagnostics", "")) +
+    `</div>`,
+
+    /* 3. Appearance & Theme */
+    `<div class="grp"><h5 class="gh">Appearance & Theme</h5>` +
+    sr("Theme", "",
+       seg({false:"Light",true:"Dark"}, set.theme === "dark", "theme")) +
+    sr("Accent", "Colour of the correct move arrow and selection.", accentDots()) +
+    nav("Theme & appearance", "AMOLED, board brightness, and hue.", set.theme === "dark" ? "Dark" : "Light", "themeAdv") +
+    `</div>`,
+
+    /* 4. Board & Pieces */
+    `<div class="grp"><h5 class="gh">Board & Pieces</h5>` +
+    nav("Board & pieces", "Board themes, piece sets, and move coordinates.", "System / Default", "boardAdv") +
+    `</div>`,
+
+    /* 5. Sound & Audio */
+    `<div class="grp"><h5 class="gh">Sound & Audio</h5>` +
+    sr("Sound", "", sw("sound", "")) +
+    nav("Sound & audio details", "Sound theme and master volume slider.", `${set.soundTheme || "Classic"} (${Math.round((set.masterVolume||1)*100)}%)`, "soundAdv") +
+    `</div>`,
+
+    /* 6. Chess Engine */
+    `<div class="grp"><h5 class="gh">Chess Engine</h5>` +
+    nav("Chess engine", "Threads, hash memory, search time, and multi-PV lines.", "", "engineAdv") +
+    `</div>`,
+
+    /* 7. Data & Diagnostics */
+    `<div class="grp"><h5 class="gh">Data & Diagnostics</h5>` +
+    sr("Local database size", "Storage used by local database files.", `<span class="sr-val">~0 MB (demo)</span>`) +
+    nav("HTTP network logs", "Inspect raw HTTP requests and responses.", "", "httpLogs") +
+    nav("App diagnostics logs", "Application error and debug traces.", "", "appLogs") +
+    `</div>`,
+
+    /* 8. About */
+    `<div class="grp"><h5 class="gh">About</h5>` +
+    `<button class="sr sr-nav" data-a="rate"><div class="sr-text"><b>Rate this app</b><small>Open the store listing for Chess Repertoire SRS.</small></div></button>` +
+    `<button class="sr sr-nav" data-a="licences"><div class="sr-text"><b>Licences & open source</b><small>GPL-3.0, chessground, dartchess, and third-party notices.</small></div></button>` +
+    `</div>`
+  ].join(""));
 
   const about = () => modal("About and licences", `<p class="pad">ChessSRS 0.2.0 is free software under GPL-3.0, a fork of Lichess Mobile. This demo runs entirely in your browser and saves nothing.</p><div class="grp"><a class="row" href="https://github.com/mansourvery-hub/ChessSRS" target="_blank" rel="noopener"><span>ChessSRS source</span></a><a class="row" href="https://github.com/lichess-org/mobile" target="_blank" rel="noopener"><span>Lichess Mobile source</span></a></div>`);
 
@@ -762,7 +836,7 @@
 
   /* ---------- Action Handler Registry ---------- */
   const A = {
-    close: closeModal, picker, more, settings, about, import: importModal, doimport: doImport, analyze, skip, cont,
+    close: closeModal, picker, more, about, import: importModal, doimport: doImport, analyze, skip, cont,
     pick: el => { sel = +el.dataset.i; practice = false; closeModal(); startSession(); },
     scope: () => { sel = -1; practice = false; closeModal(); startSession(); },
     sacts: el => studyActions(+el.dataset.i),
@@ -791,12 +865,23 @@
       $("#i-file").hidden = isrc !== "file";
       $("#i-li").hidden = isrc !== "lichess";
     },
-    theme: el => { set.theme = el.dataset.v; apply(); mo.querySelectorAll("[data-a=theme]").forEach(b => b.setAttribute("aria-pressed", b === el)); },
+    theme: el => { set.theme = el.dataset.v === "true"; apply(); mo.querySelectorAll("[data-a=theme]").forEach(b => b.setAttribute("aria-pressed", b === el)); },
     accent: el => { set.accent = el.dataset.v; apply(); mo.querySelectorAll("[data-a=accent]").forEach(b => b.setAttribute("aria-pressed", b === el)); },
     ply: el => showPly(+el.dataset.i),
     aprev: () => showPly(an.i - 1),
     anext: () => showPly(an.i + 1),
-    aback: () => startSession()
+    aback: () => startSession(),
+    /* Library sheet's Settings row opens the full Settings modal. */
+    settings: () => { closeModal(); settings(); },
+    /* Settings handlers — segmented controls and switches */
+    limit: el => { set.limit = +el.dataset.v; apply(); mo.querySelectorAll("[data-a=limit]").forEach(b => b.setAttribute("aria-pressed", b === el)); },
+    retention: el => { set.retention = +el.dataset.v; apply(); el.closest(".sh").querySelectorAll("[data-a=retention]").forEach(b => { b.setAttribute("aria-pressed", b === el); b.classList.toggle("on", b === el); }); },
+    scheduler: el => { set.scheduler = el.dataset.v; apply(); mo.querySelectorAll("[data-a=scheduler]").forEach(b => b.setAttribute("aria-pressed", b === el)); },
+    showHistory: el => { set.showHistory = !set.showHistory; apply(); mo.querySelectorAll("[data-a=showHistory]").forEach(b => b.classList.toggle("on", set.showHistory)); },
+    showArrows: el => { set.showArrows = !set.showArrows; apply(); mo.querySelectorAll("[data-a=showArrows]").forEach(b => b.classList.toggle("on", set.showArrows)); },
+    showNotes: el => { set.showNotes = !set.showNotes; apply(); mo.querySelectorAll("[data-a=showNotes]").forEach(b => b.classList.toggle("on", set.showNotes)); },
+    diagnostics: el => { set.diagnostics = !set.diagnostics; apply(); mo.querySelectorAll("[data-a=diagnostics]").forEach(b => b.classList.toggle("on", set.diagnostics)); },
+    sound: el => { set.sound = !set.sound; apply(); mo.querySelectorAll("[data-a=sound]").forEach(b => b.classList.toggle("on", set.sound)); }
   };
 
   /* Theme and accent are applied the way the app applies them: as data attributes on the demo
@@ -806,6 +891,14 @@
     host.dataset.theme = set.theme;
     if (set.accent) host.dataset.accent = set.accent;
     host.classList.toggle("nocoord", !set.coords);
+    // showHistory controls whether the notation line renders move history
+    host.classList.toggle("show-history", !!set.showHistory);
+    // showArrows controls whether the board shows arrow/circle annotations
+    host.classList.toggle("show-arrows", !!set.showArrows);
+    // showNotes controls whether notes appear after a move
+    host.classList.toggle("show-notes", !!set.showNotes);
+    // diagnostics controls whether the HUD shows
+    host.classList.toggle("diagnostics", !!set.diagnostics);
   }
 
   host.addEventListener("click", e => {

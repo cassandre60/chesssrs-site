@@ -153,9 +153,13 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
     const modal = page.locator('#a-mo');
     await expect(modal).toBeVisible();
 
-    const slider = page.locator('#demo input[data-k="retention"]');
-    await slider.fill('85');
-    await expect(page.locator('#v-ret')).toHaveText('85%');
+    // Click the 85% retention button via evaluate to avoid viewport issues with the tall modal
+    await page.evaluate(() => {
+      const btn = document.querySelector('#demo [data-a="retention"][data-v="0.85"]');
+      if (btn) btn.click();
+    });
+    // Verify the segmented control shows 85% as selected (the "on" class is added by the handler)
+    await expect(page.locator('#demo [data-a="retention"][data-v="0.85"]')).toHaveClass(/on/);
 
     await page.keyboard.press('Escape');
     await expect(modal).toBeHidden();

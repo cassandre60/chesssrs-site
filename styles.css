@@ -548,6 +548,56 @@ input[type=range]{width:100%;accent-color:var(--aa)}
 .mv button{background:none;border:0;color:var(--at);padding:6px 8px;border-radius:8px;cursor:pointer;font:inherit}.mv button:hover{background:var(--al)}.mv button.on{background:var(--aa);color:#0D0F13}
 .nv2{display:flex;gap:6px}.nv2 button{width:40px;height:40px;border-radius:50%;border:1px solid var(--al);background:none;color:var(--at);font-size:22px;line-height:1;cursor:pointer}
 
+/* ============================================================
+   SETTINGS CONTROLS — mirror app's SrsSegmented, SrsSwitch, SrsAccentDots,
+   and SrsSettingsRow (primitives.dart + srs_settings_screen.dart)
+   ============================================================ */
+
+/* Segmented control: pill group with hairline border, selected = ink on ground */
+.seg{display:inline-flex;align-items:center;gap:3px;background:var(--al);border:1px solid var(--al);border-radius:999px;padding:3px}
+.seg-btn{display:inline-flex;align-items:center;justify-content:center;min-width:38px;padding:7px 13px;border-radius:999px;border:0;background:transparent;color:var(--am);font:500 14px var(--sans);cursor:pointer}
+.seg-btn.on{background:var(--ink);color:var(--ground)}
+.seg-btn:focus-visible{outline:2px solid var(--aa);outline-offset:2px}
+
+/* Switch: 44x44 hit area, 26px track, 20px thumb, animated */
+.sw{display:inline-flex;align-items:center;gap:10px;cursor:pointer}
+.sw span{font:400 16px var(--sans);color:var(--at)}
+.tog{position:relative;flex:none;width:44px;height:44px;display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tog::before{content:"";position:absolute;inset:0} /* expands hit area */
+.tog i{display:block;width:44px;height:26px;border-radius:13px;background:var(--al);transition:background .1s var(--ease)}
+.tog i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--at);transition:transform .1s var(--ease),background .1s var(--ease)}
+.tog.on i{background:var(--ink)}
+.tog.on i::after{transform:translateX(18px);background:var(--ground)}
+.tog:focus-visible{outline:2px solid var(--aa);outline-offset:2px}
+
+/* Accent dots: circles in a rounded container, selected has ink ring */
+.adots{display:inline-flex;align-items:center;gap:8px;background:var(--al);border:1px solid var(--al);border-radius:999px;padding:5px}
+.adot{flex:none;width:24px;height:24px;border-radius:50%;border:0;background:var(--c);cursor:pointer;box-shadow:0 0 0 1px var(--al)}
+.adot.on{box-shadow:0 0 0 1px var(--al),0 0 0 3px var(--ink)}
+.adot:focus-visible{outline:2px solid var(--aa);outline-offset:2px}
+
+/* Settings row: label + help on left, control on right. Reflows under 520px. */
+.sr{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:18px 0;border-bottom:1px solid var(--hair2)}
+.sr-text{flex:1 1 300px;min-width:0}
+.sr-text b{display:block;font:500 16px var(--sans);color:var(--ink);overflow-wrap:anywhere}
+.sr-text small{display:block;margin-top:3px;font:400 13px var(--sans);color:var(--ink2)}
+.sr-trail{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.sr-val{font:500 14px var(--sans);color:var(--ink2)}
+.sr-nav{width:100%;text-align:left;background:none;border:0;color:inherit;padding:0;cursor:pointer}
+.sr-nav .sr-trail{justify-content:flex-end}
+
+/* Group header: uppercase, tracking, ink3 */
+.gh{font:700 11.5px/1 var(--sans);letter-spacing:1.1px;color:var(--ink3);text-transform:uppercase;margin:28px 0 8px}
+
+/* Responsive reflow: below 520px the control stacks under the text (app's 520 breakpoint) */
+@media(max-width:520px){
+  .sr{flex-direction:column;align-items:stretch;gap:8px;padding:14px 0}
+  .sr-trail{width:100%;justify-content:flex-start}
+  .seg{width:100%}.seg-btn{flex:1}
+  .adots{width:100%;justify-content:flex-start}
+  .sw{width:100%;justify-content:space-between}
+}
+
 .app{min-height:620px}@media(max-width:860px){.app{min-height:700px}}
 .bd:focus-visible{outline:2px solid var(--aa);outline-offset:3px}
 
