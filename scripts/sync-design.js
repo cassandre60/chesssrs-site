@@ -130,9 +130,23 @@ for (const [src, dest] of [
 /* ------------------------------------------------------------------ figurines */
 
 log('[sync-design] figurines');
+/* Inlined rather than referenced, because a notation line can show a dozen of them and the
+ * app's SrsSan swaps a leading piece letter for an SVG on every one. The markup is
+ * `<svg viewBox=…><g fill="currentColor">`, so emitting the inner group keeps the colour under
+ * CSS control exactly as the app's ColorFilter does. */
+const figs = {};
 for (const k of ['K', 'Q', 'R', 'B', 'N']) {
-  put(`assets/figurines/${k}.svg`, read(`assets/figurines/${k}.svg`));
+  const svg = read(`assets/figurines/${k}.svg`);
+  const vb = viewBox(svg);
+  const body = svg.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+  if (!vb || !body) throw new Error(`could not parse figurine ${k}.svg`);
+  figs[k] = { vb, body: body[1].replace(/\s+/g, ' ').trim() };
+  put(`assets/figurines/${k}.svg`, svg);
 }
+put(
+  'assets/figurines.js',
+  `${BANNER('assets/figurines/*.svg')}window.FIGURINES = ${JSON.stringify(figs, null, 2)};\n`
+);
 
 /* ------------------------------------------------------------------ pieces */
 

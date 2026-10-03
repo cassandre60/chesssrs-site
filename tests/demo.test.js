@@ -6,7 +6,13 @@ function mk(){const o={style:{setProperty(){}},_h:{},_s:{},children:[],hidden:fa
  setPointerCapture(){},setAttribute(){},focus(){},getBoundingClientRect:()=>({left:0,top:0,width:560,height:560}),querySelectorAll:()=>[],
  querySelector(s){return o._s[s]||(o._s[s]=mk())}};return o}
 const host=mk(),body={tagName:"BODY"};
-global.window=global;global.PIECE_DEFS="";global.SRSEngine=require("../engine.js");
+// The real generated design inputs and the real rules engine, so the unit tests exercise the
+// same SAN and figurine data the browser gets rather than a stubbed approximation.
+global.window=global;
+global.Chess=require("chess.js").Chess;
+global.SRSEngine=require("../engine.js");
+require("../assets/figurines.js");
+global.PIECE_VIEWBOX="5 2 90 90";global.PIECE_DEFS="";
 global.document={getElementById:()=>host,createElementNS:()=>mk(),activeElement:body,body,createRange:()=>({selectNodeContents(){}})};
 global.getSelection=()=>({removeAllRanges(){},addRange(){}});global.navigator={clipboard:{writeText:()=>Promise.resolve()}};
 const keys=[];global.addEventListener=(t,f)=>t==="keydown"&&keys.push(f);
@@ -25,7 +31,7 @@ ok(q("#a-study").textContent==="Queen Pawn Repertoire"&&q("#a-due").textContent=
 mv(L1[0]);ok(q("#a-turn").textContent==="White to play"&&/^Correct\./.test(q("#a-live").textContent),"first move remembered, turn row untouched");
 ok(q("#a-due").textContent==="15 due","due count drops to 15 ("+q("#a-due").textContent+")");
 // wrong move -> reveal, then correct -> Continue
-mv("a2a3");ok(q("#a-rv").hidden===false&&q("#a-sq").textContent===L1[2].slice(2),"wrong move reveals target "+q("#a-sq").textContent);
+mv("a2a3");ok(q("#a-rv").hidden===false&&q("#a-sq").innerHTML==="d4","wrong move reveals the expected move in SAN ("+q("#a-sq").innerHTML+")");
 ok(q("#a-due").textContent==="15 due","missed card stays due");
 mv(L1[2]);ok(q("#a-cont").hidden===false&&q("#a-skip").hidden===true,"Continue shown after playing the revealed move");
 key(" ");flush();ok(q("#a-cont").hidden===true,"Space advances");

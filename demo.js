@@ -9,6 +9,20 @@
   const esc = s => String(s).replace(/[&<>\"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const days = n => n === 1 ? "1 day" : n + " days";
 
+  /** SAN for every ply of a line, via the same chess.js the page loads. */
+  const sanOf = sanStr => {
+    const toks = sanStr.split(/\s+/).filter(Boolean);
+    const Chess = window.Chess;
+    if (!Chess) return toks;                       // no rules engine: show the raw tokens
+    const ch = new Chess(), out = [];
+    for (const t of toks) {
+      const mv = ch.move(t);
+      if (!mv) break;
+      out.push(mv.san);
+    }
+    return out;
+  };
+
   /* ---------- study data ----------
      Chapter titles are "Game 1", "Game 2" and so on because that is what the app's importer
      produces: pgn_importer.dart falls back to `Game ${index + 1}` for any game in a PGN with no
@@ -63,7 +77,7 @@
   const mkStudy = (name, side, lines) => {
     const s = { id: ++uid, name, side, active: true, lines: [] };
     for (const l of lines) {
-      const m = compile(l.s), line = { t: l.t, s: l.s, note: l.note, noteSource: l.noteSource, m, cards: [] };
+      const m = compile(l.s), line = { t: l.t, s: l.s, note: l.note, noteSource: l.noteSource, m, san: sanOf(l.s), cards: [] };
       m.forEach((_, k) => {
         if ((k % 2 === 0) === (side === "w")) {
           line.cards.push({ k, line, due: true, ivl: 0, lapses: 0 });
@@ -140,13 +154,7 @@
           </div>
         </div>
 
-        <div class="srs-notation-line" id="a-notation-line">
-          <span class="srs-move-num" id="a-move-num">1.</span>
-          <span class="srs-answer-slot" id="a-answer-slot">
-            <span class="srs-dashed-blank" id="a-blank"></span>
-            <span class="srs-move-san" id="a-san" hidden></span>
-          </span>
-        </div>
+        <div class="srs-notation-line" id="a-notation-line"></div>
 
         <div class="srs-slot-region" id="a-slot-region">
           <div class="srs-note-slot" id="a-note" hidden>
@@ -414,10 +422,8 @@
     user = s.side;
     enabled = false;
     $("#a-title").textContent = L.t;
-    $("#a-move-num").textContent = `${Math.floor(c.k / 2) + 1}.`;
-    $("#a-blank").hidden = false;
-    $("#a-san").hidden = true;
-    $("#a-san").textContent = "";
+    // Open on the decision slot: every ply up to here is history, and this one is the question.
+    $("#a-notation-line").innerHTML = notationHTML(L.san.slice(0, c.k), null);
     $("#a-note").hidden = true;
     $("#a-rv").hidden = true;
     $("#a-cont").hidden = true;
@@ -443,6 +449,14 @@
     ping();
   }
 
+  /* The answer slot below the notation line — the app's _AnswerSlot: the expected move in SAN
+     with a figurine for pieces, then "Play this move to continue. The position will come back
+     soon." A coordinate is not shown anywhere in the app. */
+  const revealSan = () => {
+    const k = cur ? cur.c.k : -1;
+    return k >= 0 && cur.line.san[k] ? cur.line.san[k] : "";
+  };
+
   function reveal(m) {
     if (!m) {
       arrow();
@@ -450,8 +464,8 @@
       return;
     }
     arrow(m);
-    const sanText = m.slice(2, 4);
-    $("#a-sq").textContent = sanText;
+    const sanText = revealSan() || m.slice(2, 4);
+    $("#a-sq").innerHTML = sanFig(sanText);
     $("#a-rv").hidden = false;
     say(`Play ${sanText} to continue.`);
   }
@@ -476,6 +490,54 @@
     }
   }
 
+  /* ---------- Notation ----------
+     Mirrors SrsNotationLine: completed move *pairs* (so a number never wraps away from its
+     move), the line truncated to the last 8 plies behind a leading ellipsis, and the decision
+     slot drawn as either the dashed blank or the answer in the accent. A leading piece letter is
+     swapped for its figurine, as SrsSan does. */
+  const FIG = window.FIGURINES || {};
+
+  const sanFig = san => {
+    if (!san) return "";
+    const f = FIG[san[0]];
+    if (!f) return esc(san);
+    return `<svg class="srs-fig" viewBox="${f.vb}" aria-hidden="true">${f.body}</svg>${esc(san.slice(1))}`;
+  };
+
+  /**
+   * @param history  SAN of every ply before the decision
+   * @param answer   SAN to show in the slot, or null to show the dashed blank
+   */
+  function notationHTML(history, answer) {
+    let startPly = 0, visible = history;
+    if (history.length > 8) {
+      // Start on an even ply so the line opens on a move number rather than mid-pair, which is
+      // what the leading ellipsis is there to explain.
+      const excess = history.length - 8;
+      startPly = excess % 2 === 0 ? excess : excess - 1;
+      visible = history.slice(startPly);
+    }
+    const n = visible.length;
+    const blackToMove = n % 2 === 1;
+    const completed = blackToMove ? n - 1 : n;
+    const slot = answer
+      ? `<span class="srs-move-san">${sanFig(answer)}</span>`
+      : `<span class="srs-dashed-blank"></span>`;
+
+    let h = startPly > 0 ? `<span class="srs-move-num">…</span>` : "";
+    for (let i = 0; i < completed; i += 2) {
+      const num = Math.floor((startPly + i) / 2) + 1;
+      h += `<span class="srs-pair"><span class="srs-move-num">${num}.</span>${sanFig(visible[i])}` +
+        (i + 1 < n ? `<span class="srs-gap"></span>${sanFig(visible[i + 1])}` : "") + `</span>`;
+    }
+    const decisionNumber = Math.floor((startPly + n) / 2) + 1;
+    const head = `<span class="srs-move-num" id="a-move-num">${decisionNumber}.</span>`;
+    h += blackToMove
+      ? `<span class="srs-pair">${head}${sanFig(visible[n - 1])}<span class="srs-gap"></span>${slot}</span>`
+      : `<span class="srs-pair">${head}${slot}</span>`;
+    return h;
+  }
+
   function attempt(f, t) {
     select(-1);
     const want = cur.line.m[cur.c.k];
@@ -487,11 +549,10 @@
       enabled = false;
       reveal();
 
-      // Show move in headline notation line
-      const sanMove = want.slice(2, 4);
-      $("#a-blank").hidden = true;
-      $("#a-san").textContent = sanMove;
-      $("#a-san").hidden = false;
+      // Fill the decision slot. The app reveals `expectedMoves.first.san` — the repertoire
+      // move, not whatever was played — so a transposition still shows what the app would.
+      const sanMove = cur.line.san[cur.c.k] || want.slice(2, 4);
+      $("#a-notation-line").innerHTML = notationHTML(cur.line.san.slice(0, cur.c.k), sanMove);
 
       // Line-level notes are chapter context, not per-move PGN comments:
       // per the Flutter app (_hasAnnotationsOrShapes on the prompt comment),
@@ -525,7 +586,8 @@
         $("#a-note").hidden = false;
       }
       place(at(f), f);
-      say(`Not this move. The repertoire move is ${want.slice(2, 4)}.`);
+      // The app's wording, verbatim: review_screen.dart's _verdictAnnouncement.
+      say(`Not this move. The repertoire move is ${revealSan()}.`);
     }
   }
 
