@@ -9,7 +9,7 @@ Tracking progress across workstreams as defined in the handoff specification.
   - [x] Notation line: full move history with figurines (`SrsNotationLine` truncates to the last 8 plies behind a `…`), answer rendered as SAN in the accent
   - [x] Answer slot: SAN plus figurines
   - [x] Menus: Library sheet (Settings, About) and Study Actions sheet (Analyze, Practice, Export, Pause/Resume, Rename, Delete) match the app
-  - [ ] Settings screen: replace the demo's invented settings with the app's real `SrsSettingsScreen`
+  - [x] Settings screen: 8 sections with SrsSegmented, SrsSwitch, SrsAccentDots, SrsSettingsRow — matches `SrsSettingsScreen`
   - [ ] Re-verify against the app's own screenshot harness (`SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`)
 - [ ] Task 4: Complete launch items (Liberapay handle placeholder, custom domain docs). Blocked on user: replace `liberapay.com/YOUR_NAME` in `index.html` and optionally set custom domain per `README.md` launch checklist.
 

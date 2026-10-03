@@ -530,6 +530,30 @@ h2{font:400 clamp(36px,4.8vw,68px)/1.04 var(--serif);letter-spacing:-.02em;max-w
 .sh{width:min(100%,460px);max-height:100%;overflow:auto;background:var(--as);border:1px solid var(--al);border-radius:18px;padding:16px 18px 18px;box-shadow:0 30px 80px -20px #000b}
 .sht{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.sht b{font-weight:600;font-size:17px;overflow-wrap:anywhere}
 .x{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--am);cursor:pointer}.x:hover{background:var(--al)}
+/* Sheets: Library and Study Actions match the app's SrsSheetRow.
+   Rows have NO border; hairline separators are separate between groups.
+   20px horizontal padding, 14px vertical, min-height 44px.
+   Library rows get a trailing chevron; study action rows get none. */
+.sheet{display:flex;flex-direction:column;gap:0}
+.sheet-group{display:flex;flex-direction:column}
+.sheet-group + .sheet-group{border-top:1px solid var(--hairline)}
+.sheet-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;min-height:44px;color:var(--at);font:400 16px var(--sans);text-decoration:none;cursor:pointer;background:none;border:0}
+.sheet-row:hover{background:var(--hairlineSoft)}
+.sheet-row:focus-visible{outline:2px solid var(--aa);outline-offset:-2px}
+.sheet-row-text{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.sheet-row-label{font:400 16px var(--sans);color:var(--ink);overflow-wrap:anywhere}
+.sheet-row-sub{font:400 13px var(--sans);color:var(--ink3)}
+.sheet-row-trail{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sheet-chevron{flex:none;width:14px;height:14px;color:var(--ink3)}
+.sheet-sep{border-top:1px solid var(--hairline)}
+
+/* Study row wrapper: row + options button side by side */
+.sheet-row-wrap{display:flex;align-items:center;gap:8px}
+.sheet-opt{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;border:0;background:none;color:var(--am);cursor:pointer}
+.sheet-opt:hover{background:var(--hairlineSoft);color:var(--at)}
+.sheet-opt:focus-visible{outline:2px solid var(--aa);outline-offset:2px}
+
+/* legacy .grp/.row retained for other uses (import, settings) */
 .grp{margin-top:10px;border:1px solid var(--al);border-radius:14px;padding:0 14px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:14px;width:100%;padding:14px 0;background:none;border:0;border-top:1px solid var(--al);color:var(--at);font:400 16px var(--sans);text-align:left;text-decoration:none;cursor:pointer}
 .grp>.row:first-child{border-top:0}.row small{display:block;color:var(--am);font-size:13px;margin-top:2px}.row.danger{color:#ff7b7f}.row.col{flex-direction:column;align-items:stretch;gap:8px}.row b{font-weight:500;color:var(--am);margin-left:6px}

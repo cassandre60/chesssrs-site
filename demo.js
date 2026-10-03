@@ -700,29 +700,48 @@
 
   /* The scope list: the everywhere row, then one row per repertoire with its due count, its own
      options button, and Import PGN at the foot (review_scope_drawer.dart). */
-  const picker = () => modal(null, `<div class="grp">` +
-    `<button class="row" data-a="scope" data-all="1"><span>All repertoires<small>${studies.reduce((n, s) => n + dueN(s), 0)} due</small></span>${sel === -1 ? I("check") : ""}</button>` +
-    studies.map((s, i) => `<div class="rowwrap"><button class="row" data-a="pick" data-i="${i}"><span>${esc(s.name)}<small>${s.active ? dueN(s) + " due" : "Paused"}</small></span>${i === sel ? I("check") : ""}</button>` +
-      `<button class="opt" data-a="sacts" data-i="${i}" aria-label="Study options">${I("dots")}</button></div>`).join("") +
-    `</div><div class="grp">${row("import", "Import PGN")}</div>`);
+  const picker = () => modal(null, `<div class="sheet">` +
+    `<div class="sheet-group">` +
+    `<button class="sheet-row" data-a="scope" data-all="1"><span class="sheet-row-text"><span class="sheet-row-label">All repertoires</span><span class="sheet-row-sub">${studies.reduce((n, s) => n + dueN(s), 0)} due</span></span><svg class="sheet-chevron" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 4.5L7 8L10.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` +
+    studies.map((s, i) => `<div class="sheet-row-wrap"><button class="sheet-row" data-a="pick" data-i="${i}"><span class="sheet-row-text"><span class="sheet-row-label">${esc(s.name)}</span><span class="sheet-row-sub">${s.active ? dueN(s) + " due" : "Paused"}</span></span>${i === sel ? `<svg class="sheet-chevron" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 4.5L7 8L10.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ""}</button>` +
+      `<button class="sheet-opt" data-a="sacts" data-i="${i}" aria-label="Study options">${I("dots")}</button></div>`).join("") +
+    `</div>` +
+    `<div class="sheet-group"><button class="sheet-row" data-a="import"><span class="sheet-row-text"><span class="sheet-row-label">Import PGN</span></span></button></div>` +
+    `</div>`);
 
   /* The overflow button opens the Library sheet, which in the app carries two rows under a
      "Preferences" header and nothing else (library_sheet.dart). Study-level actions are not
      here: they live in StudyActionsSheet, reached from a study's options button in the scope
      list — see `studyActions`. */
-  const more = () =>
-    modal(null, `<div class="grp"><h4 class="gh">Preferences</h4>${row("settings", "Settings", "Review, board, engine, and sound")}${row("about", "About and licences")}</div>`);
+  const more = () => modal(null, `<div class="sheet">` +
+    `<div class="sheet-group"><h4 class="gh" style="padding:14px 20px 4px;margin:0">Preferences</h4>` +
+    `<button class="sheet-row" data-a="settings"><span class="sheet-row-text"><span class="sheet-row-label">Settings</span><span class="sheet-row-sub">Review, board, engine, and sound</span></span><svg class="sheet-chevron" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 4.5L7 8L10.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` +
+    `<button class="sheet-row" data-a="about"><span class="sheet-row-text"><span class="sheet-row-label">About and licences</span></span><svg class="sheet-chevron" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 4.5L7 8L10.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` +
+    `</div>` +
+    `</div>`);
 
-  /* StudyActionsSheet: three hairline-separated groups, in the app's order and wording. */
+  /* StudyActionsSheet: three hairline-separated groups, in the app's order and wording.
+     No chevrons (app: §12 says "no icons"), hairline separators between groups. */
   function studyActions(i) {
     const s = studies[i];
     if (!s) return;
     sa = i;
     closeModal();
-    modal(null, `<h4 class="gh">${esc(s.name)}</h4>` +
-      `<div class="grp">${row("analyze", "Analyze", "Browse moves and variations")}${row("practice", practice ? "End practice" : "Practice", "Drill lines without changing your schedule")}</div>` +
-      `<div class="grp">${row("export", "Export PGN", "Share or copy standard PGN notation")}${row("pause", s.active ? "Pause" : "Resume", s.active ? "Suspend from active review pool" : "Activate in review pool")}</div>` +
-      `<div class="grp">${row("rename", "Rename")}${row("delete", "Delete")}</div>`);
+    modal(null, `<div class="sheet">` +
+      `<h4 class="gh" style="padding:14px 20px 4px;margin:0">${esc(s.name)}</h4>` +
+      `<div class="sheet-group">` +
+      `<button class="sheet-row" data-a="analyze"><span class="sheet-row-text"><span class="sheet-row-label">Analyze</span><span class="sheet-row-sub">Browse moves and variations</span></span></button>` +
+      `<button class="sheet-row" data-a="practice"><span class="sheet-row-text"><span class="sheet-row-label">${practice ? "End practice" : "Practice"}</span><span class="sheet-row-sub">Drill lines without changing your schedule</span></span></button>` +
+      `</div>` +
+      `<div class="sheet-group">` +
+      `<button class="sheet-row" data-a="export"><span class="sheet-row-text"><span class="sheet-row-label">Export PGN</span><span class="sheet-row-sub">Share or copy standard PGN notation</span></span></button>` +
+      `<button class="sheet-row" data-a="pause"><span class="sheet-row-text"><span class="sheet-row-label">${s.active ? "Pause" : "Resume"}</span><span class="sheet-row-sub">${s.active ? "Suspend from active review pool" : "Activate in review pool"}</span></span></button>` +
+      `</div>` +
+      `<div class="sheet-group">` +
+      `<button class="sheet-row" data-a="rename"><span class="sheet-row-text"><span class="sheet-row-label">Rename</span></span></button>` +
+      `<button class="sheet-row" data-a="delete"><span class="sheet-row-text"><span class="sheet-row-label">Delete</span></span></button>` +
+      `</div>` +
+      `</div>`);
   }
 
   const switchRow = (k, label) => `<label class="row"><span>${label}</span><input type="checkbox" role="switch" data-k="${k}" ${set[k] ? "checked" : ""}></label>`;
