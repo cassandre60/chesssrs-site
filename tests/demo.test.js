@@ -60,24 +60,27 @@ const bk=(k)=>bd._h.keydown[0]({key:k,preventDefault(){}});
 bd._h.focus[0]();bk("Enter");ok(/selected/.test(q("#a-live").textContent),"keyboard: Enter selects the pawn on e2 ("+q("#a-live").textContent+")");
 bk("ArrowUp");bk("ArrowUp");bk("Enter");ok(/^Correct\./.test(q("#a-live").textContent),"keyboard: moved e2-e4 with arrows + Enter");flush();
 bd._h.blur[0]();click("pick",{i:"1"});flush();
-// analyze
-click("more");ok(mo.innerHTML.includes("Analyze")&&mo.innerHTML.includes("Export PGN"),"study menu has real entries");
-click("analyze");click("ply",{i:"3"});click("anext");click("aprev");ok(q("#a-an").hidden===false&&q("#a-an").innerHTML.includes("Nxd4"),"analysis view lists moves");click("aback");flush();
-// export
-click("more");click("export");ok(mo.innerHTML.includes('[Event \\"black-vs-sicilian\\"]')||mo.innerHTML.includes("Sicilian Defense Repertoire"),"export shows PGN");click("copy",{});key("Escape");ok(mo.hidden===true,"Escape closes sheet");
+// Library sheet (overflow button) carries only Settings and About
+click("more");ok(mo.innerHTML.includes("Settings")&&mo.innerHTML.includes("About and licences"),"library sheet has Preferences rows");click("close");flush();
+
+// Study actions are reached from the scope list's options button
+click("picker");click("sacts",{i:"1"});flush();ok(mo.innerHTML.includes("Analyze")&&mo.innerHTML.includes("Export PGN")&&mo.innerHTML.includes("Practice"),"study actions sheet has real entries");click("analyze");click("ply",{i:"3"});click("anext");click("aprev");ok(q("#a-an").hidden===false&&q("#a-an").innerHTML.includes("Nxd4"),"analysis view lists moves");click("aback");flush();
+
+// export from the study actions sheet
+click("picker");click("sacts",{i:"1"});flush();click("export");ok(mo.innerHTML.includes('[Event \\"Sicilian Defense Repertoire\\"]')||mo.innerHTML.includes("Sicilian Defense Repertoire"),"export shows PGN");click("copy",{});key("Escape");ok(mo.hidden===true,"Escape closes sheet");
 // import: success, error, lichess
 click("import");q("#i-pgn").value=`[Event "My Rep for White"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 5. d4 exd4 6. cxd4 Bb4+ 7. Nc3 Nxe4 8. O-O Bxc3 9. d5 Bf6 10. Re1 Ne7 *`;q("#i-title").value="";
 click("doimport");flush();ok(q("#a-study").textContent==="My Rep for White"&&q("#a-due").textContent==="10 due"&&mo.hidden===true,"import succeeds: 10 due");
 click("import");q("#i-pgn").value="1. e4 e5 2. Qh8";click("doimport");ok(/Import failed: could not read the move/.test(q("#i-err").textContent),"bad PGN shows error");
 click("isrc",{v:"lichess"});click("doimport");ok(/can't reach Lichess/.test(q("#i-err").textContent),"Lichess tab explains the limit");click("close");
-// rename / pause / delete
-click("rename");q("#r-in").value="french-rep";click("dorename");ok(q("#a-study").textContent==="french-rep","rename");
-click("pause");flush();ok(q("#a-due").textContent==="Paused"&&q("#a-empty").innerHTML.includes("Paused"),"pause");click("pause");flush();ok(/due/.test(q("#a-due").textContent),"resume");
+// rename / pause / delete -- reached through study actions sheet on the current study
+click("picker");click("sacts",{i:"2"});flush();click("rename");q("#r-in").value="french-rep";click("dorename");ok(q("#a-study").textContent==="french-rep","rename");
+click("picker");click("sacts",{i:"2"});flush();click("pause");flush();ok(q("#a-due").textContent==="Paused"&&q("#a-empty").innerHTML.includes("Paused"),"pause");click("picker");click("sacts",{i:"2"});flush();click("pause");flush();ok(/due/.test(q("#a-due").textContent),"resume");
 // settings
 click("more");click("settings");ok(mo.innerHTML.includes("Target retention")&&mo.innerHTML.includes("Daily limit")&&mo.innerHTML.includes("About"),"settings sheet");
 mo._h.input[0]({type:"input",target:{dataset:{k:"retention"},type:"range",value:"85"}});ok(q("#v-ret").textContent==="85%","retention slider updates");
 mo._h.change[0]({type:"change",target:{dataset:{k:"limit"},type:"range",value:"5"}});flush();ok(true,"daily limit change restarts session");
 click("theme",{v:"light"});click("accent",{v:"#E2A84B"});click("about");ok(mo.innerHTML.includes("GPL-3.0"),"about sheet");click("close");
-for(let i=0;i<3;i++){click("more");click("delete");click("dodelete");flush();}
+for(let i=0;i<3;i++){click("picker");click("sacts",{i:"0"});flush();click("delete");click("dodelete");flush();}
 ok(q("#a-empty").innerHTML.includes("No repertoire yet"),"deleting all shows the import prompt");
 process.exitCode=fails?1:0;console.log(fails?`\n${fails} FAILED`:"\nALL PASSED");

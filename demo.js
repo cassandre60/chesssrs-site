@@ -72,7 +72,7 @@
   const QUICK_ADVANCE_MS = MOTION.quietAdvanceMs ?? 560;
   const OPPONENT_REPLY_MS = MOTION.pieceMoveMs ?? 170;
   const set = { theme: "dark", accent: (ACC.find(a => a.default) || ACC[0] || {}).id, sound: false, coords: true, arrows: true, retention: 88, limit: 20 };
-  let studies = [], uid = 0, sel = 0, practice = false, queue = [], cur = null, an = null, isrc = "file";
+  let studies = [], uid = 0, sel = 0, practice = false, queue = [], cur = null, an = null, isrc = "file", sa = 0;
 
   const mkStudy = (name, side, lines) => {
     const s = { id: ++uid, name, side, active: true, lines: [] };
@@ -89,7 +89,17 @@
   };
 
   studies = PRESETS.map(p => mkStudy(p.name, p.side, p.lines));
-  const st = () => studies[sel], dueN = s => s ? s.lines.reduce((n, l) => n + l.cards.filter(c => c.due).length, 0) : 0;
+  /* `sel` is the scope: -1 is the everywhere scope, which is where the app starts and what its
+     top bar calls "All repertoires"; >= 0 is one repertoire. `scope()` is the list a session
+     draws from, so the review loop never has to care which scope is active. */
+  const st = () => (sel >= 0 ? studies[sel] : null);
+  const scope = () => (sel >= 0 ? [studies[sel]] : studies);
+  const dueN = s => s ? s.lines.reduce((n, l) => n + l.cards.filter(c => c.due).length, 0) : 0;
+  const scopeDue = () => scope().reduce((n, s) => n + (s.active ? dueN(s) : 0), 0);
+  const SCOPE_ALL = "All repertoires";
+  /* The study a Study Actions sheet is acting on: the one it was opened for, falling back to
+     the current scope. Actions in the app hang off a repertoire row, not off the session. */
+  const tgt = () => studies[sa] || st() || studies[0];
 
   /* ---------- SVG Icons ---------- */
   const ico = {
@@ -393,8 +403,12 @@
 
   function head() {
     const s = st();
-    $("#a-study").textContent = s ? s.name : "No repertoire";
-    $("#a-due").textContent = !s ? "" : !s.active ? "Paused" : practice ? "Practice" : dueN(s) + " due";
+    const live = scope().filter(x => x.active);
+    $("#a-study").textContent = !s ? (studies.length ? SCOPE_ALL : "No repertoire") : s.name;
+    $("#a-due").textContent = !studies.length ? ""
+      : !live.length ? "Paused"
+      : practice ? "Practice"
+      : (sel >= 0 ? dueN(s) : scopeDue()) + " due";
   }
 
   const turn = () => {
@@ -406,18 +420,22 @@
 
   function startSession() {
     clearTimeout(timer); cur = null; an = null; enabled = false;
-    const s = st(); queue = [];
-    if (s && s.active) {
-      const all = s.lines.flatMap(l => l.cards);
-      queue = (practice ? all : all.filter(c => c.due)).slice(0, set.limit);
+    queue = [];
+    // Cards carry their own study, so a session can span the everywhere scope and still know
+    // which side to sit on for each position.
+    for (const s of scope()) {
+      if (!s.active) continue;
+      for (const c of s.lines.flatMap(l => l.cards)) c.s = s;
     }
+    const all = scope().filter(s => s.active).flatMap(s => s.lines.flatMap(l => l.cards));
+    queue = (practice ? all : all.filter(c => c.due)).slice(0, set.limit);
     head();
     queue.length ? present(queue[0]) : empty();
   }
 
   function present(c) {
     clearTimeout(timer);
-    const s = st(), L = c.line, again = cur && cur.line === L && c.k === cur.k + 2;
+    const s = c.s || st(), L = c.line, again = cur && cur.line === L && c.k === cur.k + 2;
     view("rev");
     user = s.side;
     enabled = false;
@@ -618,14 +636,16 @@
     enabled = false; cur = null; select(-1); arrow();
     view("empty"); head();
     const s = st();
+    const live = scope().filter(x => x.active);
     let h;
-    if (!s) {
+    if (!studies.length) {
       h = `<h3>No repertoire yet</h3><p>Import a PGN to start reviewing.</p><button class="pill" data-a="import">Import repertoire</button>`;
-    } else if (!s.active) {
-      h = `<h3>Paused</h3><p>Reviews for this study are paused.</p><button class="pill" data-a="pause">Resume</button>`;
+    } else if (!live.length) {
+      h = `<h3>Paused</h3><p>Reviews for this repertoire are paused.</p><button class="pill" data-a="pause">Resume</button>`;
     } else {
-      const iv = s.lines.flatMap(l => l.cards.map(c => c.ivl)).filter(x => x > 0);
-      h = `<h3>All caught up</h3><p>Nothing is due in ${esc(s.name)}.${iv.length ? " The next review is in " + days(Math.min(...iv)) + "." : " The next review is in a few hours."}</p>` +
+      const iv = live.flatMap(x => x.lines.flatMap(l => l.cards.map(c => c.ivl))).filter(x => x > 0);
+      const where = s ? s.name : SCOPE_ALL;
+      h = `<h3>All caught up</h3><p>Nothing is due in ${esc(where)}.${iv.length ? " The next review is in " + days(Math.min(...iv)) + "." : " The next review is in a few hours."}</p>` +
         `<div class="cta2"><button class="pill" data-a="practice">Practice</button><button class="sk" data-a="restart">Start over</button></div>`;
     }
     $("#a-empty").innerHTML = h;
@@ -656,9 +676,15 @@
   }
 
   /* ---------- Modals / Sheets ---------- */
+  /* `title` may be null: the app's Library and Study Actions sheets open without a title bar,
+     carrying a group header inside the sheet instead (library_sheet.dart, and the `title` column
+     of StudyActionsSheet). Only the sheet's own close control stays. */
   function modal(title, body) {
     opener = document.activeElement;
-    mo.innerHTML = `<div class="sh" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sht"><b>${esc(title)}</b><button class="x" data-a="close" aria-label="Close">${I("x")}</button></div>${body}</div>`;
+    const head = title === null
+      ? `<div class="sht bare"><button class="x" data-a="close" aria-label="Close">${I("x")}</button></div>`
+      : `<div class="sht"><b>${esc(title)}</b><button class="x" data-a="close" aria-label="Close">${I("x")}</button></div>`;
+    mo.innerHTML = `<div class="sh" role="dialog" aria-modal="true" aria-label="${esc(title || body.replace(/<[^>]+>/g, " ").slice(0, 60))}">${head}${body}</div>`;
     mo.hidden = false;
     (mo.querySelector("[autofocus],textarea,input:not([type=file]),.row,.pill") || mo.querySelector(".x")).focus();
   }
@@ -672,16 +698,32 @@
 
   const row = (a, label, sub, extra = "") => `<button class="row ${extra}" data-a="${a}"><span>${label}${sub ? `<small>${sub}</small>` : ""}</span></button>`;
 
-  const picker = () => modal("Studies & Scope", `<div class="grp">${studies.map((s, i) => `<button class="row" data-a="pick" data-i="${i}"><span>${esc(s.name)}<small>${s.active ? dueN(s) + " due" : "Paused"}</small></span>${i === sel ? I("check") : ""}</button>`).join("")}</div><div class="grp">${row("import", "Import PGN")}</div>`);
+  /* The scope list: the everywhere row, then one row per repertoire with its due count, its own
+     options button, and Import PGN at the foot (review_scope_drawer.dart). */
+  const picker = () => modal(null, `<div class="grp">` +
+    `<button class="row" data-a="scope" data-all="1"><span>All repertoires<small>${studies.reduce((n, s) => n + dueN(s), 0)} due</small></span>${sel === -1 ? I("check") : ""}</button>` +
+    studies.map((s, i) => `<div class="rowwrap"><button class="row" data-a="pick" data-i="${i}"><span>${esc(s.name)}<small>${s.active ? dueN(s) + " due" : "Paused"}</small></span>${i === sel ? I("check") : ""}</button>` +
+      `<button class="opt" data-a="sacts" data-i="${i}" aria-label="Study options">${I("dots")}</button></div>`).join("") +
+    `</div><div class="grp">${row("import", "Import PGN")}</div>`);
 
-  const more = () => {
-    const s = st();
-    if (!s) return importModal();
-    modal("Library and settings", `<div class="grp">${row("analyze", "Analyze", "Browse moves and variations")}${row("practice", practice ? "End practice" : "Practice", "Drill lines without changing your schedule")}</div>` +
-      `<div class="grp">${row("settings", "Settings", "Review, board, theme, and sound")}${row("export", "Export PGN", "Share or copy standard PGN notation")}</div>` +
-      `<div class="grp">${row("pause", s.active ? "Pause" : "Resume", s.active ? "Stop scheduling reviews for this study" : "Start scheduling reviews again")}${row("rename", "Rename")}</div>` +
-      `<div class="grp">${row("about", "About and licences")}${row("delete", "Delete", "", "danger")}</div>`);
-  };
+  /* The overflow button opens the Library sheet, which in the app carries two rows under a
+     "Preferences" header and nothing else (library_sheet.dart). Study-level actions are not
+     here: they live in StudyActionsSheet, reached from a study's options button in the scope
+     list — see `studyActions`. */
+  const more = () =>
+    modal(null, `<div class="grp"><h4 class="gh">Preferences</h4>${row("settings", "Settings", "Review, board, engine, and sound")}${row("about", "About and licences")}</div>`);
+
+  /* StudyActionsSheet: three hairline-separated groups, in the app's order and wording. */
+  function studyActions(i) {
+    const s = studies[i];
+    if (!s) return;
+    sa = i;
+    closeModal();
+    modal(null, `<h4 class="gh">${esc(s.name)}</h4>` +
+      `<div class="grp">${row("analyze", "Analyze", "Browse moves and variations")}${row("practice", practice ? "End practice" : "Practice", "Drill lines without changing your schedule")}</div>` +
+      `<div class="grp">${row("export", "Export PGN", "Share or copy standard PGN notation")}${row("pause", s.active ? "Pause" : "Resume", s.active ? "Suspend from active review pool" : "Activate in review pool")}</div>` +
+      `<div class="grp">${row("rename", "Rename")}${row("delete", "Delete")}</div>`);
+  }
 
   const switchRow = (k, label) => `<label class="row"><span>${label}</span><input type="checkbox" role="switch" data-k="${k}" ${set[k] ? "checked" : ""}></label>`;
 
@@ -722,12 +764,14 @@
   const A = {
     close: closeModal, picker, more, settings, about, import: importModal, doimport: doImport, analyze, skip, cont,
     pick: el => { sel = +el.dataset.i; practice = false; closeModal(); startSession(); },
+    scope: () => { sel = -1; practice = false; closeModal(); startSession(); },
+    sacts: el => studyActions(+el.dataset.i),
     practice: () => { practice = !practice; closeModal(); startSession(); },
-    pause: () => { const s = st(); s.active = !s.active; closeModal(); startSession(); },
+    pause: () => { const s = tgt(); s.active = !s.active; closeModal(); startSession(); },
     restart: () => { st().lines.forEach(l => l.cards.forEach(c => { c.due = true; c.ivl = 0; c.lapses = 0; })); startSession(); },
-    export: () => modal("Export PGN", `<pre class="pgn2" id="x-pgn" tabindex="0">${esc(toPGN(st()))}</pre><div class="cta2"><button class="pill" data-a="copy">Copy PGN</button></div>`),
+    export: () => modal("Export PGN", `<pre class="pgn2" id="x-pgn" tabindex="0">${esc(toPGN(tgt()))}</pre><div class="cta2"><button class="pill" data-a="copy">Copy PGN</button></div>`),
     copy: el => {
-      const txt = toPGN(st());
+      const txt = toPGN(tgt());
       (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(
         () => el.textContent = "Copied",
         () => {
@@ -737,10 +781,10 @@
         }
       );
     },
-    rename: () => modal("Rename", `${textIn("r-in", st().name, "Study name")}<div class="cta2"><button class="pill" data-a="dorename">Rename</button><button class="sk" data-a="close">Cancel</button></div>`),
-    dorename: () => { const v = $("#r-in").value.trim(); if (v) st().name = v; closeModal(); head(); },
-    delete: () => modal("Delete study", `<p class="pad">Delete ${esc(st().name)}? Its lines and review schedule are removed.</p><div class="cta2"><button class="pill danger" data-a="dodelete">Delete</button><button class="sk" data-a="close">Cancel</button></div>`),
-    dodelete: () => { studies.splice(sel, 1); sel = Math.max(0, sel - 1); practice = false; closeModal(); startSession(); },
+    rename: () => modal("Rename repertoire", `${textIn("r-in", tgt().name, "Repertoire name")}<div class="cta2"><button class="pill" data-a="dorename">Rename</button><button class="sk" data-a="close">Cancel</button></div>`),
+    dorename: () => { const v = $("#r-in").value.trim(); if (v) tgt().name = v; closeModal(); head(); },
+    delete: () => modal("Delete repertoire?", `<p class="pad">Delete ${esc(tgt().name)}? Its lines and review schedule are removed.</p><div class="cta2"><button class="sk" data-a="close">Cancel</button><button class="pill danger" data-a="dodelete">Delete</button></div>`),
+    dodelete: () => { const i = sa; studies.splice(i, 1); sel = Math.min(sel, studies.length - 1); practice = false; closeModal(); startSession(); },
     isrc: el => {
       isrc = el.dataset.v;
       mo.querySelectorAll("[data-a=isrc]").forEach(b => b.setAttribute("aria-pressed", b === el));
