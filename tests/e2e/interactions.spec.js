@@ -108,17 +108,17 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
     await expect(contBtn).toBeHidden();
   });
 
-  test('study picker switches study to Black vs Sicilian', async ({ page }) => {
+  test('study picker switches study to the Sicilian repertoire', async ({ page }) => {
     await page.locator('#demo [data-a="picker"]').click();
     const modal = page.locator('#a-mo');
     await expect(modal).toBeVisible();
 
-    // Pick Black vs Sicilian
+    // Pick the black-side Sicilian repertoire
     await page.locator('#demo [data-a="pick"][data-i="1"]').click();
     await expect(modal).toBeHidden();
 
     const studyName = page.locator('#a-study');
-    await expect(studyName).toHaveText('black-vs-sicilian');
+    await expect(studyName).toHaveText('Sicilian Defense Repertoire');
   });
 
   test('import sheet handles valid PGN and invalid PGN', async ({ page }) => {
@@ -146,6 +146,9 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
   });
 
   test('settings sheet adjusts retention and closes on Escape', async ({ page }) => {
+    // Settings is reached through the library sheet, matching the app: the top bar's only
+    // affordance is the overflow (⋯) button.
+    await page.locator('#demo [data-a="more"]').click();
     await page.locator('#demo [data-a="settings"]').click();
     const modal = page.locator('#a-mo');
     await expect(modal).toBeVisible();
