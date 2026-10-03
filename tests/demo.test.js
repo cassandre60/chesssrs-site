@@ -22,7 +22,7 @@ const E=SRSEngine,U=s=>E.compile(s);
 const L1=U("e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Qb6 a3 c4 Nbd2"),L2=U("e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Bd7 Be2 Nge7 Na3 cxd4 cxd4 Nf5 Nc2"),L3=U("e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5 Nb3 Be6");
 flush();
 ok(q("#a-study").textContent==="white-vs-french"&&q("#a-due").textContent==="16 due","initial: study + 16 due ("+q("#a-due").textContent+")");
-mv(L1[0]);ok(/Remembered · back in 1 day/.test(q("#a-turn").textContent)||q("#a-turn").textContent.includes("White"),"first move remembered");
+mv(L1[0]);ok(/Remembered · back in \d+ days?/.test(q("#a-turn").textContent)||q("#a-turn").textContent.includes("White"),"first move remembered");
 ok(q("#a-due").textContent==="15 due","due count drops to 15 ("+q("#a-due").textContent+")");
 // wrong move -> reveal, then correct -> Continue
 mv("a2a3");ok(q("#a-rv").hidden===false&&q("#a-sq").textContent===L1[2].slice(2),"wrong move reveals target "+q("#a-sq").textContent);

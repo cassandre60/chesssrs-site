@@ -173,9 +173,221 @@ h2{font:400 clamp(36px,4.8vw,68px)/1.04 var(--serif);letter-spacing:-.02em;max-w
 .rv p{color:var(--am);margin-top:10px;max-width:34ch;line-height:1.5}
 @keyframes rvin{from{opacity:0;transform:translateY(6px)}}
 .sk{margin-top:auto;align-self:flex-start;display:inline-flex;gap:10px;align-items:center;background:none;border:0;color:var(--at);font:500 16px var(--sans);padding:12px 4px;cursor:pointer;border-radius:8px}
-.sk kbd{font:500 12px var(--mono);border:1px solid #ffffff2e;border-radius:6px;padding:2px 7px;color:var(--am)}
-.sk:hover kbd{color:var(--at)}
-@media(max-width:860px){.ab{grid-template-columns:1fr}.ap{min-height:0}.sk{margin-top:6px}}
+/* ============================================================
+   CHESS SRS DEMO — DIAGRAM REVIEW SCREEN ALIGNMENT
+   ============================================================ */
+.srs-topbar {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 4px 0 8px;
+  margin-bottom: 12px;
+}
+.srs-scope-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.srs-scope-btn {
+  background: none;
+  border: 0;
+  color: var(--at);
+  font: 600 17px/1.2 var(--sans);
+  letter-spacing: -0.015em;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.srs-scope-btn:hover {
+  background: var(--hair2);
+}
+.srs-chev {
+  width: 12px;
+  height: 12px;
+  color: var(--ink2);
+}
+.srs-due-badge {
+  font: 600 14px/1 var(--sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink2);
+}
+.srs-topbar-spacer {
+  flex: 1;
+}
+.srs-dots-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.srs-dots-btn:hover {
+  background: var(--hair2);
+}
+
+.srs-review-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: start;
+}
+.srs-board-region {
+  width: 100%;
+}
+.srs-board-wrap {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-rows: auto 24px;
+}
+.srs-side-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 440px;
+}
+.srs-rev-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1;
+}
+
+.srs-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 400 13.5px var(--sans);
+  color: var(--ink2);
+  margin-bottom: 20px;
+}
+.srs-chapter-name {
+  color: var(--ink2);
+}
+.srs-turn-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink2);
+}
+.srs-turn-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+  background: transparent;
+  flex: none;
+}
+
+.srs-notation-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font: 600 clamp(38px, 4.5vw, 54px)/1.1 var(--sans);
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.srs-move-num {
+  font-weight: 400;
+  color: var(--ink3);
+}
+.srs-dashed-blank {
+  color: var(--ink3);
+  letter-spacing: 0.1em;
+  font-size: 0.9em;
+}
+.srs-move-san {
+  color: var(--aa);
+}
+
+.srs-slot-region {
+  flex: 1;
+  min-height: 100px;
+}
+.srs-note-slot {
+  border-left: 2px solid var(--accent-mid, #8A9BFF44);
+  padding-left: 16px;
+  margin-top: 8px;
+}
+.srs-note-body {
+  font: 400 17px/1.45 var(--font-read, 'Newsreader', Georgia, serif);
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.srs-note-source {
+  font: 400 13px var(--sans);
+  color: var(--ink3);
+}
+
+.srs-correction-slot {
+  margin-top: 8px;
+}
+.srs-corr-san {
+  font: 600 clamp(40px, 5vw, 56px)/1 var(--sans);
+  color: var(--aa);
+  letter-spacing: -0.02em;
+  display: block;
+}
+.srs-corr-help {
+  font: 400 15px/1.4 var(--sans);
+  color: var(--ink2);
+  margin-top: 8px;
+  max-width: 32ch;
+}
+
+.srs-actions-region {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding-top: 16px;
+}
+.srs-skip-btn {
+  background: none;
+  border: 0;
+  color: var(--ink2);
+  font: 500 15px var(--sans);
+  padding: 8px 12px;
+  margin-left: -12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.srs-skip-btn:hover {
+  color: var(--ink);
+  background: var(--hair2);
+}
+.srs-cont-btn {
+  margin-left: auto;
+  background: var(--ink);
+  color: var(--bg);
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 24px;
+  font: 600 15px var(--sans);
+  cursor: pointer;
+  transition: transform .1s ease;
+}
+.srs-cont-btn:active {
+  transform: scale(0.97);
+}
+
+@media(max-width:860px) {
+  .srs-review-main {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .srs-side-column {
+    min-height: auto;
+  }
+}
 
 /* board + vector pieces (SVG) — authentic Diagram artwork */
 .bd{display:block;width:100%;height:auto;aspect-ratio:1;touch-action:pan-y;user-select:none;-webkit-user-select:none}
