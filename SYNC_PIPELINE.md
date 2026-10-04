@@ -23,6 +23,31 @@ the theme to the tokens' own vocabulary (`"dark"` / `"light"`).
 `--check` fails if any generated file is stale, so an app-side design change cannot reach the demo
 unnoticed.
 
+## What syncs automatically (`scripts/sync-strings.js --check`)
+
+Assets alone are not enough. `sync-design.js` says nothing about the demo's *structure* — which rows
+a screen has, what they are called, in what order — and all of that is hand-written in `demo.js`.
+
+| Source | Target | Contents |
+|--------|--------|----------|
+| `srs_settings_screen.dart` | `design/app-ui.json` | section headers, row labels, row order, control kind, conditional rows |
+| `library_sheet.dart` | `design/app-ui.json` | group headers, row labels and subtitles |
+| `review_scope_drawer.dart` | `design/app-ui.json` | Study Actions rows (incl. both Pause/Resume branches), the everywhere row label, the paused and position-count sub-labels |
+| `review_screen.dart` + `app_en.arb` | `design/app-ui.json` | nothing-due title, daily-limit title, next-review copy, button labels, first-run headline and subtext |
+
+`design/app-ui.json` is committed, so `tests/e2e/app-parity.spec.js` can compare the manifest against
+the running demo in CI, where the app repo is not available. The two halves catch different failures:
+
+- manifest stale → `--check` fails: the app changed and nobody re-derived it
+- manifest fresh, demo drifted → the spec fails: the demo no longer matches the app
+
+Rows the demo has not implemented are listed in `KNOWN_GAPS` in the spec. They are asserted to still
+exist in the manifest, so a dropped row forces the list to be revisited rather than silently kept.
+
+Every extraction pattern fails loudly rather than degrading — a Dart refactor that moves a literal
+somewhere the scanner cannot see is exactly the drift worth catching, and a quiet empty section would
+report "no drift" instead.
+
 ## What is hand-written, and why
 
 | App component | Demo | Why it cannot be generated |
@@ -60,8 +85,12 @@ node scripts/sync-design.js --check
 
 ## Adding a sync path
 
-1. Extract it in `scripts/sync-design.js`.
-2. Write the target through `put()`, never with a bare `writeFileSync`, so `--check` can see it.
-3. Consume it in the demo from `window.CHESSSRS_META`, `window.PIECE_DEFS`, `window.FIGURINES` or
-   the generated CSS — not from a literal in `demo.js`.
-4. Add a row to the table above.
+1. Extract it in `scripts/sync-design.js` (assets) or `scripts/sync-strings.js` (structure/copy).
+2. Write the target through `put()` / the manifest writer, never a bare `writeFileSync`, so `--check`
+   can see it.
+3. Consume it in the demo from `window.CHESSSRS_META`, `window.PIECE_DEFS`, `window.FIGURINES`, the
+   generated CSS or `design/app-ui.json` — not from a literal in `demo.js`.
+4. If the demo does not implement it yet, add it to `KNOWN_GAPS` in `tests/e2e/app-parity.spec.js`
+   with a reason. Adding it to `KNOWN_GAPS` rather than skipping the assertion is the point: the
+   excuse stays visible and gets revisited.
+5. Add a row to the tables above.

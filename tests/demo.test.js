@@ -55,18 +55,19 @@ ok(q("#ctx").textContent==="Game 2","moves on through line ("+q("#ctx").textCont
 for(let k=0;k<L2.length;k+=2)mv(L2[k]);
 ok(q("#ctx").textContent==="Game 1"&&/>2</.test(q("#due").innerHTML),"misses came back at the end (2 due)");
 mv(L1[2]);mv(L1[4]);flush();
-ok(q(".view-idle").hidden===false&&q(".idle").innerHTML.includes("All caught up"),"queue empties -> All caught up");
-ok(/next review is in/.test(q(".idle").innerHTML),"empty state shows next review");
+ok(q(".view-idle").hidden===false&&q(".idle").innerHTML.includes("Nothing due."),"queue empties -> Nothing due.");
+ok(/Next review/.test(q(".idle").innerHTML),"empty state shows next review");
 // practice
 click("practice");flush();ok(q("#due").innerHTML.includes("Practice"),"practice mode label");click("practice");flush();ok(q(".view-idle").hidden===false,"ending practice returns to empty");
-click("restart");flush();ok(/16/.test(q("#due").innerHTML),"start over restores 16 due");
 // switch study, play black
 click("picker");ok(q("#sheetScope").classList.contains("open")&&q("#scopeList").innerHTML.includes("Sicilian Defense Repertoire"),"picker lists studies");
 click("pick",{i:"1"});flush();ok(q("#scopeName").textContent==="Sicilian Defense Repertoire"&&/>7</.test(q("#due").innerHTML),"picked Sicilian: 7 due");
-for(let k=1;k<L3.length;k+=2)mv(L3[k],true);flush();ok(q(".idle").innerHTML.includes("All caught up"),"black study completes");
+for(let k=1;k<L3.length;k+=2)mv(L3[k],true);flush();ok(q(".idle").innerHTML.includes("Nothing due."),"black study completes");
 
-// keyboard-only play: focus the board, arrow to the pawn, Enter to select, arrow to the target, Enter to move
-click("pick",{i:"0"});flush();
+// keyboard-only play: focus the board, arrow to the pawn, Enter to select, arrow to the target, Enter to move.
+// Study 0's schedule is exhausted by this point, and the app has no "start over" — so practice mode
+// is the way to get a populated board, which is also the path a real visitor takes.
+click("pick",{i:"0"});click("practice");flush();
 const bk=(k)=>bd._h.keydown[0]({key:k,preventDefault(){}});
 bd._h.focus[0]();bk("Enter");ok(/selected/.test(q("#live").textContent),"keyboard: Enter selects the pawn on e2 ("+q("#live").textContent+")");
 bk("ArrowUp");bk("ArrowUp");bk("Enter");ok(/^Correct\./.test(q("#live").textContent),"keyboard: moved e2-e4 with arrows + Enter");flush();
@@ -98,7 +99,7 @@ click("picker");click("sacts",{i:"2"});flush();click("rename");q("#r-in").value=
 // Pause takes the repertoire out of the pool without resetting its schedule, so the scope row
 // keeps its numeral and is recoloured `.paused` (review_scope_drawer.dart `_ScopeRow`), and the
 // review screen falls back to its nothing-due copy.
-click("picker");click("sacts",{i:"2"});flush();click("pause");flush();ok(q(".idle").innerHTML.includes("Paused"),"pause");click("picker");ok(/class="row paused/.test(q("#scopeList").innerHTML),"paused row is marked");
+click("picker");click("sacts",{i:"2"});flush();click("pause");flush();ok(/due/.test(q("#due").innerHTML),"pause empties the review screen");click("picker");ok(/class="row paused/.test(q("#scopeList").innerHTML),"paused row is marked");
 // The numeral must survive pausing — the app only recolours it, because pausing removes the study
 // from the pool without touching its schedule. Capture it from the row rather than hardcoding one.
 const pausedN=+(/class="row paused[^"]*"[^>]*>[\s\S]*?<b>(\d+)<\/b>/.exec(q("#scopeList").innerHTML)||[0,0])[1];
@@ -120,5 +121,5 @@ click("retention",{v:"0.85"});ok(/data-v="0\.85" aria-pressed="true"/.test(q("#s
 click("theme",{v:"true"});ok(`${host.dataset.theme}`==="dark","theme applied to the demo root");click("accent",{v:"#E2A84B"});ok(`${host.dataset.accent}`==="#E2A84B","accent applied to the demo root");
 click("about");ok(q("#setTitle").textContent==="About"&&q("#settingsBody").innerHTML.includes("GPL-3.0"),"about sheet");
 for(let i=0;i<3;i++){click("picker");click("sacts",{i:"0"});flush();click("delete");click("dodelete");flush();}
-ok(q(".idle").innerHTML.includes("No repertoire yet"),"deleting all shows the import prompt");
+ok(q(".idle").innerHTML.includes("Bring your study."),"deleting all shows the app's first-run copy");
 process.exitCode=fails?1:0;console.log(fails?`\n${fails} FAILED`:"\nALL PASSED");

@@ -42,6 +42,39 @@ gates did not catch them until the tests were brought back in line. Each now has
   passes for a sheet that is still open — they were asserting nothing. Now keyed on the `open` class
   and `pointer-events`.
 
+### Drift gate (added 2026-10-04)
+
+`sync-design.js` only ever compared the demo's *assets*. Nothing compared its *structure*. Proof:
+renaming `Daily limit` in `srs_settings_screen.dart` left `--check`, the unit suite and the whole e2e
+suite green while the demo kept serving the old string. `scripts/sync-design.js` was the only file in
+the repository that read the app at all.
+
+Now two halves:
+
+| | catches | where it runs |
+|---|---|---|
+| `scripts/sync-strings.js` | the app's screens changed and nobody re-derived the manifest | local / anywhere the app repo is present (`npm run sync:check`) |
+| `tests/e2e/app-parity.spec.js` | the demo no longer matches `design/app-ui.json` | everywhere, including CI |
+
+Covers the settings screen (section headers, row labels, row order, row kind, conditional rows), the
+Library sheet, the Study Actions sheet, the scope drawer's copy, and the nothing-due / first-run
+screens.
+
+Building it immediately found real drift, all now fixed: the demo's everywhere row said
+`All repertoires` where the app says `All studies`; the Library sheet had no `Preferences` group
+header; the scope row was missing the memory bar and the `N positions` / `Paused` sub-line, with the
+due numeral nested inside `.row-sub` instead of beside it; and the nothing-due screen had invented
+an `All caught up` headline and a `Paused` state the app cannot produce.
+
+Rows in `KNOWN_GAPS` (in the spec) are work the demo has not done — mostly settings rows that
+navigate to screens this demo does not port. They are asserted to still exist in the manifest, so
+the day the app drops one the excuse is forced to be revisited. Anything outside that list fails.
+
+**What this still cannot do:** make the demo's DOM generate itself. That remains blocked by
+`dartchess` not compiling to JavaScript. The gate makes drift impossible to *miss*, not impossible.
+Pixel parity against the app's own `SRS_CAPTURE_SCREENSHOTS` harness is the natural next layer and
+would catch a purely visual overhaul; it is local/nightly rather than per-commit.
+
 ### Known, inherited from the app
 
 - The app's `--ink3` is 3.0–3.4:1 where small text needs 4.5:1 (`design/docs/04-screens-and-flows.md`

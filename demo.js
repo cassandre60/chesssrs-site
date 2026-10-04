@@ -99,7 +99,9 @@
   const scope = () => (sel >= 0 ? [studies[sel]] : studies);
   const dueN = s => s ? s.lines.reduce((n, l) => n + l.cards.filter(c => c.due).length, 0) : 0;
   const scopeDue = () => scope().reduce((n, s) => n + (s.active ? dueN(s) : 0), 0);
-  const SCOPE_ALL = "All repertoires";
+  /* The everywhere scope is `All studies` in both places the app shows it: the top bar
+     (`_computeScopeTitle`) and the drawer's first row (`review_scope_drawer.dart`). */
+  const SCOPE_ALL = "All studies";
   /* The study a Study Actions sheet is acting on: the one it was opened for, falling back to
      the current scope. Actions in the app hang off a repertoire row, not off the session. */
   const tgt = () => studies[sa] || st() || studies[0];
@@ -169,11 +171,7 @@
       <div class="idle">
         <h1>Nothing due.</h1>
         <p class="next" id="idleNext"></p>
-        <div class="idle-actions">
-          <button class="pill" id="practiceBtn">Practice <kbd>P</kbd></button>
-          <button class="link" id="chooseBtn">Choose a repertoire</button>
-        </div>
-        <p class="foot">Practice never changes your schedule.</p>
+        <div class="idle-actions"></div>
       </div>
     </section>
 
@@ -671,21 +669,29 @@
     queue.length ? present(queue[0]) : empty();
   }
 
+  /* The review screen's nothing-due state. The app's title is `Nothing due.` — or `Daily limit
+     reached.` — and there is deliberately no third "paused" state: a suspended study shows the same
+     nothing-due screen, and Resume lives in the scope drawer's options button. An earlier version
+     here invented a `Paused` headline with its own Resume button, which is a screen the app cannot
+     produce; `tests/e2e/app-parity.spec.js` now pins these strings to `design/app-ui.json`.
+
+     The one branch the app answers on a separate first-run screen is "no studies at all". This demo
+     does not port that screen, but it uses its words rather than inventing a headline, and keeps
+     the import affordance — without it, a visitor who deleted everything would be stuck. */
   function empty() {
     enabled = false; cur = null; select(-1); arrow();
     view("empty"); head();
-    const s = st();
-    const live = scope().filter(x => x.active);
     let h;
     if (!studies.length) {
-      h = `<h1>No repertoire yet</h1><p class="next">Import a PGN to start reviewing.</p><div class="idle-actions"><button class="pill" data-a="import">Import repertoire</button></div>`;
-    } else if (!live.length) {
-      h = `<h1>Paused</h1><p class="next">Reviews for this repertoire are paused.</p><div class="idle-actions"><button class="pill" data-a="pause">Resume</button></div>`;
+      h = `<h1>Bring your study.</h1><p class="next">Import a PGN or a Lichess study. Everything stays on this device, and reviews work offline.</p>` +
+        `<div class="idle-actions"><button class="pill" data-a="import">Import a PGN</button></div>`;
     } else {
+      const live = scope().filter(x => x.active);
       const iv = live.flatMap(x => x.lines.flatMap(l => l.cards.map(c => c.ivl))).filter(x => x > 0);
-      const where = s ? s.name : SCOPE_ALL;
-      h = `<h1>All caught up</h1><p class="next">Nothing is due in ${esc(where)}.${iv.length ? " The next review is in " + days(Math.min(...iv)) + "." : " The next review is in a few hours."}</p>` +
-        `<div class="idle-actions"><button class="pill" data-a="practice">Practice</button><button class="link" data-a="restart">Start over</button></div>`;
+      const when = iv.length ? " " + days(Math.min(...iv)) + "." : " will appear automatically.";
+      h = `<h1>Nothing due.</h1><p class="next">Next review${when}</p>` +
+        `<div class="idle-actions"><button class="pill" data-a="practice">Practice</button><button class="link" data-a="choose">Choose a study</button></div>` +
+        `<p class="foot">Practice never changes your schedule.</p>`;
     }
     $(".idle").innerHTML = h;
   }
@@ -735,32 +741,48 @@
 
   const row = (a, label, sub, extra = "") => `<div class="lib-row" data-a="${a}"><span>${label}${sub ? `<small>${sub}</small>` : ""}</span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></div>`;
 
-  /* The scope list: the everywhere row, then one row per repertoire with its due count, its own
-     options button, and Import PGN at the foot (review_scope_drawer.dart).
+  /* The scope list: the everywhere row, then one row per repertoire, and Import PGN at the foot
+     (review_scope_drawer.dart `_ScopeRow`). The shape is the reference's: name over a sub-line of
+     memory bar plus a figure, with the due numeral to the right.
 
-     A suspended repertoire keeps its due numeral — pausing takes it out of the review pool, it
-     does not reset its schedule — and the app recolours the name and the numeral to ink3
-     (`.row.paused`) rather than hiding either. */
-  const scopeRow = (attrs, name, due, paused, trail = "") =>
-    `<div class="row${paused ? " paused" : ""}${due === 0 ? " zero" : ""}" ${attrs}><div class="row-main"><div class="row-name">${esc(name)}</div><div class="row-sub"><span class="row-due"><b>${due}</b> <i>due</i></span></div></div>${trail}</div>`;
+     A suspended repertoire keeps its numeral — pausing removes it from the review pool, it does not
+     reset its schedule — and the app swaps the sub-line's figure for `Paused` and recolours the name
+     and numeral to ink3 (`.row.paused`) rather than hiding either. */
+  const memBar = s => {
+    const all = s.lines.flatMap(l => l.cards);
+    const learned = all.filter(c => c.ivl > 0).length;
+    const due = all.filter(c => c.due).length;
+    return `<span class="mem"><i class="m-ret" style="flex:${Math.max(0, learned - due)}"></i><i class="m-lrn" style="flex:${due}"></i><i class="m-new" style="flex:${Math.max(0, all.length - learned)}"></i></span>`;
+  };
+
+  const scopeRow = (attrs, name, due, study, paused, trail = "") =>
+    `<div class="row${paused ? " paused" : ""}${due === 0 ? " zero" : ""}" ${attrs}>` +
+    `<span class="row-main"><span class="row-name">${esc(name)}</span>` +
+    `<span class="row-sub">${memBar(study)}<span>${paused ? "Paused" : study.lines.flatMap(l => l.cards).length + " positions"}</span></span></span>` +
+    `<span class="row-due"><b>${due}</b> <i>due</i></span>${trail}</div>`;
 
   const picker = () => {
-    const everywhere = studies.reduce((n, s) => n + (s.active ? dueN(s) : 0), 0);
     const options = i => `<button class="icon-btn" data-a="sacts" data-i="${i}" aria-label="Study options"><svg viewBox="0 0 20 20"><circle cx="4" cy="10" r="1.7"/><circle cx="10" cy="10" r="1.7"/><circle cx="16" cy="10" r="1.7"/></svg></button>`;
+    // The everywhere row counts active studies only (`_getActiveDecisions` in review_service.dart);
+    // a per-study row keeps its own numeral whether or not it is suspended.
+    const active = studies.filter(s => s.active);
+    const everywhere = { lines: active.flatMap(s => s.lines) };
+    const everywhereDue = active.reduce((n, s) => n + dueN(s), 0);
     $("#scopeList").innerHTML = `<div class="list"><div class="lib-group">` +
-      scopeRow(`data-a="scope" data-all="1" aria-current="${sel < 0}"`, SCOPE_ALL, everywhere, false) +
-      studies.map((s, i) => scopeRow(`data-a="pick" data-i="${i}" aria-current="${sel === i}"`, s.name, dueN(s), !s.active, options(i))).join("") +
+      scopeRow(`data-a="scope" data-all="1" aria-current="${sel < 0}"`, SCOPE_ALL, everywhereDue, everywhere, false) +
+      studies.map((s, i) => scopeRow(`data-a="pick" data-i="${i}" aria-current="${sel === i}"`, s.name, dueN(s), s, !s.active, options(i))).join("") +
       `</div><div class="lib-group">${row("import", "Import PGN", "From a file, pasted text or a Lichess study")}</div></div>`;
     openSheet("sheetScope");
   };
 
   /* The overflow button opens the Library sheet, which in the app carries two rows under a
-     "Preferences" header and nothing else (library_sheet.dart). Study-level actions are not
+     "Preferences" group header and nothing else (library_sheet.dart). Study-level actions are not
      here: they live in StudyActionsSheet, reached from a study's options button in the scope
      list — see `studyActions`. */
   const more = () => {
-    $("#sheetLib .list").innerHTML = `<div class="lib-group"><button class="lib-row" data-a="settings"><span>Settings<small>Review, board, engine, and sound</small></span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></button></div>` +
-      `<div class="lib-group"><button class="lib-row" data-a="about"><span>About and licences</span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></button></div>`;
+    $("#sheetLib .list").innerHTML = `<div class="lib-group"><div class="group-title">Preferences</div>` +
+      `<button class="lib-row" data-a="settings"><span>Settings<small>Review, board, engine, and sound</small></span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></button>` +
+      `<button class="lib-row" data-a="about"><span>About and licences</span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></button></div>`;
     openSheet("sheetLib");
   };
 
@@ -863,8 +885,8 @@
     scope: () => { sel = -1; practice = false; closeSheet(); startSession(); },
     sacts: el => studyActions(+el.dataset.i),
     practice: () => { practice = !practice; closeSheet(); startSession(); },
+    choose: picker,
     pause: () => { const s = tgt(); s.active = !s.active; closeSheet(); startSession(); },
-    restart: () => { st().lines.forEach(l => l.cards.forEach(c => { c.due = true; c.ivl = 0; c.lapses = 0; })); startSession(); },
     export: () => { closeSheet(); $("#setTitle").textContent = tgt().name; view("settings"); $("#settingsBody").innerHTML = `<div class="set-group"><pre id="x-pgn" style="white-space:pre-wrap;font:13px/1.7 var(--mono)">${esc(toPGN(tgt()))}</pre><div class="idle-actions"><button class="pill" data-a="copy">Copy PGN</button></div></div>`; },
     copy: el => {
       const txt = toPGN(tgt());
@@ -969,8 +991,6 @@
   $("#skipBtn").addEventListener("click", skip);
   $("#contBtn").addEventListener("click", cont);
   $("#backBtn").addEventListener("click", () => { an = null; view("rev"); startSession(); });
-  $("#practiceBtn").addEventListener("click", () => { practice = !practice; startSession(); });
-  $("#chooseBtn").addEventListener("click", picker);
 
   apply();
   startSession();
