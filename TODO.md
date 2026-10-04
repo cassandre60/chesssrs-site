@@ -19,7 +19,15 @@ Tracking progress across workstreams as defined in the handoff specification.
         and phone)
   - [ ] 15 of the app's 23 settings rows are unported. Deliberate, not drift: they navigate to screens
         this demo does not port, so rendering them would be inventing UI. A scope decision.
-  - [ ] Re-verify against the app's own screenshot harness (`SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`) — committed screenshots are 46% stale. Needs FVM-pinned Flutter 3.47.3 and belongs on a local/nightly run, not per-commit. **This is the only remaining mechanism that would catch a purely visual overhaul** — see "What this still cannot do" below.
+  - [x] Pixel-parity gate against the app's own golden captures — `npm run parity:pixels`, 60 pairs,
+        baseline committed, self-test proves it has teeth. See "Pixel-parity gate" below.
+  - [ ] Regenerate the app's golden captures. They are **46% stale** and 2 days older than the commit
+        that fixed the dark-mode board squares, so the dark pairs are measuring the *old* palette —
+        the app is now correct (`squareLight #232A36` over `squareDark #10141B`, pinned by
+        `test/design/board_squares_test.dart`) and the demo matches it; the app's committed PNGs are
+        what is out of date. Needs FVM-pinned Flutter 3.47.3:
+        `SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`
+  - [ ] Re-baseline after that, once — every dark pair will move.
 - [ ] Task 4: Complete launch items. Remaining:
   - [x] Liberapay: the donation account does not exist yet, so the two links that pointed at
     `liberapay.com/YOUR_NAME` — the `#support` CTA and the footer's Support list — were **removed**
@@ -102,6 +110,7 @@ Now two halves:
 |---|---|---|
 | `scripts/sync-strings.js` | the app's screens changed and nobody re-derived the manifest | local / anywhere the app repo is present (`npm run sync:check`) |
 | `tests/e2e/app-parity.spec.js` | the demo no longer matches `design/app-ui.json` | everywhere, including CI |
+| `npm run parity:pixels` | the app was redesigned *visually* and the tokens did not move | local/nightly, needs the app's golden captures |
 
 Covers the settings screen (section headers, row labels, row order, row kind, conditional rows), the
 Library sheet, the Study Actions sheet, the scope drawer's copy, and the nothing-due / first-run
@@ -118,9 +127,69 @@ navigate to screens this demo does not port. They are asserted to still exist in
 the day the app drops one the excuse is forced to be revisited. Anything outside that list fails.
 
 **What this still cannot do:** make the demo's DOM generate itself. That remains blocked by
-`dartchess` not compiling to JavaScript. The gate makes drift impossible to *miss*, not impossible.
-Pixel parity against the app's own `SRS_CAPTURE_SCREENSHOTS` harness is the natural next layer and
-would catch a purely visual overhaul; it is local/nightly rather than per-commit.
+`dartchess` not compiling to JavaScript. The gates make drift impossible to *miss*, not impossible.
+The structural half is per-commit; the visual half (`npm run parity:pixels`, below) is local/nightly
+because it needs the app's golden captures regenerated through Flutter.
+
+### Pixel-parity gate (added 2026-10-05)
+
+The last mechanism, and the one that answers "will this survive a visual overhaul".
+
+`sync-design.js` catches tokens, fonts and piece art. `sync-strings.js` + `app-parity.spec.js`
+catch copy and structure. Neither notices a change that is *only* visual: restyle the board frame,
+move the notation line, change how much vertical room the side column gets, and every other gate
+stays green. `npm run parity:pixels` renders the demo against the app's own golden captures and
+measures.
+
+| | |
+|---|---|
+| `scripts/png.js` | PNG reader, and nothing else. No image library is installed and `zlib` is already in Node; it decodes the one shape the app writes (8-bit, non-interlaced, RGB/RGBA) and **throws** on anything else rather than misreading the oracle |
+| `tests/fixtures/parity-harness.html` | Capture page. Loads the same three stylesheets in the same order with the same frame markup and nothing else. `main.js` is deliberately excluded — it is the marketing page's behaviour and throws here |
+| `design/pixel-parity.json` | The committed baseline. 60 pairs: 6 states x 5 surfaces x 2 themes |
+| `docs/parity/` | Regenerable output, gitignored |
+
+**It is relative, and that is deliberate.** The app's own harness says: *"Pixel comparison across
+machines and font stacks is too brittle to assert on"* — it writes files and passes. Two independently
+written UIs with different content will never agree pixel for pixel. So the gate records how far apart
+they are today and fails only when that distance *moves*. An intentional redesign is `--update`d after
+a human has looked at `docs/parity/diffs/`.
+
+Two metrics, because they answer different questions:
+
+- **fine** — per-pixel. Text-sensitive, so mostly reports content differences. Informational.
+- **coarse** — the same comparison after averaging into 16x16 blocks. Text averages away; what
+  survives is where things *are* and what colour they are. **This is the one the gate fails on**,
+  because it is what a redesign actually moves.
+
+### What this gate could not do, and why
+
+**It found a bug in itself before it found anything in the demo.** The first run reported
+`review-scope-desktop-light` FAIL at 88.6%. The demo was fine: the app's harness mounts
+`ReviewScopeDrawer` on a bare `Scaffold` — its own comment says a pushed dialog route is a sibling of
+the capture's RepaintBoundary and so falls outside the golden's surface — while the demo shows the
+drawer over the live review screen. Comparing them measures the background. Same for
+`review-actions`. Both are now `comparable: false`: still captured and reported, excluded from the
+verdict, and labelled in the output, because a permanently-red pair teaches people to ignore the gate.
+
+**Proving it has teeth took three attempts, all of which "passed" for the wrong reason.** The
+self-test perturbs a design token and asserts the gate notices. It failed to notice — three times.
+`index.html` loads `assets/demo-tokens.css` **after** `assets/demo-reference.css`, and both declare
+the same custom properties, so editing the reference sheet is silently overridden. The page under
+test never changed; the gate was correctly reporting no drift on an unchanged page. The self-test now
+edits the tokens sheet and says why in a comment.
+
+**Its sensitivity has a floor, deliberately.** `#10141B -> #1A2030` on the dark squares moves the
+coarse metric 0.7pp and is *not* caught, because the 5pp margin is wider than the change. That is the
+intended trade: this catches a layout or palette overhaul, not a 10/255 nudge nobody would notice
+either. Tightening the tolerance to see it was tried — at tolerance 8 instead of 24 the phone-dark pair
+goes from 7.9% to 83%, and the metric stops measuring design and starts measuring
+Skia-versus-Chromium rasterisation noise. Sensitivity costs false positives, and a gate that cries
+wolf gets ignored.
+
+The whole gate depends on regenerating the app's captures, which needs Flutter
+(`SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`). That is far too
+heavy for every commit, so this is **not** wired into CI. Point `CHESSSRS_APP_DIR` at the app repo and
+run it when reviewing visual work. `npm run parity:pixels:self-test` needs no app repo and is cheap.
 
 ### Known, inherited from the app
 

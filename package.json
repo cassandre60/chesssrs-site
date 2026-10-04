@@ -1,3 +1,22 @@
-{"name":"chesssrs-site","private":true,"scripts":{"test":"node tests/demo.test.js && node tests/fsrs.test.js","test:e2e":"playwright test tests/e2e/basic.spec.js tests/e2e/interactions.spec.js tests/e2e/app-parity.spec.js tests/e2e/style-namespace.spec.js tests/e2e/accessibility.spec.js",
-"sync":"node scripts/sync-design.js && node scripts/sync-strings.js",
-"sync:check":"node scripts/sync-design.js --check && node scripts/sync-strings.js --check","screenshots":"playwright test tests/e2e/screenshots.spec.js","build":"python3 build.py"},"devDependencies":{"@axe-core/playwright":"^4.13.0","@playwright/test":"^1.63.0"},"dependencies":{"chess.js":"^1.4.0"}}
+{
+  "name": "chesssrs-site",
+  "private": true,
+  "scripts": {
+    "test": "node tests/demo.test.js && node tests/fsrs.test.js",
+    "test:e2e": "playwright test tests/e2e/basic.spec.js tests/e2e/interactions.spec.js tests/e2e/app-parity.spec.js tests/e2e/style-namespace.spec.js tests/e2e/accessibility.spec.js",
+    "sync": "node scripts/sync-design.js && node scripts/sync-strings.js",
+    "sync:check": "node scripts/sync-design.js --check && node scripts/sync-strings.js --check",
+    "screenshots": "playwright test tests/e2e/screenshots.spec.js",
+    "build": "python3 build.py",
+    "parity:pixels": "node scripts/pixel-parity.js",
+    "parity:pixels:update": "node scripts/pixel-parity.js --update",
+    "parity:pixels:self-test": "node scripts/pixel-parity.js --self-test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0"
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0"
+  }
+}

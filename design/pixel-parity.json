@@ -1,0 +1,242 @@
+{
+  "review-prompt-small-light": {
+    "fine": 0.1111,
+    "coarse": 0.0824
+  },
+  "review-prompt-small-dark": {
+    "fine": 0.2634,
+    "coarse": 0.1657
+  },
+  "review-prompt-phone-light": {
+    "fine": 0.0775,
+    "coarse": 0.008
+  },
+  "review-prompt-phone-dark": {
+    "fine": 0.226,
+    "coarse": 0.0729
+  },
+  "review-prompt-phone-landscape-light": {
+    "fine": 0.0451,
+    "coarse": 0.0064
+  },
+  "review-prompt-phone-landscape-dark": {
+    "fine": 0.1279,
+    "coarse": 0.0288
+  },
+  "review-prompt-tablet-light": {
+    "fine": 0.025,
+    "coarse": 0.0031
+  },
+  "review-prompt-tablet-dark": {
+    "fine": 0.0761,
+    "coarse": 0.0231
+  },
+  "review-prompt-desktop-light": {
+    "fine": 0.0599,
+    "coarse": 0.0018
+  },
+  "review-prompt-desktop-dark": {
+    "fine": 0.2479,
+    "coarse": 0.1327
+  },
+  "review-answered-small-light": {
+    "fine": 0.0823,
+    "coarse": 0.0341
+  },
+  "review-answered-small-dark": {
+    "fine": 0.2456,
+    "coarse": 0.1108
+  },
+  "review-answered-phone-light": {
+    "fine": 0.092,
+    "coarse": 0.0369
+  },
+  "review-answered-phone-dark": {
+    "fine": 0.2459,
+    "coarse": 0.1098
+  },
+  "review-answered-phone-landscape-light": {
+    "fine": 0.057,
+    "coarse": 0.0264
+  },
+  "review-answered-phone-landscape-dark": {
+    "fine": 0.1432,
+    "coarse": 0.0609
+  },
+  "review-answered-tablet-light": {
+    "fine": 0.0301,
+    "coarse": 0.0103
+  },
+  "review-answered-tablet-dark": {
+    "fine": 0.0829,
+    "coarse": 0.0357
+  },
+  "review-answered-desktop-light": {
+    "fine": 0.0679,
+    "coarse": 0.0161
+  },
+  "review-answered-desktop-dark": {
+    "fine": 0.2614,
+    "coarse": 0.1546
+  },
+  "review-empty-small-light": {
+    "fine": 0.0889,
+    "coarse": 0.1581
+  },
+  "review-empty-small-dark": {
+    "fine": 0.1045,
+    "coarse": 0.1648
+  },
+  "review-empty-phone-light": {
+    "fine": 0.0751,
+    "coarse": 0.1314
+  },
+  "review-empty-phone-dark": {
+    "fine": 0.0891,
+    "coarse": 0.1346
+  },
+  "review-empty-phone-landscape-light": {
+    "fine": 0.085,
+    "coarse": 0.1571
+  },
+  "review-empty-phone-landscape-dark": {
+    "fine": 0.0882,
+    "coarse": 0.1699
+  },
+  "review-empty-tablet-light": {
+    "fine": 0.0325,
+    "coarse": 0.0674
+  },
+  "review-empty-tablet-dark": {
+    "fine": 0.0336,
+    "coarse": 0.0694
+  },
+  "review-empty-desktop-light": {
+    "fine": 0.0475,
+    "coarse": 0.0806
+  },
+  "review-empty-desktop-dark": {
+    "fine": 0.0522,
+    "coarse": 0.0933
+  },
+  "review-scope-small-light": {
+    "fine": 0.5813,
+    "coarse": 0.6373
+  },
+  "review-scope-small-dark": {
+    "fine": 0.4677,
+    "coarse": 0.5019
+  },
+  "review-scope-phone-light": {
+    "fine": 0.6045,
+    "coarse": 0.6402
+  },
+  "review-scope-phone-dark": {
+    "fine": 0.4528,
+    "coarse": 0.4888
+  },
+  "review-scope-phone-landscape-light": {
+    "fine": 0.6216,
+    "coarse": 0.6771
+  },
+  "review-scope-phone-landscape-dark": {
+    "fine": 0.7288,
+    "coarse": 0.7636
+  },
+  "review-scope-tablet-light": {
+    "fine": 0.8197,
+    "coarse": 0.8397
+  },
+  "review-scope-tablet-dark": {
+    "fine": 0.7112,
+    "coarse": 0.7283
+  },
+  "review-scope-desktop-light": {
+    "fine": 0.871,
+    "coarse": 0.8857
+  },
+  "review-scope-desktop-dark": {
+    "fine": 0.7915,
+    "coarse": 0.8028
+  },
+  "review-actions-small-light": {
+    "fine": 0.3042,
+    "coarse": 0.2784
+  },
+  "review-actions-small-dark": {
+    "fine": 0.3716,
+    "coarse": 0.3636
+  },
+  "review-actions-phone-light": {
+    "fine": 0.3513,
+    "coarse": 0.3285
+  },
+  "review-actions-phone-dark": {
+    "fine": 0.4141,
+    "coarse": 0.4335
+  },
+  "review-actions-phone-landscape-light": {
+    "fine": 0.5625,
+    "coarse": 0.5681
+  },
+  "review-actions-phone-landscape-dark": {
+    "fine": 0.7525,
+    "coarse": 0.8381
+  },
+  "review-actions-tablet-light": {
+    "fine": 0.7004,
+    "coarse": 0.7074
+  },
+  "review-actions-tablet-dark": {
+    "fine": 0.8372,
+    "coarse": 0.896
+  },
+  "review-actions-desktop-light": {
+    "fine": 0.7857,
+    "coarse": 0.7915
+  },
+  "review-actions-desktop-dark": {
+    "fine": 0.8848,
+    "coarse": 0.8998
+  },
+  "settings-small-light": {
+    "fine": 0.1223,
+    "coarse": 0.1373
+  },
+  "settings-small-dark": {
+    "fine": 0.1264,
+    "coarse": 0.1544
+  },
+  "settings-phone-light": {
+    "fine": 0.1144,
+    "coarse": 0.1282
+  },
+  "settings-phone-dark": {
+    "fine": 0.1185,
+    "coarse": 0.1442
+  },
+  "settings-phone-landscape-light": {
+    "fine": 0.0567,
+    "coarse": 0.0809
+  },
+  "settings-phone-landscape-dark": {
+    "fine": 0.0577,
+    "coarse": 0.0777
+  },
+  "settings-tablet-light": {
+    "fine": 0.0693,
+    "coarse": 0.0928
+  },
+  "settings-tablet-dark": {
+    "fine": 0.072,
+    "coarse": 0.1067
+  },
+  "settings-desktop-light": {
+    "fine": 0.0407,
+    "coarse": 0.056
+  },
+  "settings-desktop-dark": {
+    "fine": 0.0422,
+    "coarse": 0.0647
+  }
+}
