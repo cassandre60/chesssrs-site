@@ -21,9 +21,16 @@ Tracking progress across workstreams as defined in the handoff specification.
         this demo does not port, so rendering them would be inventing UI. A scope decision.
   - [ ] Re-verify against the app's own screenshot harness (`SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`) — committed screenshots are 46% stale. Needs FVM-pinned Flutter 3.47.3 and belongs on a local/nightly run, not per-commit. **This is the only remaining mechanism that would catch a purely visual overhaul** — see "What this still cannot do" below.
 - [ ] Task 4: Complete launch items. Remaining:
-  - [ ] Liberapay handle: `index.html` still carries `liberapay.com/YOUR_NAME`, so the donation and
-    support links point at an account that does not exist. A dead donation link is worse than none —
-    either supply the real handle or hide the block. **Blocked on the user.**
+  - [x] Liberapay: the donation account does not exist yet, so the two links that pointed at
+    `liberapay.com/YOUR_NAME` — the `#support` CTA and the footer's Support list — were **removed**
+    rather than shipped dead. A funding route that resolves to nobody is worse than none. The
+    section headline went from "Free software, funded by the people who use it." to "Free software,
+    built in the open.", since the old wording asserted a funding route that did not exist. When the
+    account is created, restore both links and revisit that headline; README.md's launch checklist
+    records the two insertion points. Guarded by `no shipped page links to a placeholder`, which
+    fails on the fill-me-in tokens rather than on any run of capitals — an earlier version of that
+    test flagged `github.com/mansourvery-hub/ChessSRS` for containing `SRS`, which is exactly how a
+    gate gets ignored.
   - [x] Canonical URL: the site is served from the free `github.io` address and now says so in
     `canonical`, `og:url`, `og:image`, `twitter:image` and the JSON-LD, replacing the
     `chesssrs.example` placeholder. Gated by `every URL the page tells the world about points at the

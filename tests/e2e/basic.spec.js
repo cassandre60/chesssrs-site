@@ -86,6 +86,47 @@ test('every URL the page tells the world about points at the live origin', async
 
    hasTouch is on so this is exercised the way a phone would use it; a mouse-only test would not
    have caught this, since the board had no hit area to click. */
+/* Scans every shipped HTML file rather than just this page's <head>, because a placeholder URL only
+   misleads where a visitor can actually click it. The page once carried
+   `liberapay.com/YOUR_NAME` as a donation CTA in the support section and again in the footer: a
+   funding route that resolved to nobody is worse than no funding route, so both are gone for now
+   rather than shipped live. This asserts the *class* of bug, not the absence of donations — when a
+   real Liberapay account exists, dropping its link back in keeps this green, and re-adding it with
+   the placeholder still fails.
+
+   `dist/` is excluded: build.py inlines the pages into a single file, and `YOUR_NAME` may legitimately
+   appear in a comment there. */
+test('no shipped page links to a placeholder', async () => {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.resolve(__dirname, '../..');
+
+  const pages = fs
+    .readdirSync(root)
+    .filter((f) => f.endsWith('.html'))
+    .map((f) => path.join(root, f));
+
+  expect(pages.length, 'expected the root HTML pages to be found').toBeGreaterThan(1);
+
+  /* An earlier version of this test looked for any run of three capitals in an href, which flagged
+     `github.com/mansourvery-hub/ChessSRS` because it contains `SRS`. A gate that fires on correct
+     markup is worse than no gate, because it teaches people to ignore it. These are the markers
+     that actually mean "unfilled": the RFC 2606 reserved names, plus the conventional
+     fill-me-in tokens. */
+  const FILL_ME_IN =
+    /(YOUR[_-]?|USERNAME|USER[_-]?NAME|CHANGEME|CHANGE[_-]?ME|REPLACEME|FILL[_-]?ME|INSERT[_-]?HERE|\bTODO\b|XXX)/i;
+  const suspect = (href) => PLACEHOLDER.test(href) || FILL_ME_IN.test(href);
+
+  const offenders = [];
+  for (const file of pages) {
+    const html = fs.readFileSync(file, 'utf8');
+    for (const m of html.matchAll(/href="([^"]*)"/g)) {
+      if (suspect(m[1])) offenders.push(`${path.basename(file)}: ${m[1]}`);
+    }
+  }
+  expect(offenders, 'placeholder hrefs must not ship').toEqual([]);
+});
+
 test('the demo board stays usable across viewport widths', async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, hasTouch: true });
   const page = await ctx.newPage();
