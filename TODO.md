@@ -9,9 +9,45 @@ Tracking progress across workstreams as defined in the handoff specification.
   - [x] Notation line: full move history with figurines (`SrsNotationLine` truncates to the last 8 plies behind a `…`), answer rendered as SAN in the accent
   - [x] Answer slot: SAN plus figurines
   - [x] Menus: Library sheet (Settings, About) and Study Actions sheet (Analyze, Practice, Export, Pause/Resume, Rename, Delete) match the app
-  - [x] Settings screen: 8 sections with SrsSegmented, SrsSwitch, SrsAccentDots, SrsSettingsRow — matches `SrsSettingsScreen`
-  - [ ] Re-verify against the app's own screenshot harness (`SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`)
+  - [x] Settings screen: section headers + `SrsSegmented`, `SrsSwitch`, `SrsAccentDots` — matches `SrsSettingsScreen`
+  - [ ] Re-verify against the app's own screenshot harness (`SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`) — committed screenshots are 46% stale
 - [ ] Task 4: Complete launch items (Liberapay handle placeholder, custom domain docs). Blocked on user: replace `liberapay.com/YOUR_NAME` in `index.html` and optionally set custom domain per `README.md` launch checklist.
+
+## Bugs the demo was hiding (found 2026-10-04, all fixed)
+
+Every one of these rendered as a plausible-looking screen rather than an error, which is why the
+gates did not catch them until the tests were brought back in line. Each now has a regression guard.
+
+- The board **never rendered**. `labels()` asked for `.coords-r` from inside `.board`, where it does
+  not exist (the gutters are siblings), so `setup()` threw on load and the 32 squares stayed empty.
+  `.coords-in` was also never populated. Guarded by `the board renders on load`.
+- Pieces were **invisible**: `PIECE_DEFS` was generated into `pieces.js` but never injected, so all
+  96 `<use>` layers resolved to nothing. The injection also has to happen *after* `host.innerHTML`
+  is assigned, which replaces the demo's entire contents. Same guard.
+- The theme toggle **did nothing**. `apply()` wrote `data-theme` to `<html>`, but `sync-design.js`
+  re-anchors the app's tokens from `:root` onto `.app`, so the attribute never matched — and it was
+  written as the boolean `true`/`false` rather than the tokens' `"dark"`/`"light"`. Guarded by
+  `the demo root carries its own theme tokens`.
+- `.frame`, not `.app`, painted the background, so the demo measured its text against the
+  **marketing page's** palette. Guarded by `no element in the demo is painted with the marketing palette`.
+- The marketing stylesheet's `.meta` rule restyled the **app's** meta row (`#5F584D` on the app's
+  surface, 2.73:1). The two stylesheets share class names and `styles.css` loads last; the colliding
+  marketing classes are now namespaced `mk-meta` / `mk-sr`.
+- `drawAn()` replaced `.view-settings`' innerHTML wholesale, detaching `#backBtn`'s startup listener
+  and `#settingsBody` itself, so **every screen after Analyze** (settings, export, rename, import)
+  threw. Guarded by `Analyze renders into the settings shell without destroying it`.
+- `analyze`, `export`, `rename`, `delete`, `import` and `about` left the scrim up, putting a modal
+  barrier over the screen that replaced the sheet.
+- A closed sheet is `opacity:0`, not `display:none`. The old tests asserted `toBeHidden()`, which
+  passes for a sheet that is still open — they were asserting nothing. Now keyed on the `open` class
+  and `pointer-events`.
+
+### Known, inherited from the app
+
+- The app's `--ink3` is 3.0–3.4:1 where small text needs 4.5:1 (`design/docs/04-screens-and-flows.md`
+  claims AA). The demo copies the token verbatim, so it inherits the shortfall rather than hiding
+  it. `accessibility.spec.js` exempts exactly that token value and counts the exempted nodes in
+  `ink3-shortfall`, so fixing the app turns the gate back on by itself.
 
 ## Ground truth for fidelity work
 

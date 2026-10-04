@@ -4,6 +4,9 @@
 */
 (() => {
   const host = document.getElementById("app"); if (!host) return;
+  host.dataset.screen = "review";
+  host.dataset.phase = "prompt";
+  host.classList.add("app");
   const { F, START, sq, nm, genB, compile, parsePGN, toPGN, nextInterval } = window.SRSEngine;
   const NS = "http://www.w3.org/2000/svg", $ = (s, c = host) => c.querySelector(s);
   const esc = s => String(s).replace(/[&<>\"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -117,139 +120,176 @@
       (isDark ? `<rect x="${f}" y="${r}" width="1" height="1" fill="url(#hatch)"/>` : '');
   }).join("");
 
-  /* ---------- Shell HTML (Exact review layout mirroring App) ---------- */
+  /* ---------- Shell HTML: mirror design/reference/index.html exactly ---------- */
   host.innerHTML = `
-  <div class="srs-topbar">
-    <div class="srs-scope-cluster">
-      <button class="srs-scope-btn" data-a="picker" aria-haspopup="dialog" aria-label="Studies and scope">
-        <span id="a-study">All repertoires</span>
-        <svg class="srs-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5L6 8L9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="statusbar" aria-hidden="true">
+      <span>9:41</span>
+      <svg viewBox="0 0 24 12"><rect x=".75" y=".75" width="20" height="10.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.6" fill="currentColor"/><rect x="21.5" y="4" width="1.8" height="4" rx=".9" fill="currentColor"/></svg>
+    </div>
+
+    <header class="topbar">
+      <button class="scope" id="scopeBtn" aria-haspopup="dialog" aria-expanded="false">
+        <span id="scopeName">All repertoires</span>
+        <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>
       </button>
-      <span class="srs-due-badge" id="a-due">16 due</span>
-    </div>
-    <div class="srs-topbar-spacer"></div>
-    <button class="srs-dots-btn" data-a="more" aria-label="Library and settings">
-      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ico.dots}</svg>
-    </button>
-  </div>
+      <span class="due" id="due"><b>16</b> due</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="moreBtn" aria-label="Library and settings" aria-haspopup="dialog">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4" cy="10" r="1.7"/><circle cx="10" cy="10" r="1.7"/><circle cx="16" cy="10" r="1.7"/></svg>
+      </button>
+    </header>
 
-  <div class="srs-review-main ab">
-    <div class="srs-board-region">
-      <div class="srs-board-wrap bw">
-        <div class="rk" aria-hidden="true"></div>
-        <svg class="bd" viewBox="0 0 8 8" role="application" tabindex="0" aria-label="Chess board. Arrow keys move the cursor, Enter picks up or drops a piece.">
-          <defs>
-            <pattern id="hatch" width=".1" height=".1" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-              <rect width=".012" height=".1" fill="currentColor"/>
-            </pattern>
-            ${window.PIECE_DEFS}
-          </defs>
-          <g class="board-squares">${squares}</g>
-          <g class="ov"></g>
-          <g class="pcs"></g>
-          <g class="arr" style="color:var(--aa)" opacity=".95"></g>
-          <rect x="0.02" y="0.02" width="7.96" height="7.96" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" class="board-frame"/>
-        </svg>
-        <div class="fl" aria-hidden="true"></div>
+    <section class="view view-review" aria-label="Review">
+      <div id="boardHost"></div>
+      <aside class="side">
+        <div class="meta">
+          <span id="ctx"></span>
+          <span class="turn"><i class="dot" id="turnDot"></i><span id="turnTxt">White to play</span></span>
+        </div>
+        <h2 class="line" id="line"></h2>
+        <div class="slot">
+          <div class="answer" id="answer" hidden>
+            <div class="answer-move" id="ansMove"></div>
+            <div class="answer-help">Play this move to continue. The position will come back soon.</div>
+          </div>
+          <blockquote class="note" id="note" hidden>
+            <p id="noteText"></p>
+            <small>From your study</small>
+          </blockquote>
+        </div>
+        <div class="actions">
+          <button class="text-btn" id="skipBtn">Skip <kbd>S</kbd></button>
+          <button class="pill" id="contBtn" hidden>Continue <kbd>Space</kbd></button>
+        </div>
+      </aside>
+      <div class="sr" id="live" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="view view-idle" aria-label="Nothing due">
+      <div class="idle">
+        <h1>Nothing due.</h1>
+        <p class="next" id="idleNext"></p>
+        <div class="idle-actions">
+          <button class="pill" id="practiceBtn">Practice <kbd>P</kbd></button>
+          <button class="link" id="chooseBtn">Choose a repertoire</button>
+        </div>
+        <p class="foot">Practice never changes your schedule.</p>
+      </div>
+    </section>
+
+    <section class="view view-settings" aria-label="Settings">
+      <div class="set-head">
+        <button class="text-btn" id="backBtn" style="margin-left:0;padding-left:8px">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg>
+          Review
+        </button>
+      </div>
+      <div class="set-col">
+        <h1 id="setTitle">Settings</h1>
+        <div id="settingsBody"></div>
+      </div>
+    </section>
+
+    <div class="scrim" id="scrim"></div>
+
+    <div class="sheet sheet-scope" id="sheetScope" role="dialog" aria-label="Choose what to review">
+      <div class="grab"></div>
+      <label class="search">
+        <svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="8" cy="8" r="5.2"/><path d="m12 12 4 4"/></svg>
+        <input id="scopeSearch" type="text" placeholder="Search" autocomplete="off" aria-label="Search repertoires and openings">
+      </label>
+      <div class="list" id="scopeList"></div>
+    </div>
+
+    <div class="sheet sheet-library" id="sheetLib" role="dialog" aria-label="Library">
+      <div class="grab"></div>
+      <div class="list">
+        <div class="lib-group">
+          <button class="lib-row" data-lib="import"><span>Import PGN<small>From a file, pasted text or a Lichess study</small></span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></button>
+        </div>
+        <div class="lib-group">
+          <button class="lib-row" data-lib="settings">Settings<svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></button>
+          <button class="lib-row" data-lib="about">About and licences<svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></button>
+        </div>
       </div>
     </div>
 
-    <div class="srs-side-column ap">
-      <div id="a-rev" class="srs-rev-pane">
-        <div class="srs-meta">
-          <span class="srs-chapter-name at" id="a-title"></span>
-          <div class="srs-turn-indicator aw">
-            <span class="srs-turn-dot tn"></span>
-            <span id="a-turn">White to play</span>
-          </div>
-        </div>
+    <div class="toast" id="toast" role="status"></div>
+  `;
 
-        <div class="srs-notation-line" id="a-notation-line"></div>
+  /* ---------- Board ---------- */
+  /* The piece sprite. Each piece is drawn as three <use> layers — halo, line, fill — over one
+     shared silhouette, so the 32 squares reference a single <g> per piece instead of inlining the
+     geometry 96 times. `scripts/sync-design.js` lifts those silhouettes out of the app's own
+     per-piece SVGs into `pieces.js` as PIECE_DEFS. It is injected here, after the shell markup has
+     been written: `host.innerHTML` above replaces the demo's entire contents, so anything appended
+     before it is discarded — which left every <use> resolving to nothing and the board empty. */
+  if (window.PIECE_DEFS) {
+    const sprite = document.createElementNS(NS, "svg");
+    sprite.setAttribute("width", "0");
+    sprite.setAttribute("height", "0");
+    sprite.setAttribute("aria-hidden", "true");
+    sprite.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+    sprite.innerHTML = `<defs>${window.PIECE_DEFS}</defs>`;
+    host.appendChild(sprite);
+  }
 
-        <div class="srs-slot-region" id="a-slot-region">
-          <div class="srs-note-slot" id="a-note" hidden>
-            <p class="srs-note-body" id="a-note-body"></p>
-            <span class="srs-note-source" id="a-note-source">From your study</span>
-          </div>
-          <div class="srs-correction-slot rv" id="a-rv" hidden>
-            <svg class="pi" viewBox="0 0 100 100" aria-hidden="true" width="56" height="56"></svg>
-            <span class="srs-corr-san" id="a-sq">d4</span>
-            <p class="srs-corr-help">Play this move to continue. The position will come back soon.</p>
-          </div>
-        </div>
+  const boardHost = $("#boardHost");
+  const bdEl = document.createElement("div");
+  bdEl.className = "board-wrap";
+  bdEl.innerHTML = `<div class="coords-r" aria-hidden="true"></div><div class="board" id="bd" role="application" tabindex="0" aria-label="Chess board"><svg class="bg" viewBox="0 0 80 80" preserveAspectRatio="none"><defs><pattern id="hatch" patternUnits="userSpaceOnUse" width=".9" height=".9" patternTransform="rotate(45)"><rect width=".1" height=".9"/></pattern></defs><rect class="sq-l" width="80" height="80"/><path class="sq-d" d=""/><path d="" fill="url(#hatch)"/><g class="hl"></g></svg><div class="pieces"></div><svg class="arrow-layer" viewBox="0 0 80 80"></svg><div class="coords-in"></div></div><div class="coords-f" aria-hidden="true"></div>`;
+  boardHost.appendChild(bdEl);
 
-        <div class="srs-actions-region act" id="a-act">
-          <button class="srs-skip-btn sk" data-a="skip" id="a-skip">Skip <kbd>S</kbd></button>
-          <button class="srs-cont-btn pill" data-a="cont" id="a-cont" hidden>Continue <kbd>Space</kbd></button>
-        </div>
-      </div>
-
-      <div id="a-an" class="srs-rev-pane" hidden></div>
-      <div id="a-empty" class="srs-rev-pane" hidden></div>
-    </div>
-  </div>
-
-  <div class="mo" id="a-mo" hidden></div>
-  <p class="sr" role="status" aria-live="polite" id="a-live"></p>`;
-
-  /* ---------- Board Engine & Interaction ---------- */
-  const bd = $(".bd"), layer = $(".pcs"), ov = $(".ov"), arr = $(".arr"), mo = $("#a-mo");
+  const bd = $("#bd"), pcsLayer = bd.querySelector(".pieces"), bgSvg = bd.querySelector(".bg"), hlLayer = bd.querySelector(".hl"), arrowLayer = bd.querySelector(".arrow-layer");
+  /* The coordinate gutters are siblings of `.board` inside `.board-wrap`, and the inside labels are
+     its own children — SrsBoardWithCoordinates draws ranks/files outside on wide layouts and inside
+     on narrow ones, and the reference CSS switches which pair is displayed at the same breakpoint. */
+  const coordR = bdEl.querySelector(".coords-r"), coordF = bdEl.querySelector(".coords-f"), coordIn = bd.querySelector(".coords-in");
   let flip = false, pcs = [], selSq = -1, dests = [], drag = null, enabled = false, timer = 0, user = "w", lastMove = null, ac = null, opener = null, kb = -1, kbOn = false;
   const kc = { c: 4, r: 6 }, PN = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" };
   const at = i => pcs.find(p => p.i === i), D = i => [flip ? 7 - (i & 7) : i & 7, flip ? 7 - (i >> 3) : i >> 3];
 
-  /* Piece geometry comes from pieces.js, generated from the app's own SVGs. The app draws a
-     piece in its own viewBox coordinates ("5 2 90 90"), so fitting it to a square means scaling
-     by the inverse of that box's size and cancelling its origin. Both are derived from the
-     exported viewBox rather than written down here: if the app re-cuts the artwork, this
-     follows instead of drawing pieces off the board. */
-  const PV = (window.PIECE_VIEWBOX || "0 0 100 100").trim().split(/\s+/).map(Number);
-  const [pvX, pvY, pvW] = PV;
-  const PC_S = 1 / (PV[2] || 100);
-  const PC_T = `scale(${PC_S}) translate(${-pvX} ${-pvY})`;
-
-  /* Three layers, matching the app: halo, line, fill. Colour comes from CSS custom properties
-     (--halo, --ws/--wf for white, --bs/--bf for black) so a theme or accent change in the app
-     repaints the pieces with no change here. */
+  /* Piece rendering: the reference SVG uses <use> elements with .halo/.line/.fill/.det */
   const art = ch => {
     const t = ch.toUpperCase(), isWhite = ch < "a";
-    return `<g class="pc-g ${isWhite ? "w" : "b"}" transform="${PC_T}">` +
-      `<use href="#pc-${t}" class="halo"/><use href="#pc-${t}" class="line"/><use href="#pc-${t}" class="fill"/></g>`;
+    return `<svg class="pc ${isWhite ? "w" : "b"}" viewBox="5 2 90 90" aria-hidden="true"><use href="#pc-${t}" class="halo"/><use href="#pc-${t}" class="line"/><use href="#pc-${t}" class="fill"/></svg>`;
   };
 
-  const place = (p, i) => { p.i = i; const [c, r] = D(i); p.el.style.transform = `translate(${c}px,${r}px)`; };
+  const place = (p, i) => { p.i = i; const [c, r] = D(i); p.el.style.transform = `translate(${c * 100}%,${r * 100}%)`; };
   const labels = () => {
-    $(".rk").innerHTML = [...Array(8)].map((_, r) => `<span>${flip ? r + 1 : 8 - r}</span>`).join("");
-    $(".fl").innerHTML = [...Array(8)].map((_, c) => `<span>${F[flip ? 7 - c : c]}</span>`).join("");
+    coordR.innerHTML = [...Array(8)].map((_, r) => `<span>${flip ? r + 1 : 8 - r}</span>`).join("");
+    coordF.innerHTML = [...Array(8)].map((_, c) => `<span>${F[flip ? 7 - c : c]}</span>`).join("");
+    let inside = "";
+    for (let c = 0; c < 8; c++) inside += `<span class="cf" style="left:${c * 12.5}%;top:87.5%">${F[flip ? 7 - c : c]}</span>`;
+    for (let r = 0; r < 8; r++) inside += `<span class="cr" style="left:0;top:${r * 12.5}%">${flip ? r + 1 : 8 - r}</span>`;
+    coordIn.innerHTML = inside;
   };
-
-  function ping() {
-    if (!set.sound) return;
-    try {
-      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-      const o = ac.createOscillator(), g = ac.createGain();
-      o.frequency.value = 620; g.gain.value = .04;
-      o.connect(g); g.connect(ac.destination);
-      o.start(); o.stop(ac.currentTime + .05);
-    } catch (e) {}
-  }
 
   function setup(fen, f) {
-    layer.innerHTML = ""; pcs = []; flip = f; labels(); selSq = -1; dests = []; mark(); arrow();
+    pcsLayer.innerHTML = ""; pcs = []; flip = f; labels(); selSq = -1; dests = []; mark(); arrow();
     fen.split("/").forEach((row, r) => {
       let c = 0;
       for (const ch of row) {
         if (+ch) { c += +ch; continue; }
-        const el = document.createElementNS(NS, "g");
-        el.setAttribute("class", "p " + (ch < "a" ? "w" : "b"));
+        const el = document.createElement("div");
+        el.className = "pc-wrap";
         el.innerHTML = art(ch);
-        layer.append(el);
+        pcsLayer.append(el);
         const p = { ch, el, i: 0 };
         place(p, r * 8 + c);
         pcs.push(p);
         c++;
       }
     });
+    // Draw board squares into the background SVG
+    let dark = "";
+    for (let f = 0; f < 8; f++) {
+      for (let r = 0; r < 8; r++) {
+        if ((f + r) % 2 === 1) dark += `M${f * 10} ${r * 10}h10v10h-10z`;
+      }
+    }
+    bgSvg.querySelector(".sq-d").setAttribute("d", dark);
+    bgSvg.querySelector("path[fill='url(#hatch)']").setAttribute("d", dark);
   }
 
   function move(f, t) {
@@ -274,39 +314,34 @@
   };
 
   function mark(last, selected) {
-    const box = (i, o) => {
+    let h = "";
+    (last || []).forEach(i => {
       const [c, r] = D(i);
-      return `<rect x="${c}" y="${r}" width="1" height="1" style="fill:var(--aa)" opacity="${o}"/>`;
-    };
-    let h = (last || []).map(i => box(i, .35)).join("") + (selected >= 0 ? box(selected, .55) : "");
-    dests.forEach(i => {
-      const [c, r] = D(i);
-      h += at(i)
-        ? `<circle cx="${c + .5}" cy="${r + .5}" r=".43" fill="none" stroke="#0D0F13" stroke-opacity=".45" stroke-width=".08"/>`
-        : `<circle cx="${c + .5}" cy="${r + .5}" r=".15" fill="#0D0F13" fill-opacity=".45"/>`;
+      h += `<rect x="${c * 10}" y="${r * 10}" width="10" height="10" class="last"/>`;
     });
-    if (kbOn && kb >= 0) {
-      const [c, r] = D(kb);
-      h += `<rect x="${c + .04}" y="${r + .04}" width=".92" height=".92" fill="none" style="stroke:var(--aa)" stroke-width=".07"/>`;
+    if (selected >= 0) {
+      const [c, r] = D(selected);
+      h += `<rect x="${c * 10}" y="${r * 10}" width="10" height="10" class="sel"/>`;
     }
-    ov.innerHTML = h;
+    hlLayer.innerHTML = h;
   }
 
   function arrow(m) {
-    arr.innerHTML = "";
+    arrowLayer.innerHTML = "";
     if (!m || !set.arrows) return;
-    const P = i => D(i).map(v => v + .5), [x1, y1] = P(sq(m.slice(0, 2))), [x2, y2] = P(sq(m.slice(2, 4))), dx = x2 - x1, dy = y2 - y1;
-    const cx = (x1 + x2) / 2 - dy * .14, cy = (y1 + y2) / 2 + dx * .14, ux = x2 - cx, uy = y2 - cy, l = Math.hypot(ux, uy), hx = ux / l, hy = uy / l, h = .44;
-    arr.innerHTML = `<path d="M${x1} ${y1}Q${cx} ${cy} ${x2 - hx * h * .8} ${y2 - hy * h * .8}" fill="none" stroke="currentColor" stroke-width=".17" stroke-linecap="round"/>` +
-      `<path d="M${x2} ${y2}L${x2 - hx * h - hy * .25} ${y2 - hy * h + hx * .25}L${x2 - hx * h + hy * .25} ${y2 - hy * h - hx * .25}Z" fill="currentColor"/>`;
+    const P = i => D(i).map(v => v + .5), [x1, y1] = P(sq(m.slice(0, 2))), [x2, y2] = P(sq(m.slice(2, 4)));
+    const dx = x2 - x1, dy = y2 - y1;
+    const cx = (x1 + x2) / 2 - dy * .14, cy = (y1 + y2) / 2 + dx * .14;
+    const ux = x2 - cx, uy = y2 - cy, l = Math.hypot(ux, uy), hx = ux / l, hy = uy / l, h = .44;
+    arrowLayer.innerHTML = `<path class="arr" d="M${x1 * 10} ${y1 * 10}Q${cx * 10} ${cy * 10} ${(x2 - hx * h * .8) * 10} ${(y2 - hy * h * .8) * 10}"/><path class="arr-head" d="M${x2 * 10} ${y2 * 10}L${(x2 - hx * h - hy * .25) * 10} ${(y2 - hy * h + hx * .25) * 10}L${(x2 - hx * h + hy * .25) * 10} ${(y2 - hy * h - hx * .25) * 10}Z"/>`;
   }
 
   const snapTo = (L, n, side) => {
-    layer.classList.add("snap"); setup(START, side === "b");
+    pcsLayer.classList.add("snap"); setup(START, side === "b");
     for (let j = 0; j < n; j++) move(sq(L.m[j].slice(0, 2)), sq(L.m[j].slice(2, 4)));
     lastMove = n ? [sq(L.m[n - 1].slice(0, 2)), sq(L.m[n - 1].slice(2, 4))] : null;
     mark(lastMove, -1);
-    setTimeout(() => layer.classList.remove("snap"), 40);
+    setTimeout(() => pcsLayer.classList.remove("snap"), 40);
   };
 
   /* ---------- Pointer Input ---------- */
@@ -326,7 +361,7 @@
       select(i);
       drag = { p, from: i, x: e.clientX, y: e.clientY, moved: false };
       p.el.style.transition = "none";
-      layer.append(p.el);
+      pcsLayer.append(p.el);
       bd.setPointerCapture(e.pointerId);
     } else {
       select(-1);
@@ -394,35 +429,32 @@
   });
 
   /* ---------- Review Session Engine ---------- */
-  const say = t => $("#a-live").textContent = t;
+  const say = t => $("#live").textContent = t;
   const view = n => {
-    $("#a-rev").hidden = n !== "rev";
-    $("#a-an").hidden = n !== "an";
-    $("#a-empty").hidden = n !== "empty";
+    [".view-review", ".view-idle", ".view-settings"].forEach(sel => { $(sel).hidden = true; });
+    if (n === "rev") host.dataset.screen = "review", $(".view-review").hidden = false;
+    else if (n === "empty") host.dataset.screen = "idle", $(".view-idle").hidden = false;
+    else if (n === "settings") host.dataset.screen = "settings", $(".view-settings").hidden = false;
   };
 
   function head() {
     const s = st();
     const live = scope().filter(x => x.active);
-    $("#a-study").textContent = !s ? (studies.length ? SCOPE_ALL : "No repertoire") : s.name;
-    $("#a-due").textContent = !studies.length ? ""
-      : !live.length ? "Paused"
-      : practice ? "Practice"
-      : (sel >= 0 ? dueN(s) : scopeDue()) + " due";
+    $("#scopeName").textContent = !s ? (studies.length ? SCOPE_ALL : "No repertoire") : s.name;
+    const dueCount = !studies.length ? 0 : !live.length ? 0 : practice ? 0 : (sel >= 0 ? dueN(s) : scopeDue());
+    $("#due").innerHTML = practice ? `<b>Practice</b>` : `<b>${dueCount}</b> due`;
   }
 
   const turn = () => {
     const isW = user === "w";
-    $("#a-turn").textContent = (isW ? "White" : "Black") + " to play" + (practice ? " · Practice" : "");
-    const dot = $(".srs-turn-dot");
-    if (dot) dot.style.background = isW ? "transparent" : "var(--ink)";
+    $("#turnTxt").textContent = (isW ? "White" : "Black") + " to play" + (practice ? " · Practice" : "");
+    const dot = $("#turnDot");
+    if (dot) dot.className = "dot" + (isW ? "" : " b");
   };
 
   function startSession() {
     clearTimeout(timer); cur = null; an = null; enabled = false;
     queue = [];
-    // Cards carry their own study, so a session can span the everywhere scope and still know
-    // which side to sit on for each position.
     for (const s of scope()) {
       if (!s.active) continue;
       for (const c of s.lines.flatMap(l => l.cards)) c.s = s;
@@ -439,13 +471,12 @@
     view("rev");
     user = s.side;
     enabled = false;
-    $("#a-title").textContent = L.t;
-    // Open on the decision slot: every ply up to here is history, and this one is the question.
-    $("#a-notation-line").innerHTML = notationHTML(L.san.slice(0, c.k), null);
-    $("#a-note").hidden = true;
-    $("#a-rv").hidden = true;
-    $("#a-cont").hidden = true;
-    $("#a-skip").hidden = false;
+    $("#ctx").textContent = L.t;
+    $("#line").innerHTML = notationHTML(L.san.slice(0, c.k), null);
+    $("#note").hidden = true;
+    $("#answer").hidden = true;
+    $("#contBtn").hidden = true;
+    $("#skipBtn").hidden = false;
     arrow();
     head();
 
@@ -467,9 +498,17 @@
     ping();
   }
 
-  /* The answer slot below the notation line — the app's _AnswerSlot: the expected move in SAN
-     with a figurine for pieces, then "Play this move to continue. The position will come back
-     soon." A coordinate is not shown anywhere in the app. */
+  function ping() {
+    if (!set.sound) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.value = 620; g.gain.value = .04;
+      o.connect(g); g.connect(ac.destination);
+      o.start(); o.stop(ac.currentTime + .05);
+    } catch (e) {}
+  }
+
   const revealSan = () => {
     const k = cur ? cur.c.k : -1;
     return k >= 0 && cur.line.san[k] ? cur.line.san[k] : "";
@@ -478,13 +517,13 @@
   function reveal(m) {
     if (!m) {
       arrow();
-      $("#a-rv").hidden = true;
+      $("#answer").hidden = true;
       return;
     }
     arrow(m);
     const sanText = revealSan() || m.slice(2, 4);
-    $("#a-sq").innerHTML = sanFig(sanText);
-    $("#a-rv").hidden = false;
+    $("#ansMove").innerHTML = sanFig(sanText);
+    $("#answer").hidden = false;
     say(`Play ${sanText} to continue.`);
   }
 
@@ -519,7 +558,7 @@
     if (!san) return "";
     const f = FIG[san[0]];
     if (!f) return esc(san);
-    return `<svg class="srs-fig" viewBox="${f.vb}" aria-hidden="true">${f.body}</svg>${esc(san.slice(1))}`;
+    return `<svg class="fig" viewBox="${f.vb}" aria-hidden="true">${f.body}</svg>${esc(san.slice(1))}`;
   };
 
   /**
@@ -539,20 +578,20 @@
     const blackToMove = n % 2 === 1;
     const completed = blackToMove ? n - 1 : n;
     const slot = answer
-      ? `<span class="srs-move-san">${sanFig(answer)}</span>`
-      : `<span class="srs-dashed-blank"></span>`;
+      ? `<span class="mv fill">${sanFig(answer)}</span>`
+      : `<span class="blank"></span>`;
 
-    let h = startPly > 0 ? `<span class="srs-move-num">…</span>` : "";
+    let h = startPly > 0 ? `<span class="num">…</span>` : "";
     for (let i = 0; i < completed; i += 2) {
       const num = Math.floor((startPly + i) / 2) + 1;
-      h += `<span class="srs-pair"><span class="srs-move-num">${num}.</span>${sanFig(visible[i])}` +
-        (i + 1 < n ? `<span class="srs-gap"></span>${sanFig(visible[i + 1])}` : "") + `</span>`;
+      h += `<span class="pair"><span class="num">${num}.</span><span class="mv">${sanFig(visible[i])}</span>` +
+        (i + 1 < n ? `<span class="mv">${sanFig(visible[i + 1])}</span>` : "") + `</span>`;
     }
     const decisionNumber = Math.floor((startPly + n) / 2) + 1;
-    const head = `<span class="srs-move-num" id="a-move-num">${decisionNumber}.</span>`;
+    const head = `<span class="num">${decisionNumber}.</span>`;
     h += blackToMove
-      ? `<span class="srs-pair">${head}${sanFig(visible[n - 1])}<span class="srs-gap"></span>${slot}</span>`
-      : `<span class="srs-pair">${head}${slot}</span>`;
+      ? `<span class="pair">${head}<span class="mv">${sanFig(visible[n - 1])}</span>${slot}</span>`
+      : `<span class="pair">${head}${slot}</span>`;
     return h;
   }
 
@@ -570,7 +609,7 @@
       // Fill the decision slot. The app reveals `expectedMoves.first.san` — the repertoire
       // move, not whatever was played — so a transposition still shows what the app would.
       const sanMove = cur.line.san[cur.c.k] || want.slice(2, 4);
-      $("#a-notation-line").innerHTML = notationHTML(cur.line.san.slice(0, cur.c.k), sanMove);
+      $("#line").innerHTML = notationHTML(cur.line.san.slice(0, cur.c.k), sanMove);
 
       // Line-level notes are chapter context, not per-move PGN comments:
       // per the Flutter app (_hasAnnotationsOrShapes on the prompt comment),
@@ -581,13 +620,12 @@
       // "Remembered · back in 3 days" put text on the app's quiet-by-design surface.
       if (cur.missed) {
         cur.wait = true;
-        $("#a-skip").hidden = true;
-        $("#a-cont").hidden = false;
+        $("#skipBtn").hidden = true;
+        $("#contBtn").hidden = false;
         // Lapse + comment in the app shows Answer + Note together.
         if (cur.line.note) {
-          $("#a-note-body").textContent = cur.line.note;
-          $("#a-note-source").textContent = cur.line.noteSource || "From your study";
-          $("#a-note").hidden = false;
+          $("#noteText").textContent = cur.line.note;
+          $("#note").hidden = false;
         }
         say(`Correct. ${sanMove}.`);
       } else {
@@ -599,9 +637,8 @@
       miss();
       reveal(want);
       if (cur.line.note) {
-        $("#a-note-body").textContent = cur.line.note;
-        $("#a-note-source").textContent = cur.line.noteSource || "From your study";
-        $("#a-note").hidden = false;
+        $("#noteText").textContent = cur.line.note;
+        $("#note").hidden = false;
       }
       place(at(f), f);
       // The app's wording, verbatim: review_screen.dart's _verdictAnnouncement.
@@ -614,9 +651,8 @@
       miss();
       reveal(cur.line.m[cur.c.k]);
       if (cur.line.note) {
-        $("#a-note-body").textContent = cur.line.note;
-        $("#a-note-source").textContent = cur.line.noteSource || "From your study";
-        $("#a-note").hidden = false;
+        $("#noteText").textContent = cur.line.note;
+        $("#note").hidden = false;
       }
     }
   };
@@ -639,16 +675,16 @@
     const live = scope().filter(x => x.active);
     let h;
     if (!studies.length) {
-      h = `<h3>No repertoire yet</h3><p>Import a PGN to start reviewing.</p><button class="pill" data-a="import">Import repertoire</button>`;
+      h = `<h1>No repertoire yet</h1><p class="next">Import a PGN to start reviewing.</p><div class="idle-actions"><button class="pill" data-a="import">Import repertoire</button></div>`;
     } else if (!live.length) {
-      h = `<h3>Paused</h3><p>Reviews for this repertoire are paused.</p><button class="pill" data-a="pause">Resume</button>`;
+      h = `<h1>Paused</h1><p class="next">Reviews for this repertoire are paused.</p><div class="idle-actions"><button class="pill" data-a="pause">Resume</button></div>`;
     } else {
       const iv = live.flatMap(x => x.lines.flatMap(l => l.cards.map(c => c.ivl))).filter(x => x > 0);
       const where = s ? s.name : SCOPE_ALL;
-      h = `<h3>All caught up</h3><p>Nothing is due in ${esc(where)}.${iv.length ? " The next review is in " + days(Math.min(...iv)) + "." : " The next review is in a few hours."}</p>` +
-        `<div class="cta2"><button class="pill" data-a="practice">Practice</button><button class="sk" data-a="restart">Start over</button></div>`;
+      h = `<h1>All caught up</h1><p class="next">Nothing is due in ${esc(where)}.${iv.length ? " The next review is in " + days(Math.min(...iv)) + "." : " The next review is in a few hours."}</p>` +
+        `<div class="idle-actions"><button class="pill" data-a="practice">Practice</button><button class="link" data-a="restart">Start over</button></div>`;
     }
-    $("#a-empty").innerHTML = h;
+    $(".idle").innerHTML = h;
   }
 
   /* ---------- Analyze View ---------- */
@@ -658,67 +694,72 @@
     drawAn();
   }
 
+  /* Analyze renders into the settings shell rather than replacing it. The shell's #backBtn carries
+     a listener attached once at startup, and #settingsBody is what every other secondary screen
+     writes into — overwriting the section would detach both, so every later screen (settings,
+     export, rename, import) would render into nothing. */
   function drawAn() {
     const t = an.L.s.split(" ");
-    $("#a-an").innerHTML = `<p class="srs-chapter-name at">${esc(an.L.t)}</p><div class="mv">${t.map((x, i) => (i % 2 ? "" : `<span class="n">${Math.floor(i / 2) + 1}.</span>`) + `<button data-a="ply" data-i="${i + 1}" class="${an.i === i + 1 ? "on" : ""}">${esc(x)}</button>`).join("")}</div>` +
-      `<div class="srs-actions-region act"><button class="srs-skip-btn sk" data-a="aback">Back to review</button><span class="nv2"><button data-a="aprev" aria-label="Previous move">‹</button><button data-a="anext" aria-label="Next move">›</button></span></div>`;
+    $("#setTitle").textContent = an.L.t;
+    $("#settingsBody").innerHTML = `<div class="t-san">${t.map((x, i) => (i % 2 ? "" : `<span class="num">${Math.floor(i / 2) + 1}.</span>`) + `<button data-a="ply" data-i="${i + 1}" class="ply${an.i === i + 1 ? " on" : ""}">${esc(x)}</button>`).join("")}</div><div class="idle-actions"><button class="text-btn" data-a="aprev" aria-label="Previous move">‹</button><button class="text-btn" data-a="anext" aria-label="Next move">›</button></div>`;
   }
 
+  /* Analyze, export, rename, delete and import all leave the sheet they were opened from: the app
+     pops the Study Actions dialog and the scope drawer before pushing the next screen
+     (review_scope_drawer.dart: `Navigator.of(dialogContext).pop()` then `Navigator.of(context).pop()`).
+     Leaving the scrim up would put a modal barrier over the screen that replaced it. */
   function analyze() {
-    closeModal();
     const s = st();
+    closeSheet();
     clearTimeout(timer);
     const L = cur ? cur.line : s.lines[0];
     cur = null; enabled = false; arrow();
-    view("an");
     an = { L, i: 0 };
     showPly(0);
+    view("settings");
   }
 
   /* ---------- Modals / Sheets ---------- */
-  /* `title` may be null: the app's Library and Study Actions sheets open without a title bar,
-     carrying a group header inside the sheet instead (library_sheet.dart, and the `title` column
-     of StudyActionsSheet). Only the sheet's own close control stays. */
-  function modal(title, body) {
-    opener = document.activeElement;
-    const head = title === null
-      ? `<div class="sht bare"><button class="x" data-a="close" aria-label="Close">${I("x")}</button></div>`
-      : `<div class="sht"><b>${esc(title)}</b><button class="x" data-a="close" aria-label="Close">${I("x")}</button></div>`;
-    mo.innerHTML = `<div class="sh" role="dialog" aria-modal="true" aria-label="${esc(title || body.replace(/<[^>]+>/g, " ").slice(0, 60))}">${head}${body}</div>`;
-    mo.hidden = false;
-    (mo.querySelector("[autofocus],textarea,input:not([type=file]),.row,.pill") || mo.querySelector(".x")).focus();
+  function openSheet(id) {
+    $("#scrim").classList.add("open");
+    $(`#${id}`).classList.add("open");
   }
 
-  function closeModal() {
-    if (mo.hidden) return;
-    mo.hidden = true;
-    mo.innerHTML = "";
-    opener && opener.focus && opener.focus();
+  function closeSheet() {
+    $("#scrim").classList.remove("open");
+    $(".sheet.open") && $(".sheet.open").classList.remove("open");
   }
 
-  const row = (a, label, sub, extra = "") => `<button class="row ${extra}" data-a="${a}"><span>${label}${sub ? `<small>${sub}</small>` : ""}</span></button>`;
+  const row = (a, label, sub, extra = "") => `<div class="lib-row" data-a="${a}"><span>${label}${sub ? `<small>${sub}</small>` : ""}</span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></div>`;
 
   /* The scope list: the everywhere row, then one row per repertoire with its due count, its own
-     options button, and Import PGN at the foot (review_scope_drawer.dart). */
-  const picker = () => modal(null, `<div class="sheet">` +
-    `<div class="sheet-group">` +
-    `<button class="sheet-row" data-a="scope" data-all="1"><span class="sheet-row-text"><span class="sheet-row-label">All repertoires</span><span class="sheet-row-sub">${studies.reduce((n, s) => n + dueN(s), 0)} due</span></span><svg class="sheet-chevron" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 4.5L7 8L10.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` +
-    studies.map((s, i) => `<div class="sheet-row-wrap"><button class="sheet-row" data-a="pick" data-i="${i}"><span class="sheet-row-text"><span class="sheet-row-label">${esc(s.name)}</span><span class="sheet-row-sub">${s.active ? dueN(s) + " due" : "Paused"}</span></span>${i === sel ? `<svg class="sheet-chevron" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 4.5L7 8L10.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ""}</button>` +
-      `<button class="sheet-opt" data-a="sacts" data-i="${i}" aria-label="Study options">${I("dots")}</button></div>`).join("") +
-    `</div>` +
-    `<div class="sheet-group"><button class="sheet-row" data-a="import"><span class="sheet-row-text"><span class="sheet-row-label">Import PGN</span></span></button></div>` +
-    `</div>`);
+     options button, and Import PGN at the foot (review_scope_drawer.dart).
+
+     A suspended repertoire keeps its due numeral — pausing takes it out of the review pool, it
+     does not reset its schedule — and the app recolours the name and the numeral to ink3
+     (`.row.paused`) rather than hiding either. */
+  const scopeRow = (attrs, name, due, paused, trail = "") =>
+    `<div class="row${paused ? " paused" : ""}${due === 0 ? " zero" : ""}" ${attrs}><div class="row-main"><div class="row-name">${esc(name)}</div><div class="row-sub"><span class="row-due"><b>${due}</b> <i>due</i></span></div></div>${trail}</div>`;
+
+  const picker = () => {
+    const everywhere = studies.reduce((n, s) => n + (s.active ? dueN(s) : 0), 0);
+    const options = i => `<button class="icon-btn" data-a="sacts" data-i="${i}" aria-label="Study options"><svg viewBox="0 0 20 20"><circle cx="4" cy="10" r="1.7"/><circle cx="10" cy="10" r="1.7"/><circle cx="16" cy="10" r="1.7"/></svg></button>`;
+    $("#scopeList").innerHTML = `<div class="list"><div class="lib-group">` +
+      scopeRow(`data-a="scope" data-all="1" aria-current="${sel < 0}"`, SCOPE_ALL, everywhere, false) +
+      studies.map((s, i) => scopeRow(`data-a="pick" data-i="${i}" aria-current="${sel === i}"`, s.name, dueN(s), !s.active, options(i))).join("") +
+      `</div><div class="lib-group">${row("import", "Import PGN", "From a file, pasted text or a Lichess study")}</div></div>`;
+    openSheet("sheetScope");
+  };
 
   /* The overflow button opens the Library sheet, which in the app carries two rows under a
      "Preferences" header and nothing else (library_sheet.dart). Study-level actions are not
      here: they live in StudyActionsSheet, reached from a study's options button in the scope
      list — see `studyActions`. */
-  const more = () => modal(null, `<div class="sheet">` +
-    `<div class="sheet-group"><h4 class="gh" style="padding:14px 20px 4px;margin:0">Preferences</h4>` +
-    `<button class="sheet-row" data-a="settings"><span class="sheet-row-text"><span class="sheet-row-label">Settings</span><span class="sheet-row-sub">Review, board, engine, and sound</span></span><svg class="sheet-chevron" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 4.5L7 8L10.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` +
-    `<button class="sheet-row" data-a="about"><span class="sheet-row-text"><span class="sheet-row-label">About and licences</span></span><svg class="sheet-chevron" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 4.5L7 8L10.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` +
-    `</div>` +
-    `</div>`);
+  const more = () => {
+    $("#sheetLib .list").innerHTML = `<div class="lib-group"><button class="lib-row" data-a="settings"><span>Settings<small>Review, board, engine, and sound</small></span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></button></div>` +
+      `<div class="lib-group"><button class="lib-row" data-a="about"><span>About and licences</span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></button></div>`;
+    openSheet("sheetLib");
+  };
 
   /* StudyActionsSheet: three hairline-separated groups, in the app's order and wording.
      No chevrons (app: §12 says "no icons"), hairline separators between groups. */
@@ -726,117 +767,76 @@
     const s = studies[i];
     if (!s) return;
     sa = i;
-    closeModal();
-    modal(null, `<div class="sheet">` +
-      `<h4 class="gh" style="padding:14px 20px 4px;margin:0">${esc(s.name)}</h4>` +
-      `<div class="sheet-group">` +
-      `<button class="sheet-row" data-a="analyze"><span class="sheet-row-text"><span class="sheet-row-label">Analyze</span><span class="sheet-row-sub">Browse moves and variations</span></span></button>` +
-      `<button class="sheet-row" data-a="practice"><span class="sheet-row-text"><span class="sheet-row-label">${practice ? "End practice" : "Practice"}</span><span class="sheet-row-sub">Drill lines without changing your schedule</span></span></button>` +
-      `</div>` +
-      `<div class="sheet-group">` +
-      `<button class="sheet-row" data-a="export"><span class="sheet-row-text"><span class="sheet-row-label">Export PGN</span><span class="sheet-row-sub">Share or copy standard PGN notation</span></span></button>` +
-      `<button class="sheet-row" data-a="pause"><span class="sheet-row-text"><span class="sheet-row-label">${s.active ? "Pause" : "Resume"}</span><span class="sheet-row-sub">${s.active ? "Suspend from active review pool" : "Activate in review pool"}</span></span></button>` +
-      `</div>` +
-      `<div class="sheet-group">` +
-      `<button class="sheet-row" data-a="rename"><span class="sheet-row-text"><span class="sheet-row-label">Rename</span></span></button>` +
-      `<button class="sheet-row" data-a="delete"><span class="sheet-row-text"><span class="sheet-row-label">Delete</span></span></button>` +
-      `</div>` +
-      `</div>`);
+    closeSheet();
+    // Reuse the scope sheet container for actions
+    $("#sheetScope .list").innerHTML = `<div class="lib-group"><div class="group-title" style="padding-left:20px">${esc(s.name)}</div></div>` +
+      `<div class="lib-group"><button class="lib-row" data-a="analyze"><span>Analyze<small>Browse moves and variations</small></span></button></div>` +
+      `<div class="lib-group"><button class="lib-row" data-a="practice"><span>${practice ? "End practice" : "Practice"}<small>Drill lines without changing your schedule</small></span></button></div>` +
+      `<div class="lib-group"><button class="lib-row" data-a="export"><span>Export PGN<small>Share or copy standard PGN notation</small></span></button></div>` +
+      `<div class="lib-group"><button class="lib-row" data-a="pause"><span>${s.active ? "Pause" : "Resume"}<small>${s.active ? "Suspend from active review pool" : "Activate in review pool"}</small></span></button></div>` +
+      `<div class="lib-group"><button class="lib-row" data-a="rename"><span>Rename</span></button></div>` +
+      `<div class="lib-group"><button class="lib-row" data-a="delete"><span>Delete</span></button></div>`;
+    openSheet("sheetScope");
   }
 
-  const switchRow = (k, label) => `<label class="row"><span>${label}</span><input type="checkbox" role="switch" data-k="${k}" ${set[k] ? "checked" : ""}></label>`;
-
-  /* Segmented control: single-select pill group. The app's SrsSegmented wraps in a rounded
-     container with hairline border; selected pill is ink on ground, others are transparent. */
   const seg = (opts, val, onChange, name) => {
-    const b = Object.entries(opts).map(([k, v]) => `<button class="seg-btn${k == val ? " on" : ""}" data-a="${onChange}" data-v="${k}" aria-pressed="${k == val}">${v}</button>`).join("");
-    return `<span class="seg" data-n="${name}">${b}</span>`;
+    const b = Object.entries(opts).map(([k, v]) => `<button data-a="${onChange}" data-v="${k}" aria-pressed="${k == val}">${v}</button>`).join("");
+    return `<div class="seg" data-n="${name}">${b}</div>`;
   };
 
-  /* Switch: 44x26 toggle with animated thumb. The app's SrsSwitch uses a 44x44 hit area,
-     the thumb is 20x20, track is 26px wide. */
-  const sw = (k, label) => `<label class="sw"><span>${label}</span><span class="tog${set[k] ? " on" : ""}" data-k="${k}" role="switch" aria-checked="${set[k]}"><i></i></span></label>`;
+  const sw = (k, label) => `<button class="tog" role="switch" aria-checked="${set[k]}" data-a="${k}" aria-label="${label}"></button>`;
 
-  /* Accent dots: the app's SrsAccentDots shows circles in a rounded container, selected has an
-     ink ring. Values are the accent IDs. */
-  const accentDots = () => `<span class="adots">${ACC.map(a => `<button class="adot${a.id === set.accent ? " on" : ""}" data-a="accent" data-v="${a.id}" aria-label="${a.name}" aria-pressed="${a.id === set.accent}" style="--c:${a[set.theme] || a.dark}"></button>`).join("")}</span>`;
+  const accentDots = () => `<div class="accents">${ACC.map(a => `<button class="dotbtn${a.id === set.accent ? " on" : ""}" data-a="accent" data-v="${a.id}" aria-label="${a.name}" aria-pressed="${a.id === set.accent}" style="--c:${a[set.theme] || a.dark}"></button>`).join("")}</div>`;
 
-  /* Settings row: label + optional help text + trailing control. Below 520px the control stacks
-     under the text (app's SrsSettingsRow reflows at 520). */
-  const sr = (label, help, control) => `<div class="sr"><div class="sr-text"><b>${label}</b>${help ? `<small>${help}</small>` : ""}</div><div class="sr-trail">${control}</div></div>`;
+  const sr = (label, help, control) => `<div class="set-row"><div><div class="set-label">${label}</div>${help ? `<div class="set-help">${help}</div>` : ""}</div><div class="sr-trail">${control}</div></div>`;
 
-  /* Navigation row: label + help + value on the right, acts as a button. */
-  const nav = (label, help, value, action) => `<button class="sr sr-nav" data-a="${action}"><div class="sr-text"><b>${label}</b>${help ? `<small>${help}</small>` : ""}</div><div class="sr-trail">${esc(value)}</div></button>`;
+  /* SrsSettingsScreen groups its rows under uppercase headers, and carries the header's type
+     inline rather than as a named style (_buildSectionHeader: 11.5px/w700/letter-spacing 1.1/ink3,
+     uppercased). Reproduced the same way here, because the demo's stylesheet is generated
+     verbatim from the app's and must not be hand-edited. Only the sections this demo implements
+     appear; the rest of the app's navigate to screens that are not ported. */
+  const section = (title, rows) =>
+    `<h2 style="padding:28px 0 8px;font:700 11.5px var(--font-ui);letter-spacing:1.1px;color:var(--ink3);text-transform:uppercase">${esc(title)}</h2><div class="set-group">${rows.join("")}</div>`;
 
-  const settings = () => modal(null, `<h4 class="gh" style="margin-top:-6px">Settings</h4>` + [
-    /* 1. Account — only present if we had auth; in demo we show a placeholder. */
-    // `<div class="grp"><h5 class="gh">Account</h5>${sr("Lichess account", "Sign in to import private and unlisted studies.", `<span class="sr-val">Not signed in</span>`)}</div>`,
+  const settings = () => {
+    closeSheet();
+    $("#setTitle").textContent = "Settings";
+    $("#settingsBody").innerHTML = [
+      section("Review & Spaced Repetition", [
+        sr("Daily limit", "Positions reviewed per day.", seg({25:"25",50:"50",100:"100",150:"150",200:"200",0:"None"}, set.limit, "limit")),
+        sr("Target retention", "Higher means more reviews. 88% suits most players; 95% is for tournament preparation.", seg({0.80:"80%",0.85:"85%",0.88:"88%",0.90:"90%",0.95:"95%"}, set.retention, "retention")),
+        sr("Scheduling algorithm", "FSRS adapts to how well you remember each position.", seg({fsrs:"FSRS",simple:"Simple",easeScaling:"Ease"}, set.scheduler || "fsrs", "scheduler")),
+        sr("Show move notation", "Display preceding moves (e.g. 1. e4 e5) in the review screen.", sw("showHistory", "Show move notation")),
+        sr("Show arrows and circles", "Drawn from your study, only after you answer.", sw("showArrows", "Show arrows and circles")),
+        sr("Show notes after a move", "Comments from your study appear once you have answered.", sw("showNotes", "Show notes after a move")),
+        sr("Review Diagnostics HUD", "Show real-time FSRS retrievability, stability, and difficulty HUD in review.", sw("diagnostics", "Review Diagnostics HUD")),
+      ]),
+      section("Appearance & Theme", [
+        sr("Theme", "", seg({false:"Light",true:"Dark"}, set.theme === "dark", "theme")),
+        sr("Accent", "Colour of the correct move arrow and selection.", accentDots()),
+      ]),
+      section("Sound & Audio", [sr("Sound", "", sw("sound", "Sound"))]),
+    ].join("");
+    view("settings");
+  };
 
-    /* 2. Review & Spaced Repetition */
-    `<div class="grp"><h5 class="gh">Review & Spaced Repetition</h5>` +
-    sr("Daily limit", "Positions reviewed per day.",
-       seg({25:"25",50:"50",100:"100",150:"150",200:"200",0:"None"}, set.limit, "limit")) +
-    sr("Target retention", "Higher means more reviews. 88% suits most players; 95% is for tournament preparation.",
-       seg({0.80:"80%",0.85:"85%",0.88:"88%",0.90:"90%",0.95:"95%"}, set.retention, "retention")) +
-    sr("Scheduling algorithm", "FSRS adapts to how well you remember each position.",
-       seg({fsrs:"FSRS",simple:"Simple",easeScaling:"Ease"}, set.scheduler || "fsrs", "scheduler")) +
-    sr("Show move notation", "Display preceding moves (e.g. 1. e4 e5) in the review screen.",
-       sw("showHistory", "")) +
-    sr("Show arrows and circles", "Drawn from your study, only after you answer.",
-       sw("showArrows", "")) +
-    sr("Show notes after a move", "Comments from your study appear once you have answered.",
-       sw("showNotes", "")) +
-    sr("Review Diagnostics HUD", "Show real-time FSRS retrievability, stability, and difficulty HUD in review.",
-       sw("diagnostics", "")) +
-    `</div>`,
-
-    /* 3. Appearance & Theme */
-    `<div class="grp"><h5 class="gh">Appearance & Theme</h5>` +
-    sr("Theme", "",
-       seg({false:"Light",true:"Dark"}, set.theme === "dark", "theme")) +
-    sr("Accent", "Colour of the correct move arrow and selection.", accentDots()) +
-    nav("Theme & appearance", "AMOLED, board brightness, and hue.", set.theme === "dark" ? "Dark" : "Light", "themeAdv") +
-    `</div>`,
-
-    /* 4. Board & Pieces */
-    `<div class="grp"><h5 class="gh">Board & Pieces</h5>` +
-    nav("Board & pieces", "Board themes, piece sets, and move coordinates.", "System / Default", "boardAdv") +
-    `</div>`,
-
-    /* 5. Sound & Audio */
-    `<div class="grp"><h5 class="gh">Sound & Audio</h5>` +
-    sr("Sound", "", sw("sound", "")) +
-    nav("Sound & audio details", "Sound theme and master volume slider.", `${set.soundTheme || "Classic"} (${Math.round((set.masterVolume||1)*100)}%)`, "soundAdv") +
-    `</div>`,
-
-    /* 6. Chess Engine */
-    `<div class="grp"><h5 class="gh">Chess Engine</h5>` +
-    nav("Chess engine", "Threads, hash memory, search time, and multi-PV lines.", "", "engineAdv") +
-    `</div>`,
-
-    /* 7. Data & Diagnostics */
-    `<div class="grp"><h5 class="gh">Data & Diagnostics</h5>` +
-    sr("Local database size", "Storage used by local database files.", `<span class="sr-val">~0 MB (demo)</span>`) +
-    nav("HTTP network logs", "Inspect raw HTTP requests and responses.", "", "httpLogs") +
-    nav("App diagnostics logs", "Application error and debug traces.", "", "appLogs") +
-    `</div>`,
-
-    /* 8. About */
-    `<div class="grp"><h5 class="gh">About</h5>` +
-    `<button class="sr sr-nav" data-a="rate"><div class="sr-text"><b>Rate this app</b><small>Open the store listing for Chess Repertoire SRS.</small></div></button>` +
-    `<button class="sr sr-nav" data-a="licences"><div class="sr-text"><b>Licences & open source</b><small>GPL-3.0, chessground, dartchess, and third-party notices.</small></div></button>` +
-    `</div>`
-  ].join(""));
-
-  const about = () => modal("About and licences", `<p class="pad">ChessSRS 0.2.0 is free software under GPL-3.0, a fork of Lichess Mobile. This demo runs entirely in your browser and saves nothing.</p><div class="grp"><a class="row" href="https://github.com/mansourvery-hub/ChessSRS" target="_blank" rel="noopener"><span>ChessSRS source</span></a><a class="row" href="https://github.com/lichess-org/mobile" target="_blank" rel="noopener"><span>Lichess Mobile source</span></a></div>`);
+  const about = () => {
+    closeSheet();
+    $("#setTitle").textContent = "About";
+    $("#settingsBody").innerHTML = `<div class="set-group"><p class="pad">ChessSRS 0.2.0 is free software under GPL-3.0, a fork of Lichess Mobile. This demo runs entirely in your browser and saves nothing.</p><div class="lib-group"><a class="lib-row" href="https://github.com/mansourvery-hub/ChessSRS" target="_blank" rel="noopener"><span>ChessSRS source</span></a><a class="lib-row" href="https://github.com/lichess-org/mobile" target="_blank" rel="noopener"><span>Lichess Mobile source</span></a></div></div>`;
+    view("settings");
+  };
 
   const importModal = () => {
-    isrc = "file";
-    modal("Import Repertoire", `<div class="seg wide">${[["lichess", "Lichess Study"], ["file", "PGN Text / File"]].map(([v, l]) => `<button data-a="isrc" data-v="${v}" aria-pressed="${v === "file"}">${l}</button>`).join("")}</div>
-    <div id="i-file"><textarea id="i-pgn" rows="6" spellcheck="false" aria-label="PGN text">${esc(SAMPLE)}</textarea><label class="filebtn">Choose a .pgn file<input type="file" id="i-f" accept=".pgn,.txt"></label></div>
-    <div id="i-li" hidden><input id="i-url" placeholder="https://lichess.org/study/…" aria-label="Lichess study URL"></div>
+    if (isrc !== "lichess") isrc = "file";
+    closeSheet();
+    $("#setTitle").textContent = "Import PGN";
+    view("settings");
+    $("#settingsBody").innerHTML = `<div class="set-group"><div class="seg wide">${[["lichess", "Lichess Study"], ["file", "PGN Text / File"]].map(([v, l]) => `<button data-a="isrc" data-v="${v}" aria-pressed="${v === isrc}">${l}</button>`).join("")}</div>
+    <div id="i-file"${isrc === "file" ? "" : " hidden"}><textarea id="i-pgn" rows="6" spellcheck="false" aria-label="PGN text">${esc(SAMPLE)}</textarea><label class="filebtn">Choose a .pgn file<input type="file" id="i-f" accept=".pgn,.txt"></label></div>
+    <div id="i-li"${isrc === "lichess" ? "" : " hidden"}><input id="i-url" placeholder="https://lichess.org/study/…" aria-label="Lichess study URL"></div>
     <input id="i-title" placeholder="Study Title (optional)" aria-label="Study title (optional)"><p class="err" id="i-err" role="alert" hidden></p>
-    <button class="pill big" data-a="doimport">Import and Start Review</button>`);
+    <button class="pill big" data-a="doimport">Import and Start Review</button></div>`;
   };
 
   function doImport() {
@@ -845,7 +845,7 @@
     try {
       const g = parsePGN($("#i-pgn").value), title = $("#i-title").value.trim() || g[0].title || "Imported Study";
       studies.push(mkStudy(title, g[0].side, g.map(x => ({ t: x.title, s: x.s }))));
-      sel = studies.length - 1; practice = false; closeModal(); startSession();
+      sel = studies.length - 1; practice = false; view("rev"); startSession();
     } catch (e) {
       fail(e.message);
     }
@@ -855,14 +855,14 @@
 
   /* ---------- Action Handler Registry ---------- */
   const A = {
-    close: closeModal, picker, more, about, import: importModal, doimport: doImport, analyze, skip, cont,
-    pick: el => { sel = +el.dataset.i; practice = false; closeModal(); startSession(); },
-    scope: () => { sel = -1; practice = false; closeModal(); startSession(); },
+    close: closeSheet, picker, more, about, import: importModal, doimport: doImport, analyze, skip, cont,
+    pick: el => { sel = +el.dataset.i; practice = false; closeSheet(); startSession(); },
+    scope: () => { sel = -1; practice = false; closeSheet(); startSession(); },
     sacts: el => studyActions(+el.dataset.i),
-    practice: () => { practice = !practice; closeModal(); startSession(); },
-    pause: () => { const s = tgt(); s.active = !s.active; closeModal(); startSession(); },
+    practice: () => { practice = !practice; closeSheet(); startSession(); },
+    pause: () => { const s = tgt(); s.active = !s.active; closeSheet(); startSession(); },
     restart: () => { st().lines.forEach(l => l.cards.forEach(c => { c.due = true; c.ivl = 0; c.lapses = 0; })); startSession(); },
-    export: () => modal("Export PGN", `<pre class="pgn2" id="x-pgn" tabindex="0">${esc(toPGN(tgt()))}</pre><div class="cta2"><button class="pill" data-a="copy">Copy PGN</button></div>`),
+    export: () => { closeSheet(); $("#setTitle").textContent = tgt().name; view("settings"); $("#settingsBody").innerHTML = `<div class="set-group"><pre id="x-pgn" style="white-space:pre-wrap;font:13px/1.7 var(--mono)">${esc(toPGN(tgt()))}</pre><div class="idle-actions"><button class="pill" data-a="copy">Copy PGN</button></div></div>`; },
     copy: el => {
       const txt = toPGN(tgt());
       (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(
@@ -874,90 +874,76 @@
         }
       );
     },
-    rename: () => modal("Rename repertoire", `${textIn("r-in", tgt().name, "Repertoire name")}<div class="cta2"><button class="pill" data-a="dorename">Rename</button><button class="sk" data-a="close">Cancel</button></div>`),
-    dorename: () => { const v = $("#r-in").value.trim(); if (v) tgt().name = v; closeModal(); head(); },
-    delete: () => modal("Delete repertoire?", `<p class="pad">Delete ${esc(tgt().name)}? Its lines and review schedule are removed.</p><div class="cta2"><button class="sk" data-a="close">Cancel</button><button class="pill danger" data-a="dodelete">Delete</button></div>`),
-    dodelete: () => { const i = sa; studies.splice(i, 1); sel = Math.min(sel, studies.length - 1); practice = false; closeModal(); startSession(); },
+    rename: () => { closeSheet(); $("#setTitle").textContent = "Rename"; view("settings"); $("#settingsBody").innerHTML = `<div class="set-group"><input id="r-in" value="${esc(tgt().name)}" aria-label="Repertoire name" autofocus style="display:block;width:100%;margin-bottom:12px;background:transparent;border:1px solid var(--hair);border-radius:12px;padding:12px;color:var(--ink);font:14px var(--font-ui)"><div class="idle-actions"><button class="pill" data-a="dorename">Rename</button><button class="link" data-a="aback">Cancel</button></div></div>`; },
+    dorename: () => { const v = $("#r-in").value.trim(); if (v) tgt().name = v; view("rev"); head(); },
+    delete: () => { closeSheet(); $("#setTitle").textContent = "Delete"; view("settings"); $("#settingsBody").innerHTML = `<div class="set-group"><p class="pad">Delete ${esc(tgt().name)}? Its lines and review schedule are removed.</p><div class="idle-actions"><button class="link" data-a="aback">Cancel</button><button class="pill danger" data-a="dodelete">Delete</button></div></div>`; },
+    dodelete: () => { const i = sa; studies.splice(i, 1); sel = Math.min(sel, studies.length - 1); practice = false; view("rev"); startSession(); },
+    /* Switching source rebuilds the form from state, as the app's dialog does — but the fields the
+       user has already typed into are carried across, because losing a pasted PGN to a mis-tap
+       on the tab would be the demo inventing a bug the app does not have. */
     isrc: el => {
+      const keep = { pgn: $("#i-pgn").value, url: $("#i-url").value, title: $("#i-title").value };
       isrc = el.dataset.v;
-      mo.querySelectorAll("[data-a=isrc]").forEach(b => b.setAttribute("aria-pressed", b === el));
-      $("#i-file").hidden = isrc !== "file";
-      $("#i-li").hidden = isrc !== "lichess";
+      importModal();
+      $("#i-pgn").value = keep.pgn; $("#i-url").value = keep.url; $("#i-title").value = keep.title;
     },
-    theme: el => { set.theme = el.dataset.v === "true"; apply(); mo.querySelectorAll("[data-a=theme]").forEach(b => b.setAttribute("aria-pressed", b === el)); },
-    accent: el => { set.accent = el.dataset.v; apply(); mo.querySelectorAll("[data-a=accent]").forEach(b => b.setAttribute("aria-pressed", b === el)); },
     ply: el => showPly(+el.dataset.i),
     aprev: () => showPly(an.i - 1),
     anext: () => showPly(an.i + 1),
-    aback: () => startSession(),
-    /* Library sheet's Settings row opens the full Settings modal. */
-    settings: () => { closeModal(); settings(); },
-    /* Settings handlers — segmented controls and switches */
-    limit: el => { set.limit = +el.dataset.v; apply(); mo.querySelectorAll("[data-a=limit]").forEach(b => b.setAttribute("aria-pressed", b === el)); },
-    retention: el => { set.retention = +el.dataset.v; apply(); el.closest(".sh").querySelectorAll("[data-a=retention]").forEach(b => { b.setAttribute("aria-pressed", b === el); b.classList.toggle("on", b === el); }); },
-    scheduler: el => { set.scheduler = el.dataset.v; apply(); mo.querySelectorAll("[data-a=scheduler]").forEach(b => b.setAttribute("aria-pressed", b === el)); },
-    showHistory: el => { set.showHistory = !set.showHistory; apply(); mo.querySelectorAll("[data-a=showHistory]").forEach(b => b.classList.toggle("on", set.showHistory)); },
-    showArrows: el => { set.showArrows = !set.showArrows; apply(); mo.querySelectorAll("[data-a=showArrows]").forEach(b => b.classList.toggle("on", set.showArrows)); },
-    showNotes: el => { set.showNotes = !set.showNotes; apply(); mo.querySelectorAll("[data-a=showNotes]").forEach(b => b.classList.toggle("on", set.showNotes)); },
-    diagnostics: el => { set.diagnostics = !set.diagnostics; apply(); mo.querySelectorAll("[data-a=diagnostics]").forEach(b => b.classList.toggle("on", set.diagnostics)); },
-    sound: el => { set.sound = !set.sound; apply(); mo.querySelectorAll("[data-a=sound]").forEach(b => b.classList.toggle("on", set.sound)); }
+    aback: () => { an = null; view("rev"); startSession(); },
+    /* Library sheet's Settings row opens the full Settings view. */
+    settings: settings,
+    /* Settings handlers. SrsSettingsScreen is a ConsumerStatefulWidget: a tap writes to the
+       preferences provider and the widget rebuilds from it. These do the same — write to `set`,
+       re-apply the theme attributes, re-render the screen — rather than reaching into the DOM to
+       flip aria-pressed on whichever node was clicked, which is both more markup to keep in sync
+       and impossible to assert against outside a browser. */
+    limit: el => { set.limit = +el.dataset.v; apply(); settings(); },
+    retention: el => { set.retention = +el.dataset.v; apply(); settings(); },
+    scheduler: el => { set.scheduler = el.dataset.v; apply(); settings(); },
+    theme: el => { set.theme = el.dataset.v === "true"; apply(); settings(); },
+    accent: el => { set.accent = el.dataset.v; apply(); settings(); },
+    showHistory: () => { set.showHistory = !set.showHistory; apply(); settings(); },
+    showArrows: () => { set.showArrows = !set.showArrows; apply(); settings(); },
+    showNotes: () => { set.showNotes = !set.showNotes; apply(); settings(); },
+    diagnostics: () => { set.diagnostics = !set.diagnostics; apply(); settings(); },
+    sound: () => { set.sound = !set.sound; apply(); settings(); }
   };
 
-  /* Theme and accent are applied the way the app applies them: as data attributes on the demo
-     root, which is what the generated token file keys off. Keeping the mechanism identical means
-     the app's own light/dark and four-accent rules apply here unchanged. */
+  /* Theme and accent are applied the way the app applies them: as data attributes that the
+     generated token file keys off. `sync-design.js` re-anchors the app's tokens from `:root` onto
+     `.app` so the marketing page keeps its own palette, which means the attributes have to land on
+     the demo root itself — on <html> they would never match `.app[data-theme=…]` and the app's
+     light/dark and four-accent rules would silently never apply.
+
+     The theme is normalised to the tokens' own vocabulary ("light" / "dark") here. The settings
+     control carries booleans, and `data-theme="true"` matches neither block, which left the demo
+     rendering in the light defaults no matter which control was tapped. */
   function apply() {
-    host.dataset.theme = set.theme;
+    host.dataset.theme = set.theme ? "dark" : "light";
     if (set.accent) host.dataset.accent = set.accent;
-    host.classList.toggle("nocoord", !set.coords);
-    // showHistory controls whether the notation line renders move history
-    host.classList.toggle("show-history", !!set.showHistory);
-    // showArrows controls whether the board shows arrow/circle annotations
-    host.classList.toggle("show-arrows", !!set.showArrows);
-    // showNotes controls whether notes appear after a move
-    host.classList.toggle("show-notes", !!set.showNotes);
-    // diagnostics controls whether the HUD shows
-    host.classList.toggle("diagnostics", !!set.diagnostics);
   }
 
   host.addEventListener("click", e => {
-    if (e.target === mo) return closeModal();
+    if (e.target === $("#scrim")) return closeSheet();
     const a = e.target.closest("[data-a]");
     if (a && A[a.dataset.a]) A[a.dataset.a](a);
   });
 
-  const onSetting = e => {
-    const k = e.target.dataset.k;
-    if (!k) return;
-    set[k] = e.target.type === "checkbox" ? e.target.checked : +e.target.value;
-    apply();
-    if (k === "retention") $("#v-ret").textContent = set.retention + "%";
-    if (k === "limit") {
-      $("#v-lim").textContent = set.limit;
-      if (e.type === "change") startSession();
-    }
-  };
-
-  mo.addEventListener("input", onSetting);
-  mo.addEventListener("change", e => {
-    onSetting(e);
+  /* Reading a chosen .pgn into the textarea. Every other setting goes through the action
+     registry; nothing carries a `data-k` any more, so the delegated input/change pair that used
+     to funnel them is gone. */
+  document.addEventListener("change", e => {
     if (e.target.id === "i-f" && e.target.files[0]) {
       e.target.files[0].text().then(t => $("#i-pgn").value = t);
     }
   });
 
   addEventListener("keydown", e => {
-    if (!mo.hidden) {
-      if (e.key === "Escape") closeModal();
+    const sheetOpen = $(".sheet.open");
+    if (sheetOpen) {
+      if (e.key === "Escape") closeSheet();
       else if (e.key === "Enter" && e.target.id === "r-in") A.dorename();
-      else if (e.key === "Tab") {
-        const f = [...mo.querySelectorAll("button,input,textarea,a[href]")].filter(x => !x.hidden && x.offsetParent !== null),
-          i = f.indexOf(document.activeElement);
-        if (f.length && (e.shiftKey ? i <= 0 : i === f.length - 1)) {
-          e.preventDefault();
-          f[e.shiftKey ? f.length - 1 : 0].focus();
-        }
-      }
       return;
     }
     if (e.metaKey || e.ctrlKey || e.altKey || (document.activeElement !== document.body && !host.contains(document.activeElement)) || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
@@ -972,6 +958,16 @@
       cont();
     }
   });
+
+  // Wire up sheet backdrop and Escape
+  $("#scrim").addEventListener("click", closeSheet);
+  $("#scopeBtn").addEventListener("click", picker);
+  $("#moreBtn").addEventListener("click", more);
+  $("#skipBtn").addEventListener("click", skip);
+  $("#contBtn").addEventListener("click", cont);
+  $("#backBtn").addEventListener("click", () => { an = null; view("rev"); startSession(); });
+  $("#practiceBtn").addEventListener("click", () => { practice = !practice; startSession(); });
+  $("#chooseBtn").addEventListener("click", picker);
 
   apply();
   startSession();

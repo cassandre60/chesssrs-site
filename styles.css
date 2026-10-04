@@ -65,7 +65,11 @@
   src: url('assets/fonts/InstrumentSerif-Regular.ttf') format('truetype');
 }
 
-:root{--bg:#F5F3EF;--bg2:#ECE9E3;--sf:#fff;--ln:#17140f1f;--tx:#17140F;--mu:#5F584D;--ac:#9A5F0B;--bb:#17140F;--bt:#F5F3EF;
+/* --mu is the page's quiet text, darkened from #5F584D to clear AA in the one place it is measured
+   against something other than --bg: the sticky header sits on a backdrop-filtered blur, so once the
+   page is scrolled its effective background darkens to ~#CFCDCA, where the old value reached only
+   4.43:1. #564F44 gives 5.10:1 there and 7.29:1 on --bg. */
+:root{--bg:#F5F3EF;--bg2:#ECE9E3;--sf:#fff;--ln:#17140f1f;--tx:#17140F;--mu:#564F44;--ac:#9A5F0B;--bb:#17140F;--bt:#F5F3EF;
 --serif:"Instrument Serif",Georgia,"Times New Roman",serif;--sans:Geist,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 --g:clamp(20px,4vw,48px);--sp:clamp(88px,12vw,168px);--r:20px;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -77,12 +81,33 @@ body{margin:0;background:var(--bg);color:var(--tx);font:400 17px/1.6 var(--sans)
 h1,h2,h3,p,figure,ul,dl,dd{margin:0}ul{padding:0;list-style:none}img{display:block;max-width:100%;height:auto}
 a{color:inherit;text-underline-offset:.2em}
 :focus-visible{outline:2px solid var(--ac);outline-offset:3px;border-radius:4px}
-.sr{position:absolute;left:-9999px}.sr:focus{left:12px;top:12px;z-index:50;background:var(--bb);color:var(--bt);padding:10px 16px;border-radius:99px}
+.mk-sr{position:absolute;left:-9999px}.mk-sr:focus{left:12px;top:12px;z-index:50;background:var(--bb);color:var(--bt);padding:10px 16px;border-radius:99px}
 .ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .c{width:min(100% - 2*var(--g),1200px);margin-inline:auto}
 .serif{font-family:var(--serif);font-weight:400}
 .mono{font-family:var(--mono);font-size:13px;letter-spacing:.01em}
 .mu{color:var(--mu)}
+
+/* ============================================================
+   DEMO-ONLY ADDITIONS
+
+   assets/demo-reference.css is the app's design/reference/styles.css, generated verbatim by
+   scripts/sync-design.js. It is never hand-edited — anything the demo needs on top of it lives
+   in this block, so the next sync cannot silently drop it.
+
+   The Analyze screen's move list. The app's Analyze action pushes StudyScreen, which has no
+   counterpart in the reference stylesheet, so the list reuses the reference's own `.t-san`
+   notation type and only the ply buttons need rules of their own.
+   ============================================================ */
+.set-col .t-san .ply{border:0;background:none;padding:2px 3px;border-radius:7px;color:var(--ink2);font:inherit}
+.set-col .t-san .ply:hover{background:var(--hair2);color:var(--ink)}
+.set-col .t-san .ply.on{background:var(--accent-soft);color:var(--accent)}
+
+/* The app's tokens are scoped to `.app`, but the reference stylesheet paints `.frame` — which is
+   its parent, and so resolves `--bg` against the *marketing* page's palette. Without this the demo
+   is a light-themed app sitting on the page's dark background, and every text colour is measured
+   against the wrong surface. */
+.frame>.app{background:var(--bg);color:var(--ink)}
 
 /* header */
 .hd{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:color-mix(in srgb,var(--bg) 84%,transparent);-webkit-backdrop-filter:saturate(1.5) blur(16px);backdrop-filter:saturate(1.5) blur(16px);border-bottom:1px solid transparent;transition:border-color .2s}
@@ -105,8 +130,8 @@ a{color:inherit;text-underline-offset:.2em}
 
 /* hero */
 .hero{padding:clamp(64px,11vw,148px) 0 clamp(48px,6vw,80px)}
-.meta{display:inline-flex;gap:10px;align-items:center;color:var(--mu);margin-bottom:28px}
-.meta i{width:7px;height:7px;border-radius:50%;background:var(--ac)}
+.mk-meta{display:inline-flex;gap:10px;align-items:center;color:var(--mu);margin-bottom:28px}
+.mk-meta i{width:7px;height:7px;border-radius:50%;background:var(--ac)}
 h1{font:400 clamp(52px,8.2vw,120px)/.98 var(--serif);letter-spacing:-.025em;max-width:12em}
 .lede{font-size:clamp(18px,1.7vw,21px);line-height:1.55;color:var(--mu);max-width:44ch;margin:30px 0 36px}
 .stage{background:var(--bg2);border:1px solid var(--ln);border-radius:28px;padding:clamp(12px,2.6vw,36px)}
@@ -174,457 +199,3 @@ h2{font:400 clamp(36px,4.8vw,68px)/1.04 var(--serif);letter-spacing:-.02em;max-w
 .js .st{opacity:1;min-height:0;padding:56px 0 20px}.stg{position:static;height:auto;margin:0 0 40px}.js .pn{position:static;opacity:1;transform:none;margin-bottom:28px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 @media print{.hd,.stg{display:none}}
-
-/* live demo — the app keeps its own dark identity inside the page.
-   The .app token block lives further down, next to the demo chrome, and sources every colour
-   from assets/demo-tokens.css. */
-.ah{display:flex;align-items:baseline;gap:16px;margin-bottom:clamp(14px,2vw,24px)}
-.as{font-weight:500;font-size:clamp(16px,1.8vw,20px);letter-spacing:-.01em}.ad{color:var(--am);font-size:15px}
-.ab{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(20px,3.4vw,48px);align-items:start}
-.bw{display:grid;grid-template-columns:22px minmax(0,1fr);grid-template-rows:auto 22px}
-.rk,.fl{display:flex;color:var(--am);font-size:12px;user-select:none}
-.rk{flex-direction:column;grid-row:1}.rk span{flex:1;display:grid;align-items:center}
-.fl{grid-column:2}.fl span{flex:1;text-align:center;padding-top:6px}
-.ap{display:flex;flex-direction:column;gap:14px;min-height:100%}
-.at{color:var(--am);font-size:15px;line-height:1.5}
-.aw{display:flex;align-items:center;gap:10px;font-size:15px}.tn{width:11px;height:11px;border-radius:50%;border:2px solid var(--at)}
-.rv{margin-top:6px;animation:rvin .35s cubic-bezier(.16,1,.3,1)}
-.rv[hidden]{display:none}.rv .pc{position:static;display:inline-block;vertical-align:middle;width:56px;height:56px;transition:none;filter:drop-shadow(0 0 0 #0000)}
-.rv b{font:600 clamp(44px,6vw,64px)/1 var(--sans);color:var(--aa);letter-spacing:-.03em;vertical-align:middle;margin-left:6px}
-.rv p{color:var(--am);margin-top:10px;max-width:34ch;line-height:1.5}
-@keyframes rvin{from{opacity:0;transform:translateY(6px)}}
-.sk{margin-top:auto;align-self:flex-start;display:inline-flex;gap:10px;align-items:center;background:none;border:0;color:var(--at);font:500 16px var(--sans);padding:12px 4px;cursor:pointer;border-radius:8px}
-/* ============================================================
-   CHESS SRS DEMO — DIAGRAM REVIEW SCREEN ALIGNMENT
-   ============================================================ */
-.srs-topbar {
-  display: flex;
-  align-items: center;
-  height: 56px;
-  padding: 0 4px 0 8px;
-  margin-bottom: 12px;
-}
-.srs-scope-cluster {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-}
-.srs-scope-btn {
-  background: none;
-  border: 0;
-  color: var(--at);
-  font: 600 17px/1.2 var(--sans);
-  letter-spacing: -0.015em;
-  padding: 6px 8px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.srs-scope-btn:hover {
-  background: var(--hair2);
-}
-.srs-chev {
-  width: 12px;
-  height: 12px;
-  color: var(--ink2);
-}
-.srs-due-badge {
-  font: 600 14px/1 var(--sans);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink2);
-}
-.srs-topbar-spacer {
-  flex: 1;
-}
-.srs-dots-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 0;
-  background: none;
-  color: var(--ink);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-}
-.srs-dots-btn:hover {
-  background: var(--hair2);
-}
-
-.srs-review-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-  gap: clamp(24px, 4vw, 56px);
-  align-items: start;
-}
-.srs-board-region {
-  width: 100%;
-}
-.srs-board-wrap {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  grid-template-rows: auto 24px;
-}
-.srs-side-column {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 440px;
-}
-.srs-rev-pane {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  flex: 1;
-}
-
-.srs-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font: 400 13.5px var(--sans);
-  color: var(--ink2);
-  margin-bottom: 20px;
-}
-.srs-chapter-name {
-  color: var(--ink2);
-}
-.srs-turn-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--ink2);
-}
-.srs-turn-dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1.5px var(--ink);
-  background: transparent;
-  flex: none;
-}
-
-/* Notation line. The app sizes this off the frame rather than the viewport:
-   SrsText.lineSize is `wideWidth * 0.024` clamped to 23–31px, weight 600, tracking -0.012em,
-   and the move number drops to weight 400 in ink3. */
-.srs-notation-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  font: 600 clamp(23px, 2.4vw, 31px)/1.3 var(--sans);
-  letter-spacing: -0.012em;
-  margin-bottom: 24px;
-  min-height: 2.6em;
-  font-variant-numeric: tabular-nums;
-}
-.srs-move-num {
-  font-weight: 400;
-  color: var(--ink3);
-}
-/* The app draws this with a CustomPainter — SrsDashedBlank: 2px stroke, 6px dash, 4px gap,
-   sitting on the baseline — rather than with a row of punctuation. Drawn the same way here, so
-   it is an empty box: the middle dots it replaces rendered as solid blocks at this size. */
-.srs-dashed-blank {
-  display: inline-block;
-  width: 2.3em;
-  height: 1.05em;
-  background-image: repeating-linear-gradient(
-    to right,
-    var(--ink3) 0 6px,
-    transparent 6px 10px
-  );
-  background-size: 100% 2px;
-  background-position: left bottom;
-  background-repeat: no-repeat;
-}
-.srs-move-san {
-  color: var(--accent);
-}
-/* One move pair per span, so a move number can never wrap away from its move — the reason the
-   app builds each pair as a single WidgetSpan, inside a Text.rich that wraps between pairs.
-   The two gaps are the app's own ratios: 0.42em between pairs, 0.22em from a number to its move. */
-.srs-pair {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.22em;
-  margin-right: 0.42em;
-  white-space: nowrap;
-}
-.srs-pair .srs-move-num {
-  margin-right: 0;
-}
-.srs-gap {
-  display: inline-block;
-  width: 0.42em;
-}
-/* The leading ellipsis stands in for the moves that scrolled off the front of the line. */
-.srs-notation-line > .srs-move-num {
-  margin-right: 0.42em;
-}
-/* Figurines replace the leading piece letter, as SrsSan does. Scaled off the font size so they
-   sit on the baseline like the glyph they stand in for. */
-.srs-fig {
-  width: 0.82em;
-  height: 0.96em;
-  margin-right: 0.03em;
-  vertical-align: -0.12em;
-  color: inherit;
-}
-
-.srs-slot-region {
-  flex: 1;
-  min-height: 100px;
-}
-/* Note slot — the app's _NoteSlot: a 2px accent-mid rule, 16px of padding, the comment in
-   Newsreader at 16.5px/1.55, then "From your study" in ink3. */
-.srs-note-slot {
-  border-left: 2px solid var(--accent-mid);
-  padding-left: 16px;
-  margin-top: 8px;
-}
-.srs-note-body {
-  font: 400 16.5px/1.55 var(--font-read);
-  color: var(--ink);
-  margin: 0 0 10px;
-}
-.srs-note-source {
-  font: 400 12.5px var(--font-ui);
-  color: var(--ink3);
-}
-
-.srs-correction-slot {
-  margin-top: 8px;
-}
-/* Answer slot — the app's _AnswerSlot: SrsText.answerMove at 52px wide / 38px narrow,
-   weight 600, tracking -0.02em, in the accent. */
-.srs-corr-san {
-  font: 600 clamp(38px, 3.6vw, 52px)/1.1 var(--font-ui);
-  color: var(--accent);
-  letter-spacing: -0.02em;
-  display: block;
-}
-.srs-corr-help {
-  font: 400 15px/1.4 var(--sans);
-  color: var(--ink2);
-  margin-top: 8px;
-  max-width: 32ch;
-}
-
-.srs-actions-region {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 56px;
-  padding-top: 16px;
-}
-.srs-skip-btn {
-  background: none;
-  border: 0;
-  color: var(--ink2);
-  font: 500 15px var(--sans);
-  padding: 8px 12px;
-  margin-left: -12px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-.srs-skip-btn:hover {
-  color: var(--ink);
-  background: var(--hair2);
-}
-.srs-cont-btn {
-  margin-left: auto;
-  background: var(--ink);
-  color: var(--bg);
-  border: 0;
-  border-radius: 999px;
-  padding: 12px 24px;
-  font: 600 15px var(--sans);
-  cursor: pointer;
-  transition: transform .1s ease;
-}
-.srs-cont-btn:active {
-  transform: scale(0.97);
-}
-
-@media(max-width:860px) {
-  .srs-review-main {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  .srs-side-column {
-    min-height: auto;
-  }
-}
-
-/* board + vector pieces (SVG) — authentic Diagram artwork */
-.bd{display:block;width:100%;height:auto;aspect-ratio:1;touch-action:pan-y;user-select:none;-webkit-user-select:none}
-.board-frame{color:var(--ink)}
-.board-squares{color:var(--hatch)}
-.sq-l{fill:var(--sq-l)}
-.sq-d{fill:var(--sq-d)}
-.sq-hl{fill:var(--aa);opacity:.35}
-.story-arr{color:var(--aa);opacity:.95}
-.p{transition:transform .2s ease-out}
-.pc-g use{stroke-linejoin:round;stroke-linecap:round}
-.pc-g .halo{fill:var(--halo);stroke:var(--halo);stroke-width:7}
-.pc-g .det{fill:none;stroke:none}
-.pc-g.w .line{fill:var(--ws);stroke:var(--ws);stroke-width:4.4}
-.pc-g.w .fill{fill:var(--wf);stroke:none}
-.pc-g.w .det{color:var(--wd);stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-.pc-g.b .line{fill:var(--bs);stroke:var(--bs);stroke-width:4.4}
-.pc-g.b .fill{fill:var(--bf);stroke:none}
-.pc-g.b .det{color:var(--bd);stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-.pi{width:56px;height:56px;vertical-align:middle;display:inline-block}
-
-/* legacy fallbacks */
-.p .h{fill:var(--halo);stroke:var(--halo);stroke-width:5;stroke-linejoin:round}
-.p .f{stroke:var(--ws);stroke-width:2.4;stroke-linejoin:round}.p .l{fill:none;stroke-width:1.4;stroke-linecap:round}
-.p.w .f{fill:var(--wf)}.p.w .l{stroke:var(--wd)}
-.p.b .f{fill:var(--bf)}.p.b .l{stroke:var(--bd)}
-
-/* demo: header, sheets, controls
-
-   Every colour, the accent set, both themes, the type faces and the motion timings come from
-   assets/demo-tokens.css, which scripts/sync-design.js generates from the app repo's
-   design/tokens/tokens.css. Nothing is written down here — that block used to hold a
-   hand-copied palette, which is how it drifted out of step with the app (it had the wrong
-   dark --halo, and no --accent at all).
-
-   The aliases below are the demo's own short names, kept because the demo's CSS uses them, and
-   they now resolve to the app's tokens rather than to local copies. */
-.app{
-  position:relative;
-  --aa:var(--accent);
-  --at:var(--ink);
-  --ab:var(--bg);
-  --am:var(--ink2);
-  --al:var(--hair);
-  --as:var(--surface);
-  --sans:var(--font-ui);
-  --serif:var(--font-read);
-  background:var(--ab);
-  color:var(--at);
-  border-radius:14px;
-  padding:clamp(14px,2.6vw,30px);
-  box-shadow:0 0 0 1px var(--ln),0 40px 80px -30px #0008;
-  font-size:16px;
-  min-height:620px;
-}
-.app [hidden]{display:none!important}
-.app button{font-family:inherit}
-.ah{gap:10px}.ah .gap{flex:1}
-.as{display:inline-flex;align-items:center;gap:8px;background:none;border:0;color:var(--at);padding:6px 8px 6px 0;border-radius:8px;cursor:pointer}
-.ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.ib2{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;border:0;background:none;color:var(--am);cursor:pointer}.ib2:hover{background:var(--al);color:var(--at)}
-.app :focus-visible{outline:2px solid var(--aa);outline-offset:2px}
-.nocoord .rk,.nocoord .fl{visibility:hidden}.snap .p{transition:none}
-.act{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:18px}.sk{margin-top:0}
-.pill{display:inline-flex;align-items:center;gap:10px;background:var(--at);color:var(--ab);border:0;border-radius:99px;padding:12px 20px;font:500 15px var(--sans);cursor:pointer}
-.pill kbd{font:500 12px var(--mono);border:1px solid #8883;border-radius:6px;padding:1px 6px;opacity:.7}.pill.big{width:100%;justify-content:center;margin-top:14px}.pill.danger{background:#e5484d;color:#fff}
-.cta2{display:flex;gap:12px;align-items:center;margin-top:16px}
-#a-empty h3{font:400 clamp(28px,3vw,38px)/1.1 var(--serif);margin-bottom:10px}#a-empty p{color:var(--am);max-width:34ch}
-.mo{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:14px;background:#000a;border-radius:14px;overflow:auto}
-.sh{width:min(100%,460px);max-height:100%;overflow:auto;background:var(--as);border:1px solid var(--al);border-radius:18px;padding:16px 18px 18px;box-shadow:0 30px 80px -20px #000b}
-.sht{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.sht b{font-weight:600;font-size:17px;overflow-wrap:anywhere}
-.x{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--am);cursor:pointer}.x:hover{background:var(--al)}
-/* Sheets: Library and Study Actions match the app's SrsSheetRow.
-   Rows have NO border; hairline separators are separate between groups.
-   20px horizontal padding, 14px vertical, min-height 44px.
-   Library rows get a trailing chevron; study action rows get none. */
-.sheet{display:flex;flex-direction:column;gap:0}
-.sheet-group{display:flex;flex-direction:column}
-.sheet-group + .sheet-group{border-top:1px solid var(--hairline)}
-.sheet-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;min-height:44px;color:var(--at);font:400 16px var(--sans);text-decoration:none;cursor:pointer;background:none;border:0}
-.sheet-row:hover{background:var(--hairlineSoft)}
-.sheet-row:focus-visible{outline:2px solid var(--aa);outline-offset:-2px}
-.sheet-row-text{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
-.sheet-row-label{font:400 16px var(--sans);color:var(--ink);overflow-wrap:anywhere}
-.sheet-row-sub{font:400 13px var(--sans);color:var(--ink3)}
-.sheet-row-trail{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.sheet-chevron{flex:none;width:14px;height:14px;color:var(--ink3)}
-.sheet-sep{border-top:1px solid var(--hairline)}
-
-/* Study row wrapper: row + options button side by side */
-.sheet-row-wrap{display:flex;align-items:center;gap:8px}
-.sheet-opt{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;border:0;background:none;color:var(--am);cursor:pointer}
-.sheet-opt:hover{background:var(--hairlineSoft);color:var(--at)}
-.sheet-opt:focus-visible{outline:2px solid var(--aa);outline-offset:2px}
-
-/* legacy .grp/.row retained for other uses (import, settings) */
-.grp{margin-top:10px;border:1px solid var(--al);border-radius:14px;padding:0 14px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:14px;width:100%;padding:14px 0;background:none;border:0;border-top:1px solid var(--al);color:var(--at);font:400 16px var(--sans);text-align:left;text-decoration:none;cursor:pointer}
-.grp>.row:first-child{border-top:0}.row small{display:block;color:var(--am);font-size:13px;margin-top:2px}.row.danger{color:#ff7b7f}.row.col{flex-direction:column;align-items:stretch;gap:8px}.row b{font-weight:500;color:var(--am);margin-left:6px}
-.seg{display:inline-flex;border:1px solid var(--al);border-radius:99px;padding:3px}.seg.wide{display:flex;width:100%;margin-top:8px}
-.seg button{flex:1;border:0;background:none;color:var(--am);padding:7px 14px;border-radius:99px;font:500 14px var(--sans);cursor:pointer}.seg button[aria-pressed=true]{background:var(--at);color:var(--ab)}
-.swt button{width:22px;height:22px;margin-left:8px;border-radius:50%;background:var(--c);border:2px solid transparent;cursor:pointer;box-shadow:0 0 0 1px var(--al)}.swt button[aria-pressed=true]{border-color:var(--ab);box-shadow:0 0 0 2px var(--at)}
-input[role=switch]{appearance:none;-webkit-appearance:none;position:relative;flex:none;width:42px;height:24px;border-radius:99px;background:var(--al);cursor:pointer;transition:background .2s}
-input[role=switch]::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--at);transition:transform .2s}
-input[role=switch]:checked{background:var(--aa)}input[role=switch]:checked::after{transform:translateX(18px);background:#0D0F13}
-input[type=range]{width:100%;accent-color:var(--aa)}
-.sh textarea,.sh input:not([type]){display:block;width:100%;margin-top:12px;background:transparent;border:1px solid var(--al);border-radius:12px;padding:12px;color:var(--at);font:14px/1.5 var(--mono)}
-.sh textarea{resize:vertical}.filebtn{display:inline-block;margin-top:10px;color:var(--am);font-size:14px;cursor:pointer;text-decoration:underline}.filebtn input{display:none}
-.err{margin-top:10px;color:#ff7b7f;font-size:14px}.pad{padding:10px 2px;color:var(--am);line-height:1.5}
-.pgn2{margin:10px 0 0;padding:14px;border:1px solid var(--al);border-radius:12px;font:13px/1.7 var(--mono);white-space:pre-wrap;max-height:240px;overflow:auto;color:var(--at)}
-.mv{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin:12px 0;font:14px var(--mono)}.mv .n{color:var(--am);padding:0 2px 0 10px}
-.mv button{background:none;border:0;color:var(--at);padding:6px 8px;border-radius:8px;cursor:pointer;font:inherit}.mv button:hover{background:var(--al)}.mv button.on{background:var(--aa);color:#0D0F13}
-.nv2{display:flex;gap:6px}.nv2 button{width:40px;height:40px;border-radius:50%;border:1px solid var(--al);background:none;color:var(--at);font-size:22px;line-height:1;cursor:pointer}
-
-/* ============================================================
-   SETTINGS CONTROLS — mirror app's SrsSegmented, SrsSwitch, SrsAccentDots,
-   and SrsSettingsRow (primitives.dart + srs_settings_screen.dart)
-   ============================================================ */
-
-/* Segmented control: pill group with hairline border, selected = ink on ground */
-.seg{display:inline-flex;align-items:center;gap:3px;background:var(--al);border:1px solid var(--al);border-radius:999px;padding:3px}
-.seg-btn{display:inline-flex;align-items:center;justify-content:center;min-width:38px;padding:7px 13px;border-radius:999px;border:0;background:transparent;color:var(--am);font:500 14px var(--sans);cursor:pointer}
-.seg-btn.on{background:var(--ink);color:var(--ground)}
-.seg-btn:focus-visible{outline:2px solid var(--aa);outline-offset:2px}
-
-/* Switch: 44x44 hit area, 26px track, 20px thumb, animated */
-.sw{display:inline-flex;align-items:center;gap:10px;cursor:pointer}
-.sw span{font:400 16px var(--sans);color:var(--at)}
-.tog{position:relative;flex:none;width:44px;height:44px;display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.tog::before{content:"";position:absolute;inset:0} /* expands hit area */
-.tog i{display:block;width:44px;height:26px;border-radius:13px;background:var(--al);transition:background .1s var(--ease)}
-.tog i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--at);transition:transform .1s var(--ease),background .1s var(--ease)}
-.tog.on i{background:var(--ink)}
-.tog.on i::after{transform:translateX(18px);background:var(--ground)}
-.tog:focus-visible{outline:2px solid var(--aa);outline-offset:2px}
-
-/* Accent dots: circles in a rounded container, selected has ink ring */
-.adots{display:inline-flex;align-items:center;gap:8px;background:var(--al);border:1px solid var(--al);border-radius:999px;padding:5px}
-.adot{flex:none;width:24px;height:24px;border-radius:50%;border:0;background:var(--c);cursor:pointer;box-shadow:0 0 0 1px var(--al)}
-.adot.on{box-shadow:0 0 0 1px var(--al),0 0 0 3px var(--ink)}
-.adot:focus-visible{outline:2px solid var(--aa);outline-offset:2px}
-
-/* Settings row: label + help on left, control on right. Reflows under 520px. */
-.sr{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:18px 0;border-bottom:1px solid var(--hair2)}
-.sr-text{flex:1 1 300px;min-width:0}
-.sr-text b{display:block;font:500 16px var(--sans);color:var(--ink);overflow-wrap:anywhere}
-.sr-text small{display:block;margin-top:3px;font:400 13px var(--sans);color:var(--ink2)}
-.sr-trail{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.sr-val{font:500 14px var(--sans);color:var(--ink2)}
-.sr-nav{width:100%;text-align:left;background:none;border:0;color:inherit;padding:0;cursor:pointer}
-.sr-nav .sr-trail{justify-content:flex-end}
-
-/* Group header: uppercase, tracking, ink3 */
-.gh{font:700 11.5px/1 var(--sans);letter-spacing:1.1px;color:var(--ink3);text-transform:uppercase;margin:28px 0 8px}
-
-/* Responsive reflow: below 520px the control stacks under the text (app's 520 breakpoint) */
-@media(max-width:520px){
-  .sr{flex-direction:column;align-items:stretch;gap:8px;padding:14px 0}
-  .sr-trail{width:100%;justify-content:flex-start}
-  .seg{width:100%}.seg-btn{flex:1}
-  .adots{width:100%;justify-content:flex-start}
-  .sw{width:100%;justify-content:space-between}
-}
-
-.app{min-height:620px}@media(max-width:860px){.app{min-height:700px}}
-.bd:focus-visible{outline:2px solid var(--aa);outline-offset:3px}
-
-.sb{display:block;width:100%;max-width:500px;margin-inline:auto;border-radius:6px;box-shadow:0 0 0 1px var(--ln),0 40px 70px -30px #0007}
-html:not(.js) .sb{display:none}
-.bd:focus-visible{outline:2px solid var(--aa);outline-offset:3px}

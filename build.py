@@ -1,14 +1,25 @@
 """Build: inlines CSS, JS and images into dist/index.single.html (for previews) and zips the site."""
 import base64, hashlib, re, pathlib, zipfile
 r = pathlib.Path(__file__).parent
-MIME = {"webp": "image/webp", "svg": "image/svg+xml", "png": "image/png", "jpg": "image/jpeg", "ttf": "font/ttf"}
+MIME = {"webp": "image/webp", "svg": "image/svg+xml", "png": "image/png", "jpg": "image/jpeg",
+        "ttf": "font/ttf", "css": "text/css"}
 def data(path):
     p = r/path; return "data:%s;base64,%s" % (MIME[p.suffix[1:]], base64.b64encode(p.read_bytes()).decode())
+def inline_css(path):
+    """Inline one stylesheet, base64-ing any `url(assets/…)` it references (the self-hosted fonts)."""
+    css = (r/path).read_text()
+    return re.sub(r'url\((assets/[^)]+)\)', lambda m: "url(%s)" % data(m.group(1)), css)
 src = (r/"index.html").read_text(); h = src
-css = re.sub(r'url\((assets/[^)]+)\)', lambda m: "url(%s)" % data(m.group(1)), (r/"styles.css").read_text())
-h = h.replace('<link rel="stylesheet" href="styles.css">', "<style>%s</style>" % css)
+# The demo has its own stylesheet chain, and the cascade order is load-bearing: the app's generated
+# tokens and reference rules must land before the marketing rules, exactly as index.html loads them.
+for href in ("assets/demo-tokens.css", "assets/demo-reference.css", "styles.css"):
+    h = h.replace('<link rel="stylesheet" href="%s">' % href, "<style>%s</style>" % inline_css(href))
 for j in ("main", "chess.bundle", "engine", "pieces", "demo"):
     h = h.replace('<script src="%s.js" defer></script>' % j, "<script>%s</script>" % (r/(j+".js")).read_text())
+# The generated asset scripts too. Order in index.html is load-bearing (app-meta and figurines must
+# be defined before demo.js reads them), so they are inlined in place rather than base64'd.
+for a in ("assets/app-meta.js", "assets/figurines.js"):
+    h = h.replace('<script src="%s" defer></script>' % a, "<script>%s</script>" % (r/a).read_text())
 h = re.sub(r'((?:src|href)=")(assets/[^"]+)', lambda m: m.group(1)+data(m.group(2)), h)
 # Security headers (Netlify / Cloudflare Pages `_headers`). The one inline script (theme bootstrap) is allowed by hash.
 inline = re.search(r"<script>(document\.documentElement.*?)</script>", src, re.S).group(1)

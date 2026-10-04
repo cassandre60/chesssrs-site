@@ -195,6 +195,16 @@ window.PIECE_DEFS = \`${defs}\`;
 `;
 put('pieces.js', pieces);
 
+/* ------------------------------------------------------------------ reference CSS */
+
+/* The demo's visual layer is not hand-written. It is the app's own
+   design/reference/styles.css, copied verbatim by scripts/sync-design.js so any
+   upstream style change flows through on the next sync. The marketing-page
+   chrome below is the only CSS this file keeps; the demo mounts inside the
+   `.frame` / `.app` container that the reference CSS scopes everything to. */
+log('[sync-design] reference css');
+put('assets/demo-reference.css', BANNER('design/reference/styles.css') + read('design/reference/styles.css'));
+
 /* ------------------------------------------------------------------ report */
 
 if (CHECK && dirty.length) {

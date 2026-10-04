@@ -57,7 +57,7 @@ test.describe('Responsive & State Screenshots', () => {
       // 2. Mistake / reveal state: click wrong square or trigger move
       // Playing a2a3 is wrong for white vs french
       // Click a2, then click a3
-      const bd = page.locator('#demo .bd');
+      const bd = page.locator('#demo #bd');
       const box = await bd.boundingBox();
       if (box) {
         const sq = box.width / 8;
