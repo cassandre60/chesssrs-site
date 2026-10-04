@@ -106,6 +106,109 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
 
     await page.keyboard.press(' ');
     await expect(app(page, '#contBtn')).toBeHidden();
+    // ...and Space continues without the board hijacking the key. The board used to bind Space as
+    // select-and-move, so with the board focused (i.e. after any click on it) Space moved the cursor
+    // and overwrote the verdict here instead of continuing.
+    await expect(app(page, '#live')).toHaveText('Correct. d4.');
+  });
+
+  test('a dragged piece follows the pointer and is lifted above the others', async ({ page }) => {
+    // Regression guard: `place()` parks a piece with translate(<col*100>%, <row*100>%), but the drag
+    // handler wrote its offset in pixels. The piece therefore sat on a8 with a few pixels of travel
+    // while the destination highlight tracked the cursor — the move still resolved on pointerup, so
+    // click-to-move tests passed and the bug shipped. It is only observable mid-drag.
+    const board = await (await ready(page, '#bd')).boundingBox();
+    const sq = board.width / 8;
+    const at = (file, rank) => ({
+      x: board.x + sq * (file + 0.5),
+      y: board.y + sq * (8 - rank + 0.5),
+    });
+
+    const e2 = at(4, 2);
+    const e4 = at(4, 4);
+    await page.mouse.move(e2.x, e2.y);
+    await page.mouse.down();
+    await page.mouse.move((e2.x + e4.x) / 2, (e2.y + e4.y) / 2, { steps: 4 });
+    await page.mouse.move(e4.x, e4.y, { steps: 4 });
+
+    // `.drag` is what lifts the piece and raises it above its neighbours; demo-reference.css has
+    // always defined it and nothing was adding it, so the dragged piece painted underneath the rest.
+    const dragging = await app(page, '#bd .pc-wrap.drag').evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return {
+        cx: r.left + r.width / 2,
+        cy: r.top + r.height / 2,
+        z: getComputedStyle(el).zIndex,
+        cursor: getComputedStyle(el).cursor,
+        scale: getComputedStyle(el.querySelector('.pc')).transform,
+      };
+    });
+    expect(Math.abs(dragging.cx - e4.x)).toBeLessThan(2);
+    expect(Math.abs(dragging.cy - e4.y)).toBeLessThan(2);
+    expect(dragging.z).toBe('6');
+    expect(dragging.cursor).toBe('grabbing');
+    expect(dragging.scale).toContain('1.08');
+
+    await page.mouse.up();
+    await expect(app(page, '#live')).toHaveText('Correct. e4.');
+    // The pick-up class must not survive the drop.
+    await expect(app(page, '#bd .pc-wrap.drag')).toHaveCount(0);
+  });
+
+  test('a drag dropped on a square it cannot reach changes nothing', async ({ page }) => {
+    const board = await (await ready(page, '#bd')).boundingBox();
+    const sq = board.width / 8;
+    const a1 = { x: board.x + sq * 0.5, y: board.y + sq * 7.5 };
+    const a3 = { x: board.x + sq * 0.5, y: board.y + sq * 5.5 };
+
+    await page.mouse.move(a1.x, a1.y);
+    await page.mouse.down();
+    await page.mouse.move((a1.x + a3.x) / 2, (a1.y + a3.y) / 2, { steps: 3 });
+    await page.mouse.move(a3.x, a3.y, { steps: 3 });
+    await page.mouse.up();
+
+    // The rook snaps home and the card stays on the prompt.
+    await expect(app(page, '#due')).toContainText('16');
+    await expect(app(page, '#live')).not.toContainText('Correct');
+  });
+
+  test('Space is Continue everywhere, never a board key', async ({ page }) => {
+    const click = await mover(page);
+
+    await click(4, 2);
+    await click(4, 4);
+    await expect(app(page, '#live')).toHaveText('Correct. e4.');
+    await expect(app(page, '#bd')).toBeFocused();
+
+    // Press Space once the next card is on the board and accepting input again. The board used to
+    // bind Space as select-and-move, so from here it announced the cursor square ("e2, empty. Not
+    // one of your pieces.") and destroyed the verdict — while Continue, which is what the app binds
+    // Space to, did nothing because no verdict was waiting.
+    await expect(app(page, '#line')).toContainText('e6');
+    await page.keyboard.press(' ');
+    await expect(app(page, '#live')).not.toContainText('Not one of your pieces');
+    await expect(app(page, '#live')).toHaveText('Correct. e4.');
+
+    // And with no verdict waiting Space is a no-op: the session must not advance a card.
+    const line = await app(page, '#line').innerText();
+    await page.keyboard.press(' ');
+    await page.waitForTimeout(400);
+    expect(await app(page, '#line').innerText()).toBe(line);
+  });
+
+  test('Space cannot re-activate a button that still holds focus', async ({ page }) => {
+    // Regression guard: a focused <button> is a click on Space, so after Escape closed the scope
+    // drawer, Space re-opened it instead of continuing — the session looked frozen. The app's
+    // CallbackShortcuts sit above the whole screen, so nothing under them can consume the key.
+    await app(page, '#scopeBtn').click();
+    await expect(app(page, '#scrim')).toHaveClass(/open/);
+    await page.keyboard.press('Escape');
+    await expect(app(page, '#scrim')).not.toHaveClass(/open/);
+    await expect(app(page, '#scopeBtn')).toBeFocused();
+
+    await page.keyboard.press(' ');
+    await page.waitForTimeout(250);
+    expect(await sheetOpen(page, 'sheetScope')).toEqual({ open: false, hittable: false });
   });
 
   test('scope picker switches study to the Sicilian repertoire', async ({ page }) => {

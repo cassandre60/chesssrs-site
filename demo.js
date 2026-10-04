@@ -361,7 +361,10 @@
     if (p && mine(p)) {
       select(i);
       drag = { p, from: i, x: e.clientX, y: e.clientY, moved: false };
-      p.el.style.transition = "none";
+      // `.drag` is what lifts the piece (scale 1.08), raises it above the others (z-index 6) and
+      // switches the cursor. demo-reference.css has always defined it; nothing was adding it, so a
+      // dragged piece painted under its neighbours and gave no pick-up feedback at all.
+      p.el.classList.add("drag");
       pcsLayer.append(p.el);
       bd.setPointerCapture(e.pointerId);
     } else {
@@ -374,7 +377,11 @@
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 5) drag.moved = true;
     if (drag.moved) {
       const r = bd.getBoundingClientRect(), s = r.width / 8;
-      drag.p.el.style.transform = `translate(${(e.clientX - r.left) / s - .5}px,${(e.clientY - r.top) / s - .5}px)`;
+      // place() parks a piece with translate(<col*100>%, <row*100>%), so the drag offset has to be in
+      // those same units. Writing it in pixels left the piece sitting on a8 with a few pixels of
+      // offset while the destination highlight followed the cursor: the move resolved correctly on
+      // pointerup, but the piece never appeared to move. That is what made dragging look broken.
+      drag.p.el.style.transform = `translate(${((e.clientX - r.left) / s - .5) * 100}%,${((e.clientY - r.top) / s - .5) * 100}%)`;
     }
   });
 
@@ -382,7 +389,7 @@
     if (!drag) return;
     const { p, from, moved } = drag;
     drag = null;
-    p.el.style.transition = "";
+    p.el.classList.remove("drag"); // restores the transition, so place() animates it home
     const i = cancel ? -1 : idx(e);
     if (moved && dests.includes(i)) attempt(from, i);
     else { place(p, from); if (moved) select(-1); }
@@ -415,7 +422,12 @@
       return;
     }
     if (e.key === "Escape") { select(-1); say("Selection cleared"); return; }
-    if (e.key !== "Enter" && e.key !== " ") return;
+    // Enter only. review_screen.dart wraps the screen in CallbackShortcuts where Space is Continue
+    // and S is Skip, and the app's board — chessground 10.3.0 — handles no keys at all (only
+    // onTapDown/onPanStart/onPanUpdate), so nothing there can consume a key first. Binding Space
+    // here meant that as soon as the board had focus, i.e. after any click on it, Space moved the
+    // cursor instead of continuing and overwrote the verdict in the live region.
+    if (e.key !== "Enter") return;
     e.preventDefault();
     if (!enabled) return;
     const p = at(kb);
@@ -978,9 +990,16 @@
       return;
     }
     if (e.key.toLowerCase() === "s") skip();
-    else if (e.key === " " && cur && cur.wait && !/BUTTON|A/.test(document.activeElement.tagName)) {
+    else if (e.key === " " && (cur && cur.wait || host.contains(document.activeElement))) {
+      // review_screen.dart wraps the whole screen in CallbackShortcuts, so Continue wins even when a
+      // button holds focus. Swallowing the key is what stops Space from also counting as a click on
+      // that button: a focused <button> activates on Space, which re-opened the scope drawer
+      // immediately after Escape had closed it and made the session look frozen. The board used to
+      // swallow it too — see the note in its keydown. Scoped to "focus is in the demo, or a verdict
+      // is waiting" rather than to `cur` alone: with nothing focused the page still scrolls, which a
+      // Flutter screen never has to care about.
       e.preventDefault();
-      cont();
+      if (cur && cur.wait) cont();
     }
   });
 
