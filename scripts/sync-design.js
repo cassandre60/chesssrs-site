@@ -153,25 +153,45 @@ put(
 /**
  * The app ships one SVG per piece per colour, with its colours baked in as literal fill and
  * stroke values. A demo needs to recolour pieces at runtime — light and dark themes, four
- * accents — so this extracts the geometry out of `<defs>` and re-emits it as bare shapes.
- * The colour layers are supplied by CSS instead, which is what the app's own `--wf/--ws/--wd`
- * and `--bf/--bs/--bd` tokens are for.
+ * accents — so this extracts the geometry and re-emits it as bare shapes. The colour layers are
+ * supplied by CSS instead, which is what the app's own `--wf/--ws/--wd` and `--bf/--bs/--bd`
+ * tokens are for.
  *
- * Note the app's current scheme is three layers — halo, line, fill — where the older artwork
- * this demo was built from had a fourth "detail" layer. The layer set is read from the file,
- * not hardcoded, so a future three-to-four layer change is picked up rather than silently
- * dropped.
+ * Each piece file has four layers, and all four have to survive the trip:
+ *
+ *   <defs><g id="s">…</g></defs>      the silhouette — drawn three times as <use>
+ *   …<g stroke-…><use/>×3</g>         halo (7), line (4.4), fill — the demo reuses the silhouette
+ *   <g color=…>…</g>                  the detail strokes: a rook's crenellation bar, a knight's
+ *                                    eye and mane, a king's base curve. Drawn with
+ *                                    `stroke="currentColor"` so the app recolours them per piece.
+ *
+ * The detail group lives *after* `</defs>`, not inside it. Reading only `<defs>` silently dropped
+ * it, which is what left the demo's pieces as flat silhouettes while the app's carry their detail.
+ * Both are read by structure rather than by position, so a future regroup is picked up.
  */
 log('[sync-design] pieces');
 const PIECES = ['K', 'Q', 'R', 'B', 'N', 'P'];
 
+/** The silhouette: the one <g id="…"> inside <defs>. */
 function geometry(svg) {
-  // The silhouette lives in the only <g id="..."> inside <defs>.
   const defs = svg.match(/<defs>([\s\S]*?)<\/defs>/);
   if (!defs) throw new Error('no <defs> in piece svg');
   const g = defs[1].match(/<g id="[^"]+">([\s\S]*?)<\/g>/);
   if (!g) throw new Error('no <g id> in <defs>');
   return g[1].replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * The detail layer: the group after `</defs>` that sets `color` and paints with `currentColor`.
+ * A pawn has none — its group is empty — so an empty string is a valid answer, not a failure.
+ */
+function detail(svg) {
+  const tail = svg.split('</defs>')[1];
+  if (!tail) throw new Error('piece svg has no content after </defs>');
+  const groups = [...tail.matchAll(/<g\b([^>]*)>([\s\S]*?)<\/g>/g)];
+  const g = groups.find(([, attrs]) => /\bcolor=/.test(attrs));
+  if (!g) throw new Error('no <g color=…> detail layer after </defs>');
+  return g[2].replace(/\s+/g, ' ').trim();
 }
 
 function viewBox(svg) {
@@ -184,9 +204,11 @@ for (const p of PIECES) {
   const svg = read(`assets/pieces/light/svg/w${p}.svg`);
   const vb = viewBox(svg);
   if (!vb) throw new Error(`no viewBox on w${p}.svg`);
-  const geo = geometry(svg);
-  // Both colours share one silhouette; the app's w*/b* files differ only in their fills.
-  defs += `\n  <g id="pc-${p}">${geo}</g>`;
+  // Both colours share one silhouette and one detail layer; the app's w*/b* files differ only in
+  // their fills. Both are emitted as their own <g> so the demo can <use> them like the app does.
+  defs += `\n  <g id="pc-${p}">${geometry(svg)}</g>`;
+  const det = detail(svg);
+  if (det) defs += `\n  <g id="pd-${p}">${det}</g>`;
 }
 
 const vbLight = viewBox(read('assets/pieces/light/svg/wP.svg'));

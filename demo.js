@@ -249,10 +249,13 @@
   const kc = { c: 4, r: 6 }, PN = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" };
   const at = i => pcs.find(p => p.i === i), D = i => [flip ? 7 - (i & 7) : i & 7, flip ? 7 - (i >> 3) : i >> 3];
 
-  /* Piece rendering: the reference SVG uses <use> elements with .halo/.line/.fill/.det */
+  /* Piece rendering, layer for layer as the app draws it: the silhouette three times over — halo,
+     line, fill — then the detail strokes, which the app paints with `currentColor` so a knight's
+     eye and mane, a rook's crenellation bar and a king's base curve follow the piece's own colour.
+     All four groups come out of scripts/sync-design.js; the colours are CSS. */
   const art = ch => {
     const t = ch.toUpperCase(), isWhite = ch < "a";
-    return `<svg class="pc ${isWhite ? "w" : "b"}" viewBox="5 2 90 90" aria-hidden="true"><use href="#pc-${t}" class="halo"/><use href="#pc-${t}" class="line"/><use href="#pc-${t}" class="fill"/></svg>`;
+    return `<svg class="pc ${isWhite ? "w" : "b"}" viewBox="5 2 90 90" aria-hidden="true"><use href="#pc-${t}" class="halo"/><use href="#pc-${t}" class="line"/><use href="#pc-${t}" class="fill"/><use href="#pd-${t}" class="det"/></svg>`;
   };
 
   const place = (p, i) => { p.i = i; const [c, r] = D(i); p.el.style.transform = `translate(${c * 100}%,${r * 100}%)`; };
