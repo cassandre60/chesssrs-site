@@ -49,6 +49,15 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      # The Pages artifact is `path: '.'`, because the site is served from the repository root
+      # (index.html pulls in main.js, chess.bundle.js, engine.js, pieces.js and assets/ by relative
+      # path). Enumerating those instead would silently drop any root file added later, so the
+      # directory is uploaded whole and the build-only trees are removed first: npm ci put 23MB of
+      # node_modules here, and the Playwright runs add test-results. Nothing in the demo ever loads
+      # either, but both were being published as part of the site.
+      - name: Drop build-only directories
+        run: rm -rf node_modules test-results playwright-report
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

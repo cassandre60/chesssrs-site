@@ -109,6 +109,28 @@ a{color:inherit;text-underline-offset:.2em}
    against the wrong surface. */
 .frame>.app{background:var(--bg);color:var(--ink)}
 
+/* Below ~1000px the desktop frame stops being a usable preview, so stop pretending it is one.
+
+   `index.html` renders `<div class="frame" data-device="desktop">` at every width, and the app's
+   own rule for that variant is `aspect-ratio:1280/800`. Frame height is therefore width * 0.625,
+   and the app sizes the board as `--b: min(100cqw - 24px, 100cqh - 340px)` — it reserves 340px of
+   container height below the board. Pasted into a phone-width column that frame is 324x202px, so
+   `202 - 340` goes negative and the board clamps to **0x0**: 32 pieces in the DOM, nothing on
+   screen, and no tap target. On an 810px iPad the frame is 438px tall and the board survives as a
+   98px postage stamp. Both are the marketing page's fault, not the app's.
+
+   The app ships three frame variants and its base rule is already the *narrow* stacked layout
+   (`@container app (max-width:720px)` switches to side-by-side). So all that is needed is real
+   height: the demo then renders in the same layout the app uses on a phone. Switching
+   `data-device` to `phone` instead would demand a `.statusbar` the demo never emits and a fixed
+   390px width, which overflows a 390px viewport.
+
+   `height`, not `min-height`: `.app` is `position:absolute;inset:0`, so the frame has no in-flow
+   content to give it a height and `min-height` would be the only thing holding it open. */
+@media (max-width:1000px){
+  .frame[data-device="desktop"]{aspect-ratio:auto;height:660px}
+}
+
 /* header */
 .hd{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:color-mix(in srgb,var(--bg) 84%,transparent);-webkit-backdrop-filter:saturate(1.5) blur(16px);backdrop-filter:saturate(1.5) blur(16px);border-bottom:1px solid transparent;transition:border-color .2s}
 .hd.on{border-color:var(--ln)}

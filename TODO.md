@@ -10,8 +10,25 @@ Tracking progress across workstreams as defined in the handoff specification.
   - [x] Answer slot: SAN plus figurines
   - [x] Menus: Library sheet (Settings, About) and Study Actions sheet (Analyze, Practice, Export, Pause/Resume, Rename, Delete) match the app
   - [x] Settings screen: section headers + `SrsSegmented`, `SrsSwitch`, `SrsAccentDots` — matches `SrsSettingsScreen`
-  - [ ] Re-verify against the app's own screenshot harness (`SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`) — committed screenshots are 46% stale
-- [ ] Task 4: Complete launch items (Liberapay handle placeholder, custom domain docs). Blocked on user: replace `liberapay.com/YOUR_NAME` in `index.html` and optionally set custom domain per `README.md` launch checklist.
+  - [x] Match real review states, labels, buttons and strings — enforced by `scripts/sync-strings.js`
+        against `design/app-ui.json`, and by `tests/e2e/app-parity.spec.js` against the running demo
+  - [x] Match real menus, sheets and options — same gate. The rows still unported are listed in
+        `KNOWN_GAPS` and asserted to remain in the manifest, so the excuse has to be revisited if the
+        app changes
+  - [x] Side-by-side verification screenshots in `docs/fidelity/` (4 captures: light and dark, desktop
+        and phone)
+  - [ ] 15 of the app's 23 settings rows are unported. Deliberate, not drift: they navigate to screens
+        this demo does not port, so rendering them would be inventing UI. A scope decision.
+  - [ ] Re-verify against the app's own screenshot harness (`SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`) — committed screenshots are 46% stale. Needs FVM-pinned Flutter 3.47.3 and belongs on a local/nightly run, not per-commit. **This is the only remaining mechanism that would catch a purely visual overhaul** — see "What this still cannot do" below.
+- [ ] Task 4: Complete launch items. Remaining:
+  - [ ] Liberapay handle: `index.html` still carries `liberapay.com/YOUR_NAME`, so the donation and
+    support links point at an account that does not exist. A dead donation link is worse than none —
+    either supply the real handle or hide the block. **Blocked on the user.**
+  - [x] Canonical URL: the site is served from the free `github.io` address and now says so in
+    `canonical`, `og:url`, `og:image`, `twitter:image` and the JSON-LD, replacing the
+    `chesssrs.example` placeholder. Gated by `every URL the page tells the world about points at the
+    live origin`. A custom domain is optional and was declined on cost grounds; re-pointing is a
+    five-line edit in `index.html` plus the `SITE_ROOT` constant in `tests/e2e/basic.spec.js`.
 
 ## Bugs the demo was hiding (found 2026-10-04, all fixed)
 
@@ -41,6 +58,29 @@ gates did not catch them until the tests were brought back in line. Each now has
 - A closed sheet is `opacity:0`, not `display:none`. The old tests asserted `toBeHidden()`, which
   passes for a sheet that is still open — they were asserting nothing. Now keyed on the `open` class
   and `pointer-events`.
+- **Dragging only appeared to work.** `place()` parks a piece with `translate(<col*100>%, <row*100>%)`
+  but the drag handler wrote its offset in *pixels*, so the piece sat on a8 with a few pixels of travel
+  while the destination highlight tracked the cursor. `pointerup` resolves the move from `idx(e)`, so
+  the move itself landed correctly and every click-to-move test passed — the defect was only
+  observable mid-drag. `.drag` was also never added, although `demo-reference.css` has always defined
+  it, so a dragged piece painted under its neighbours with no lift and no grabbing cursor.
+- **Space was shadowed twice.** `review_screen.dart` wraps the review screen in `CallbackShortcuts`
+  (Space = Continue, S = Skip) and the app's board — chessground 10.3.0 — handles no keys at all, so
+  nothing there can consume a key first. The demo's board bound Space as select-and-move, so after any
+  click on it Space moved the cursor and overwrote the verdict. Separately, a focused `<button>` is a
+  click on Space and the global handler skipped focused buttons, so Escape-closing the scope drawer
+  left Space re-opening it.
+- **The board collapsed to 0x0 on phones** (found 2026-10-04). `index.html` renders the `desktop`
+  frame variant at every width and the app's rule for it is `aspect-ratio:1280/800`, so the frame's
+  height is `width * 0.625`; the app then sizes the board as
+  `--b: min(100cqw - 24px, 100cqh - 340px)`, reserving 340px of height below it. In a phone-width
+  column that frame is 324x202px, so `202 - 340` went negative and clamped to zero: 32 pieces in the
+  DOM, nothing painted, no tap target. On an 810px iPad it survived as a 98px board. Fixed in
+  `styles.css` by giving the frame real height below 1000px, which hands the demo to the app's own
+  narrow stacked layout. **Not** fixed by editing `assets/demo-reference.css`, which is generated from
+  the app repo and must not diverge from it. Guarded by `the demo board stays usable across viewport
+  widths`, which asserts size, that nothing visible spills out of the frame, and that a touch tap
+  actually lands a move.
 
 ### Drift gate (added 2026-10-04)
 
@@ -113,13 +153,14 @@ own captured screenshots:
 - [x] Write fidelity specification (`docs/demo-spec.md`)
 - [x] Replace piece art with authentic app piece set (`assets/pieces/`) & check license
 - [x] Reproduce exact default "Diagram" board geometry, colors, and hatching (`BoardBackground`, `HatchPainter`)
-- [ ] Match review screen layout, typography, figurines, icons, spacing (desktop & mobile)
-- [ ] Match real review states, labels, buttons, and strings
-- [ ] Match real menus, sheets, and options (settings, import, analyze, practice)
+- [x] Match review screen layout, typography, figurines, icons, spacing (desktop & mobile) — including
+      the narrow-viewport board collapse fixed 2026-10-04, see "Bugs the demo was hiding"
+- [x] Match real review states, labels, buttons, and strings
+- [x] Match real menus, sheets, and options (settings, import, analyze, practice)
 - [x] Port/integrate true FSRS scheduling logic matching app behavior
 - [x] Integrate full legal move generation (chess.js / dartchess model)
 - [x] Verify keyboard, touch, and sound interactions match app
-- [ ] Produce side-by-side verification screenshots in `docs/fidelity/`
+- [x] Produce side-by-side verification screenshots in `docs/fidelity/`
 
 ## Workstream D: Authentic Screenshots & Marketing Assets
 - [x] Capture authentic release-build screenshots from the running app (light & dark, desktop & phone)

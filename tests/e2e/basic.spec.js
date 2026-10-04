@@ -73,3 +73,71 @@ test('every URL the page tells the world about points at the live origin', async
   expect(errors).toEqual([]);
 });
 
+/* index.html renders the `desktop` frame variant at every width, and the app's rule for it is
+   `aspect-ratio:1280/800`, so the frame's height is width * 0.625. The app sizes the board as
+   `--b: min(100cqw - 24px, 100cqh - 340px)` — it reserves 340px of container height below the board.
+   Pasted into a phone-width column that frame is 324x202px, so `202 - 340` goes negative and the
+   board clamps to 0x0: 32 pieces in the DOM, nothing painted, and no tap target. styles.css gives
+   the frame a real height below 1000px so the app's own narrow stacked layout takes over.
+
+   Asserted on size, on nothing being clipped, and on a move actually landing — a board that renders
+   at 98px is technically non-zero and still unusable, so the threshold is a floor worth tapping,
+   not merely `> 0`. The widths straddle the app's own 720px container-query switch.
+
+   hasTouch is on so this is exercised the way a phone would use it; a mouse-only test would not
+   have caught this, since the board had no hit area to click. */
+test('the demo board stays usable across viewport widths', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, hasTouch: true });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+
+  for (const width of [360, 390, 768, 900, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    // Scroll after any reflow, or the board lands below the fold and the taps miss it entirely.
+    await page.locator('#app #bd').scrollIntoViewIfNeeded();
+
+    const board = await page.locator('#app #bd').boundingBox();
+    expect(board.width, `board collapsed at ${width}px`).toBeGreaterThanOrEqual(240);
+
+    // Nothing visible may spill out of the frame. The app parks closed sheets below the frame and
+    // relies on `overflow:hidden`, so only the active view is measured — checking `.app`'s
+    // scrollHeight would flag every sheet as clipped.
+    const spill = await page.evaluate(() => {
+      const app = document.querySelector('#app');
+      const box = app.getBoundingClientRect();
+      const view = [...app.querySelectorAll('.view-review, .view-settings, .view-idle')].find(
+        (v) => !v.hidden,
+      );
+      let dy = 0;
+      let dx = 0;
+      for (const el of view.querySelectorAll('*')) {
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height) continue;
+        dy = Math.max(dy, r.bottom - box.bottom);
+        dx = Math.max(dx, r.right - box.right);
+      }
+      return { dy: Math.round(dy), dx: Math.round(dx) };
+    });
+    expect(spill.dy, `content spills below the frame at ${width}px`).toBeLessThanOrEqual(1);
+    expect(spill.dx, `content spills past the frame at ${width}px`).toBeLessThanOrEqual(1);
+
+    // And the board must accept a move by touch, the way a phone plays it.
+    const sq = board.width / 8;
+    const at = (file, rank) => ({
+      x: board.x + sq * (file + 0.5),
+      y: board.y + sq * (8 - rank + 0.5),
+    });
+    const e2 = at(4, 2);
+    const e4 = at(4, 4);
+    await page.touchscreen.tap(e2.x, e2.y);
+    await expect(page.locator('#app #bd .hl rect.sel'), `no selection at ${width}px`).toHaveCount(1);
+    await page.touchscreen.tap(e4.x, e4.y);
+    await expect(page.locator('#app #live'), `tap-to-move failed at ${width}px`).toHaveText('Correct. e4.');
+  }
+
+  expect(errors).toEqual([]);
+  await ctx.close();
+});
+
