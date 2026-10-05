@@ -21,13 +21,8 @@ Tracking progress across workstreams as defined in the handoff specification.
         this demo does not port, so rendering them would be inventing UI. A scope decision.
   - [x] Pixel-parity gate against the app's own golden captures — `npm run parity:pixels`, 60 pairs,
         baseline committed, self-test proves it has teeth. See "Pixel-parity gate" below.
-  - [ ] Regenerate the app's golden captures. They are **46% stale** and 2 days older than the commit
-        that fixed the dark-mode board squares, so the dark pairs are measuring the *old* palette —
-        the app is now correct (`squareLight #232A36` over `squareDark #10141B`, pinned by
-        `test/design/board_squares_test.dart`) and the demo matches it; the app's committed PNGs are
-        what is out of date. Needs FVM-pinned Flutter 3.47.3:
-        `SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart`
-  - [ ] Re-baseline after that, once — every dark pair will move.
+  - [x] Regenerated the app's golden captures (81 of 120 files were stale) and re-baselined. See
+        "Re-baselining against fresh captures" below.
 - [ ] Task 4: Complete launch items. Remaining:
   - [x] Liberapay: the donation account does not exist yet, so the two links that pointed at
     `liberapay.com/YOUR_NAME` — the `#support` CTA and the footer's Support list — were **removed**
@@ -160,6 +155,40 @@ Two metrics, because they answer different questions:
 - **coarse** — the same comparison after averaging into 16x16 blocks. Text averages away; what
   survives is where things *are* and what colour they are. **This is the one the gate fails on**,
   because it is what a redesign actually moves.
+
+### Re-baselining against fresh captures (2026-10-05)
+
+The app's committed goldens were 46% stale, and the reason turned out to be mechanical rather than
+accidental: the harness captures through `matchesGoldenFile`, which **fails when the golden differs
+and does not overwrite it**. So the documented command
+
+```
+SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart
+```
+
+can never refresh them — it reports 81 failures and changes nothing. Regenerating needs
+`--update-goldens`, which the harness's own header comment does not mention:
+
+```
+SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart --update-goldens
+```
+
+81 of 120 captures changed. The dark board squares went from `[17,20,26]`/`[22,26,34]` to
+`[35,42,54]`/`[16,20,27]` — `#232A36` over `#10141B`, which is what commit `81e19958c` set and what
+the demo was **already** rendering. So the demo was right and the oracle was out of date.
+
+The effect on the baseline is the real evidence the gate is worth having:
+
+| pair | stale oracle | fresh oracle |
+|---|---|---|
+| `review-prompt-desktop-dark` | 13.3% | **0.2%** |
+| `review-prompt-phone-dark` | 7.3% | **0.7%** |
+| `review-prompt-small-dark` | 16.6% | **7.2%** |
+| `review-answered-desktop-dark` | 15.5% | **3.0%** |
+
+The dark pairs collapsed from "measuring a wrong palette" to "measuring text rasterisation". Mean
+across the 40 comparable pairs is now 7.4%; the worst is `review-empty-small-dark` at 16.8%, where
+the app's nothing-due screen and the demo's still differ in layout.
 
 ### What this gate could not do, and why
 

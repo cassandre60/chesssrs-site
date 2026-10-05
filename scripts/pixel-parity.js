@@ -402,10 +402,11 @@ const url =
   console.log(`app   ${APP_SHOTS}`);
   console.log(`mode  ${update ? 're-baseline' : 'compare against ' + path.relative(ROOT, BASELINE)}`);
   console.log(
-    '\n  note: the app captures predate the commit that corrected its dark-mode board squares, so the\n' +
-      '  dark pairs measure a palette the app no longer ships. Regenerate them with\n' +
-      '  SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart\n' +
-      '  then run `npm run parity:pixels:update` once. See TODO.md.\n'
+    '\n  Regenerating the app captures? The command in that harness\'s own header cannot do it:\n' +
+      '  it captures through matchesGoldenFile, which fails on a differing golden and never\n' +
+      '  overwrites. Use --update-goldens:\n' +
+      '    SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart --update-goldens\n' +
+      '  then run `npm run parity:pixels:update` once, and expect every dark pair to move.\n'
   );
 
   /* One page for the whole run, resized and reloaded per capture. Neither a fresh context nor a
@@ -549,6 +550,9 @@ async function selfTest() {
     process.exit(1);
   }
 
+  /* The perturbation is expressed as the app's *current* dark square. If the app changes that
+   * colour, this fails loudly rather than silently testing nothing — a self-test that stops
+   * perturbing anything is worse than no self-test. */
   if (!fs.existsSync(BASELINE) || !JSON.parse(fs.readFileSync(BASELINE, 'utf8'))[key]) {
     console.error(`Self-test needs a baseline entry for ${key}.`);
     console.error('Run `npm run parity:pixels:update` first.');
