@@ -10,7 +10,8 @@
     "build": "python3 build.py",
     "parity:pixels": "node scripts/pixel-parity.js",
     "parity:pixels:update": "node scripts/pixel-parity.js --update",
-    "parity:pixels:self-test": "node scripts/pixel-parity.js --self-test"
+    "parity:pixels:self-test": "node scripts/pixel-parity.js --self-test",
+    "review:screenshots": "node scripts/review-screenshots.js"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

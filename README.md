@@ -54,6 +54,42 @@ Captures responsive screenshots (375px, 768px, 1280px, 1920px) and demo states i
 npm run screenshots
 ```
 
+### Checking the demo still matches the app
+
+Three gates, each catching a different kind of drift. The first two run in CI; the third needs the
+app's golden captures and is deliberately not per-commit.
+
+| command | catches | needs |
+|---|---|---|
+| `npm run sync:check` | the app's tokens, fonts or piece art changed | the app repo |
+| `npm run test:e2e` | the demo's copy or structure drifted from `design/app-ui.json` | nothing |
+| `npm run parity:pixels` | the app was redesigned **visually** and no token moved | the app's captures |
+
+`parity:pixels` records how far the demo currently sits from the app's own golden captures and fails
+only when that distance *moves*, because two independently written UIs will never agree pixel for
+pixel — the app's own harness says as much. Re-baseline deliberately after reviewing the diff images:
+
+```bash
+npm run parity:pixels:update      # accept the current state
+npm run parity:pixels:self-test   # prove the gate can still detect a change
+```
+
+### Reviewing the app's screenshots after a regeneration
+
+If you regenerate the app's golden captures, review them side by side rather than one at a time:
+
+```bash
+cd "<app repo>"
+SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dart --update-goldens
+
+cd -                                  # back here
+npm run review:screenshots            # serves before/after pairs on http://127.0.0.1:4777
+```
+
+The `--update-goldens` flag is required: the harness captures through `matchesGoldenFile`, which
+**fails** on a differing golden and never overwrites it, so the command in that harness's own header
+cannot refresh anything.
+
 ### Building
 Compiles single-file bundle and writes deployment headers:
 ```bash

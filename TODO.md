@@ -177,6 +177,20 @@ SRS_CAPTURE_SCREENSHOTS=1 fvm flutter test test/view/screenshot_capture_test.dar
 `[35,42,54]`/`[16,20,27]` — `#232A36` over `#10141B`, which is what commit `81e19958c` set and what
 the demo was **already** rendering. So the demo was right and the oracle was out of date.
 
+#### Reviewing them: `npm run review:screenshots`
+
+`git diff` on binaries shows nothing and opening 81 PNGs one at a time does not scale, so
+`scripts/review-screenshots.js` pulls the committed version out of git as a blob (the app tree is left
+untouched), pairs it with the regenerated file, and serves one page: **before on the left, after on
+the right**, biggest change first, with filters for "only screens this site demos" and "only the
+biggest". Needs only git and Node.
+
+Building it immediately showed what two days of staleness had hidden: the old captures said
+`REPERTOIRES` and `Chapters of a study` where the current app says `STUDIES` and `Explore study`. Real
+copy changes, invisible until something put the two versions side by side. That is also why the
+reviewer flags which screens this site actually demos (56 of 81) — the rest are the analysis and
+editor screens, which cannot affect the site and need a glance rather than a decision.
+
 The effect on the baseline is the real evidence the gate is worth having:
 
 | pair | stale oracle | fresh oracle |
