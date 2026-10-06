@@ -45,10 +45,6 @@ if (!fs.existsSync(APP_DIR)) {
   process.exit(1);
 }
 
-const fail = (msg) => {
-  throw new Error(`${msg}\n  in ${path.relative(APP_DIR, path.join(APP_DIR, msg.file || '')) || ''}`);
-};
-
 /* ------------------------------------------------------------------ Dart scanning */
 
 /**

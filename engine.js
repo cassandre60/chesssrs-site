@@ -2,8 +2,6 @@
    Pure functions and models, zero DOM dependencies.
 */
 (function (root) {
-  'use strict';
-
   let ChessClass = null;
   if (typeof Chess !== 'undefined') {
     ChessClass = Chess;
@@ -11,11 +9,11 @@
     try {
       const c = require('./chess.bundle.js');
       ChessClass = c.Chess || c;
-    } catch (e) {
+    } catch {
       try {
         const c2 = require('chess.js');
         ChessClass = c2.Chess || c2;
-      } catch (e2) {}
+      } catch {}
     }
   }
 
@@ -153,7 +151,7 @@
     if (t === "p") { const d = w ? -1 : 1, s = w ? 6 : 1;
       if (!b[(r + d) * 8 + c]) { out.push((r + d) * 8 + c); if (r === s && !b[(r + 2 * d) * 8 + c]) out.push((r + 2 * d) * 8 + c); }
       [-1, 1].forEach(dc => { const C = c + dc; if (C < 0 || C > 7) return; const q = b[(r + d) * 8 + C]; if (q && (q < "a") !== w) out.push((r + d) * 8 + C); }); }
-    else if (t === "n") [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]].forEach(([a, e]) => add(r + a, c + e));
+    else if (t === "n") [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]].forEach(([a, e]) => { add(r + a, c + e); });
     else { const V = []; if (t !== "b") V.push([1, 0], [-1, 0], [0, 1], [0, -1]); if (t !== "r") V.push([1, 1], [1, -1], [-1, 1], [-1, -1]);
       V.forEach(([a, e]) => { let R = r + a, C = c + e; while (add(R, C) && t !== "k") { R += a; C += e; } }); }
     return out;
@@ -165,7 +163,7 @@
         const c = new ChessClass(fen);
         const moves = c.moves({ square: squareName, verbose: true });
         return moves.map(m => sq(m.to));
-      } catch (e) {}
+      } catch {}
     }
     if (b) {
       return genB(b, sq(squareName));
@@ -183,7 +181,7 @@
         const m = c.move(token);
         if (!m) throw new Error(`could not read the move “${token}”`);
         out.push(m.from + m.to);
-      } catch (err) {
+      } catch {
         throw new Error(`could not read the move “${token}”`);
       }
     }
@@ -253,4 +251,4 @@
   } else {
     root.SRSEngine = api;
   }
-})(typeof window !== "undefined" ? window : globalThis);
+})(typeof window === "undefined" ? globalThis : window);

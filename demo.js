@@ -9,7 +9,7 @@
   host.classList.add("app");
   const { F, START, sq, nm, genB, compile, parsePGN, toPGN, nextInterval } = window.SRSEngine;
   const NS = "http://www.w3.org/2000/svg", $ = (s, c = host) => c.querySelector(s);
-  const esc = s => String(s).replace(/[&<>\"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const days = n => n === 1 ? "1 day" : n + " days";
 
   /** SAN for every ply of a line, via the same chess.js the page loads. */
@@ -74,7 +74,7 @@
   const MOTION = META.motion || {};
   const QUICK_ADVANCE_MS = MOTION.quietAdvanceMs ?? 560;
   const OPPONENT_REPLY_MS = MOTION.pieceMoveMs ?? 170;
-  const set = { theme: "dark", accent: (ACC.find(a => a.default) || ACC[0] || {}).id, sound: false, coords: true, arrows: true, retention: 88, limit: 20, scheduler: "fsrs", showHistory: false, showArrows: true, showNotes: true, diagnostics: false, soundTheme: "Classic", masterVolume: 1 };
+  const set = { theme: "dark", accent: (ACC.find(a => a.default) || ACC[0])?.id, sound: false, coords: true, arrows: true, retention: 88, limit: 20, scheduler: "fsrs", showHistory: false, showArrows: true, showNotes: true, diagnostics: false, soundTheme: "Classic", masterVolume: 1 };
   let studies = [], uid = 0, sel = 0, practice = false, queue = [], cur = null, an = null, isrc = "file", sa = 0;
 
   const mkStudy = (name, side, lines) => {
@@ -107,20 +107,6 @@
   const tgt = () => studies[sa] || st() || studies[0];
 
   /* ---------- SVG Icons ---------- */
-  const ico = {
-    chev: '<path d="m6 9 6 6 6-6"/>',
-    dots: '<circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/>',
-    check: '<path d="m5 12.5 5 5 9-10"/>',
-    x: '<path d="M6 6l12 12M18 6 6 18"/>'
-  };
-  const I = k => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ico[k]}</svg>`;
-
-  const squares = [...Array(64)].map((_, i) => {
-    const f = i & 7, r = i >> 3;
-    const isDark = (f + r) % 2 === 1;
-    return `<rect x="${f}" y="${r}" width="1" height="1" class="${isDark ? 'sq-d' : 'sq-l'}"/>` +
-      (isDark ? `<rect x="${f}" y="${r}" width="1" height="1" fill="url(#hatch)"/>` : '');
-  }).join("");
 
   /* ---------- Shell HTML: mirror design/reference/index.html exactly ---------- */
   host.innerHTML = `
@@ -243,8 +229,7 @@
      its own children — SrsBoardWithCoordinates draws ranks/files outside on wide layouts and inside
      on narrow ones, and the reference CSS switches which pair is displayed at the same breakpoint. */
   const coordR = bdEl.querySelector(".coords-r"), coordF = bdEl.querySelector(".coords-f"), coordIn = bd.querySelector(".coords-in");
-  let flip = false, pcs = [], selSq = -1, dests = [], drag = null, enabled = false, timer = 0, user = "w", lastMove = null, ac = null, opener = null, kb = -1, kbOn = false;
-  const kc = { c: 4, r: 6 }, PN = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" };
+  let flip = false, pcs = [], selSq = -1, dests = [], drag = null, enabled = false, timer = 0, user = "w", lastMove = null, ac = null, kb = -1;
   const at = i => pcs.find(p => p.i === i), D = i => [flip ? 7 - (i & 7) : i & 7, flip ? 7 - (i >> 3) : i >> 3];
 
   /* Piece rendering, layer for layer as the app draws it: the silhouette three times over — halo,
@@ -310,7 +295,7 @@
 
   const gen = i => {
     const b = Array(64).fill("");
-    pcs.forEach(p => b[p.i] = p.ch);
+    pcs.forEach(p => { b[p.i] = p.ch; });
     return genB(b, i);
   };
 
@@ -405,12 +390,11 @@
   };
 
   bd.addEventListener("focus", () => {
-    kbOn = true;
     if (kb < 0) kb = sq(user === "w" ? "e2" : "e7");
     mark(lastMove, selSq);
     say(desc(kb));
   });
-  bd.addEventListener("blur", () => { kbOn = false; mark(lastMove, selSq); });
+  bd.addEventListener("blur", () => mark(lastMove, selSq));
   bd.addEventListener("keydown", e => {
     const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
     if (arrows[e.key]) {
@@ -519,7 +503,7 @@
       o.frequency.value = 620; g.gain.value = .04;
       o.connect(g); g.connect(ac.destination);
       o.start(); o.stop(ac.currentTime + .05);
-    } catch (e) {}
+    } catch {}
   }
 
   const revealSan = () => {
@@ -671,7 +655,7 @@
   };
 
   const cont = () => {
-    if (cur && cur.wait) next();
+    if (cur?.wait) next();
   };
 
   function next() {
@@ -748,10 +732,10 @@
 
   function closeSheet() {
     $("#scrim").classList.remove("open");
-    $(".sheet.open") && $(".sheet.open").classList.remove("open");
+    $(".sheet.open")?.classList.remove("open");
   }
 
-  const row = (a, label, sub, extra = "") => `<div class="lib-row" data-a="${a}"><span>${label}${sub ? `<small>${sub}</small>` : ""}</span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></div>`;
+  const row = (a, label, sub) => `<div class="lib-row" data-a="${a}"><span>${label}${sub ? `<small>${sub}</small>` : ""}</span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></div>`;
 
   /* The scope list: the everywhere row, then one row per repertoire, and Import PGN at the foot
      (review_scope_drawer.dart `_ScopeRow`). The shape is the reference's: name over a sub-line of
@@ -888,8 +872,6 @@
     }
   }
 
-  const textIn = (id, val, ph) => `<input id="${id}" value="${esc(val)}" aria-label="${ph}" autofocus>`;
-
   /* ---------- Action Handler Registry ---------- */
   const A = {
     close: closeSheet, picker, more, about, import: importModal, doimport: doImport, analyze, skip, cont,
@@ -990,7 +972,7 @@
       return;
     }
     if (e.key.toLowerCase() === "s") skip();
-    else if (e.key === " " && (cur && cur.wait || host.contains(document.activeElement))) {
+    else if (e.key === " " && (cur?.wait || host.contains(document.activeElement))) {
       // review_screen.dart wraps the whole screen in CallbackShortcuts, so Continue wins even when a
       // button holds focus. Swallowing the key is what stops Space from also counting as a click on
       // that button: a focused <button> activates on Space, which re-opened the scope drawer
@@ -999,7 +981,7 @@
       // is waiting" rather than to `cur` alone: with nothing focused the page still scrolls, which a
       // Flutter screen never has to care about.
       e.preventDefault();
-      if (cur && cur.wait) cont();
+      if (cur?.wait) cont();
     }
   });
 

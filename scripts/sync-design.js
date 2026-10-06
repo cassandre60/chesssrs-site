@@ -93,7 +93,7 @@ log('[sync-design] accents');
 const metaSrc = 'design/tokens/tokens.json';
 const tokens = JSON.parse(read(metaSrc));
 const meta = {
-  version: (read('pubspec.yaml').match(/^version:\s*([0-9.]+)/m) || [, '0.0.0'])[1],
+  version: (read('pubspec.yaml').match(/^version:\s*([0-9.]+)/m) || [undefined, '0.0.0'])[1],
   fonts: { ui: tokens.font.ui.family, read: tokens.font.read.family },
   motion: tokens.motion || null,
   accents: tokens.color.accents,

@@ -1,4 +1,3 @@
-'use strict';
 /* Pixel parity between the demo and the app's own golden captures.
  *
  * WHAT THIS IS FOR

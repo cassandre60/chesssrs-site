@@ -13,6 +13,23 @@ const {
 
 console.log('Running FSRS Math and Scheduling unit tests...');
 
+// 0. The whole exported FSRS surface exists. This list used to be destructured and never read,
+// which asserted nothing: destructuring a missing property yields `undefined` and no test failed, so
+// deleting an export from engine.js would have gone unnoticed.
+for (const [name, exported] of Object.entries({
+  fsrsRetrievability,
+  fsrsIntervalForTarget,
+  fsrsInitialDifficulty,
+  fsrsNextDifficulty,
+  fsrsInitialStability,
+  fsrsNextStabilitySuccess,
+  fsrsNextStabilityLapse,
+  DEFAULT_FSRS_PARAMS,
+})) {
+  assert.ok(exported, `engine.js must export ${name}`);
+}
+assert.strictEqual(typeof ChessFsrsCard, 'function', 'engine.js must export ChessFsrsCard');
+
 // 1. retrievability at t=0 and t=S
 assert.strictEqual(fsrsRetrievability(0.0, 10.0), 1.0);
 const rAtS = fsrsRetrievability(10.0, 10.0);

@@ -1,4 +1,3 @@
-'use strict';
 /* A minimal PNG reader, and nothing else.
  *
  * The pixel-parity gate has to read the app's golden captures, and no image library is installed.

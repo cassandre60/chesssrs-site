@@ -36,6 +36,29 @@ python3 -m http.server 4321
 ```
 Open `http://localhost:4321` in your browser.
 
+### Linting
+
+Biome, wired into `npm test` and therefore into CI:
+
+```bash
+npm run lint        # check only
+npm run lint:fix    # apply safe fixes
+```
+
+Rules are pinned explicitly in `biome.json` rather than inherited from `preset: recommended`.
+That is deliberate: with the preset, `noUndeclaredVariables` was **not firing** — `preset: none`
+and an explicit `"noUndeclaredVariables": "error"` both produced it. A gate that silently does
+nothing is worse than no gate, so the rule that matters most is named outright.
+
+Two things to know about its reach:
+
+- It cannot see that `process.homedir` is not a function. Biome resolves `process` as a Node
+  global and stops there; a bad *property* on a valid global is invisible to a linter. Catching that
+  needs a typechecker or a test, not lint.
+- **The formatter is off.** `biome format --write` rewrote ~1,900 lines, expanding `demo.js`'s
+  deliberate one-line-per-statement style into multi-line blocks and burying the real fixes in noise.
+  `npm run format` still exists if you want it as a one-off; it is simply not a gate.
+
 ### Running unit tests
 Runs simulated DOM tests and FSRS math tests:
 ```bash

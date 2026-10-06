@@ -6,7 +6,7 @@ test('page loads and displays title', async ({ page }) => {
 });
 
 test('matches ChessFSRS scheduling mathematics verified against app repo', async () => {
-  const { fsrsRetrievability, fsrsIntervalForTarget, ChessFsrsCard } = require('../../engine.js');
+  const { fsrsRetrievability, ChessFsrsCard } = require('../../engine.js');
   expect(fsrsRetrievability(0.0, 10.0)).toBe(1.0);
   expect(Math.abs(fsrsRetrievability(10.0, 10.0) - 0.9)).toBeLessThan(0.001);
 

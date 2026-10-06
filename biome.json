@@ -1,0 +1,103 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "vcs": {
+    "enabled": false,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**/*.js",
+      "!chess.bundle.js",
+      "!pieces.js"
+    ]
+  },
+  "formatter": {
+    "enabled": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "all",
+      "semicolons": "always"
+    },
+    "globals": [
+      "Blob",
+      "CHESSSRS_META",
+      "Chess",
+      "CustomEvent",
+      "Event",
+      "FIGURINES",
+      "FileReader",
+      "HTMLElement",
+      "I",
+      "Image",
+      "KeyboardEvent",
+      "Node",
+      "PIECE_DEFS",
+      "PIECE_VIEWBOX",
+      "PointerEvent",
+      "ResizeObserver",
+      "SRSEngine",
+      "URL",
+      "VisualViewport",
+      "clearTimeout",
+      "console",
+      "document",
+      "fetch",
+      "localStorage",
+      "matchMedia",
+      "navigator",
+      "performance",
+      "requestAnimationFrame",
+      "setTimeout",
+      "window"
+    ]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "noUndeclaredVariables": "error",
+        "noUnusedVariables": "error",
+        "noUnusedFunctionParameters": "error",
+        "noUnusedImports": "error",
+        "noSwitchDeclarations": "error",
+        "noUnreachable": "error",
+        "noConstantCondition": "error",
+        "noSelfAssign": "error"
+      },
+      "suspicious": {
+        "noDoubleEquals": "off",
+        "noAssignInExpressions": "error",
+        "noSparseArray": "error",
+        "noRedundantUseStrict": "error",
+        "useIterableCallbackReturn": "error",
+        "noPrototypeBuiltins": "error"
+      },
+      "complexity": {
+        "noCommaOperator": "off",
+        "useArrowFunction": "off",
+        "useOptionalChain": "error"
+      },
+      "style": {
+        "useTemplate": "off",
+        "useNodejsImportProtocol": "off",
+        "useExponentiationOperator": "off",
+        "noParameterAssign": "off"
+      }
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "off"
+      }
+    }
+  }
+}

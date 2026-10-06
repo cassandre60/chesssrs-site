@@ -1,4 +1,3 @@
-'use strict';
 /* Side-by-side reviewer for the app's golden screenshots.
  *
  * WHY THIS EXISTS
@@ -27,7 +26,6 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const ROOT = path.resolve(__dirname, '..');
 const APP_DIR = process.env.CHESSSRS_APP_DIR || path.join(os.homedir(), 'Desktop/Github/Chess Repertoire SRS');
 const SHOTS_REL = 'docs/screenshots';
 const OUT = path.join(os.homedir(), '.cache/chesssrs-screenshot-review');

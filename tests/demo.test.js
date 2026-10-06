@@ -7,7 +7,7 @@
 const timers=[];let fails=0;const ALL=[];
 const ok=(c,m)=>{console.log((c?"PASS ":"FAIL ")+m);if(!c)fails++};
 function mk(){const o={style:{setProperty(){}},_h:{},_s:{},children:[],hidden:false,innerHTML:"",value:"",dataset:{},
- classList:{toggle(c){this[c]=!this[c]},add(c){this[c]=true},remove(c){delete this[c]},contains(c){return !!this[c]}},addEventListener(t,f){(o._h[t]=o._h[t]||[]).push(f)},append(c){o.children.push(c)},appendChild(c){o.children.push(c)},remove(){},
+ classList:{toggle(c){this[c]=!this[c]},add(c){this[c]=true},remove(c){delete this[c]},contains(c){return !!this[c]}},addEventListener(t,f){let a=o._h[t];if(!a){a=[];o._h[t]=a;}a.push(f)},append(c){o.children.push(c)},appendChild(c){o.children.push(c)},remove(){},
  setPointerCapture(){},setAttribute(){},getAttribute(){return null},focus(){},getBoundingClientRect:()=>({left:0,top:0,width:560,height:560}),querySelectorAll:()=>[],
  querySelector(s){
   if(/^\.[\w-]+(\.[\w-]+)+$/.test(s)){const parts=s.split(".").slice(1);for(let i=ALL.length-1;i>=0;i--)if(parts.every(p=>ALL[i].classList[p]))return ALL[i];return undefined}
@@ -21,7 +21,7 @@ global.Chess=require("chess.js").Chess;
 global.SRSEngine=require("../engine.js");
 require("../assets/figurines.js");
 global.PIECE_VIEWBOX="5 2 90 90";global.PIECE_DEFS="";
-global.document={getElementById:()=>host,createElementNS:()=>mk(),createElement:()=>mk(),documentElement:htmlRoot,activeElement:body,body,createRange:()=>({selectNodeContents(){}}),addEventListener(t,f){(global._docH=global._docH||{})[t]=f},querySelectorAll:()=>[],querySelector(s){return host.querySelector(s)}};
+global.document={getElementById:()=>host,createElementNS:()=>mk(),createElement:()=>mk(),documentElement:htmlRoot,activeElement:body,body,createRange:()=>({selectNodeContents(){}}),addEventListener(t,f){let h=global._docH;if(!h){h={};global._docH=h;}h[t]=f},querySelectorAll:()=>[],querySelector(s){return host.querySelector(s)}};
 global.getSelection=()=>({removeAllRanges(){},addRange(){}});global.navigator={clipboard:{writeText:()=>Promise.resolve()}};
 const keys=[];global.addEventListener=(t,f)=>t==="keydown"&&keys.push(f);
 global.setTimeout=f=>{timers.push(f);return timers.length};global.clearTimeout=()=>{};
@@ -32,7 +32,7 @@ const q=s=>host.querySelector(s),bd=q("#bd"),F="abcdefgh";
 // class the shell markup gives them. The shim does not parse innerHTML, so seed them here.
 q("#sheetScope").classList.add("sheet");q("#sheetLib").classList.add("sheet");
 const click=(a,d={})=>host._h.click[0]({target:{closest:()=>({dataset:{a,...d}})}});
-const key=(k,x={})=>keys.forEach(f=>f({key:k,target:body,preventDefault(){},...x}));
+const key=(k,x={})=>keys.forEach(f=>{f({key:k,target:body,preventDefault(){},...x});});
 const xy=(s,flip)=>{let c=F.indexOf(s[0]),r=8-s[1];if(flip){c=7-c;r=7-r}return{clientX:(c+.5)*560/8,clientY:(r+.5)*560/8,pointerId:1}};
 const mv=(m,flip)=>{for(const s of [m.slice(0,2),m.slice(2,4)]){bd._h.pointerdown[0](xy(s,flip));bd._h.pointerup[0](xy(s,flip))}flush()};
 const E=SRSEngine,U=s=>E.compile(s);
