@@ -99,6 +99,7 @@ function controlKind(src, from, to) {
   if (/SrsSegmented</.test(window)) return 'segmented';
   if (/SrsSwitch\(/.test(window)) return 'switch';
   if (/SrsAccentDots\(/.test(window)) return 'accent';
+  if (/Slider\(/.test(window)) return 'slider';
   if (/control:\s*(const\s+)?Text\(/.test(window)) return 'text';
   return 'nav';
 }
@@ -180,11 +181,26 @@ const need = (re, what, from = drawerSrc) => {
   if (!m || typeof m[1] !== 'string') throw new Error(`${DRAWER_FILE}: could not find ${what}`);
   return m[1];
 };
+/* The drawer has no "everywhere" row any more: the top-level scopes are the two side buttons
+ * (`White repertoire` / `Black repertoire`), then Openings and Studies groups, then Import PGN.
+ * `ReviewScope.all()` still exists and the top bar still calls it `All studies`, but the drawer
+ * itself no longer lists it — so the manifest records what the drawer shows, not the scope model. */
+const scopeGroups = [];
+for (const m of drawerSrc.matchAll(/_buildGroupHeader\(\s*ref,\s*c,\s*group:\s*'([^']+)',\s*title:\s*'([^']+)'/g)) {
+  scopeGroups.push({ group: m[1], title: m[2] });
+}
+if (scopeGroups.length !== 3) throw new Error(`${DRAWER_FILE}: expected 3 scope groups, found ${scopeGroups.length}`);
 const scope = {
-  everywhere: need(/name:\s*'(All studies)'/, 'the everywhere row label'),
+  searchHint: need(/hintText:\s*'([^']+)'/, 'the scope search hint'),
+  groups: scopeGroups.map((g) => g.title),
+  sideButtons: [
+    need(/_whiteLabel\s*=\s*'([^']+)'/, 'the White repertoire button label'),
+    need(/_blackLabel\s*=\s*'([^']+)'/, 'the Black repertoire button label'),
+  ],
   // `isPaused ? 'Paused' : '${progress.totalDecisions} positions'` — both branches of one row.
   pausedSub: need(/isPaused\s*\?\s*'([^']+)'\s*:/, 'the paused row sub-label'),
   positionsSub: need(/isPaused\s*\?\s*'[^']+'\s*:\s*'([^']+)'/, 'the position-count row sub-label'),
+  importLabel: need(/label:\s*'(Import PGN)'/, 'the scope drawer import label'),
 };
 
 log('[sync-strings] review screen idle copy');

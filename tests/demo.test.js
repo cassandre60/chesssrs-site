@@ -107,7 +107,7 @@ ok(pausedN>0,"paused row keeps its due count ("+pausedN+")");click("sacts",{i:"2
 // settings
 // Library sheet (from more) then Settings row inside it
 // The section headers go through esc(), so the ampersand is the escaped entity in the markup.
-click("more");click("settings");ok(q(".view-settings").hidden===false&&q("#setTitle").textContent==="Settings"&&/Review &amp; Spaced Repetition/.test(q("#settingsBody").innerHTML)&&/Appearance &amp; Theme/.test(q("#settingsBody").innerHTML),"settings sheet");
+click("more");click("settings");ok(q(".view-settings").hidden===false&&q("#setTitle").textContent==="Settings"&&/Review &amp; Spaced Repetition/.test(q("#settingsBody").innerHTML)&&/Appearance/.test(q("#settingsBody").innerHTML),"settings sheet");
 // SrsSettingsScreen rebuilds from its preferences provider, so a tap re-renders the row group
 // rather than flipping one attribute. Assert on the re-rendered markup, not the clicked node.
 click("retention",{v:"0.85"});ok(/data-v="0\.85" aria-pressed="true"/.test(q("#settingsBody").innerHTML)&&/data-v="0\.88" aria-pressed="false"/.test(q("#settingsBody").innerHTML),"retention updated");

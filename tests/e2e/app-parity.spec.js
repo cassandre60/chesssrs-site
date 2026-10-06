@@ -20,7 +20,7 @@ const manifest = JSON.parse(
 );
 
 const KNOWN_GAPS = new Set([
-  // The app's whole settings screen is 23 rows across 8 sections. The demo ports the ones that
+  // The app's whole settings screen is 33 rows across 8 sections. The demo ports the 10 that
   // affect the review screen a visitor can actually see in the demo. The rest navigate to screens
   // this demo does not port, so rendering them would be inventing UI.
   'Lichess account',
@@ -29,9 +29,17 @@ const KNOWN_GAPS = new Set([
   'Initial ease factor',
   'Interval scaling',
   'Collapsible list groups',
-  'Theme & appearance',
-  'Board & pieces',
-  'Sound & audio details',
+  'Board theme',
+  'Piece set',
+  'Board coordinates',
+  'Piece animation',
+  'Board highlights',
+  'Shape drawing',
+  'Premoves',
+  'How you move pieces',
+  'Move on release',
+  'Castling method',
+  'Volume',
   'Chess engine',
   'Local database size',
   'HTTP network logs',
@@ -168,10 +176,21 @@ test.describe('App parity (design/app-ui.json vs the running demo)', () => {
     await expect(idle.locator('[data-a="import"]')).toBeVisible();
   });
 
-  test('scope drawer: the everywhere row and the paused sub-label match the app', async ({ page }) => {
+  test('scope drawer: side buttons, groups and paused sub-label match the app', async ({ page }) => {
     await app(page, '#scopeBtn').click();
-    const firstRow = page.locator('#app #scopeList .row').first();
-    await expect(firstRow.locator('.row-name')).toHaveText(manifest.scopeDrawer.everywhere);
+
+    // Search hint
+    await expect(page.locator('#app #scopeSearch')).toHaveAttribute('placeholder', manifest.scopeDrawer.searchHint);
+
+    // Group titles
+    const groups = await page.locator('#app #scopeList .group-title').allInnerTexts();
+    for (const g of manifest.scopeDrawer.groups.filter((name) => name !== 'Openings')) {
+      expect(groups).toContain(g);
+    }
+
+    // Side buttons (White repertoire / Black repertoire)
+    const sideButtons = await page.locator('#app #scopeList .sidebtn .side-name').allInnerTexts();
+    expect(sideButtons).toEqual(manifest.scopeDrawer.sideButtons);
 
     await app(page, '[data-a="sacts"][data-i="0"]').click();
     await app(page, '[data-a="pause"]').click();

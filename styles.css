@@ -103,6 +103,16 @@ a{color:inherit;text-underline-offset:.2em}
 .set-col .t-san .ply:hover{background:var(--hair2);color:var(--ink)}
 .set-col .t-san .ply.on{background:var(--accent-soft);color:var(--accent)}
 
+/* Scope drawer Repertoires buttons (_SideScopeButton in review_scope_drawer.dart) */
+.sidebtns{display:flex;gap:8px;padding:4px 18px 8px}
+.sidebtn{flex:1;display:flex;flex-direction:column;align-items:flex-start;padding:10px 12px;background:var(--surface);border:1px solid var(--hair2);border-radius:10px;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left;transition:background .15s,border-color .15s}
+.sidebtn:hover{background:var(--hair2)}
+.sidebtn.on{background:var(--accent-soft);border:1.5px solid var(--accent);color:var(--accent)}
+.sidebtn .side-name{font-size:14.5px;font-weight:500;line-height:1.15;color:inherit}
+.sidebtn .side-due{font-size:19px;font-weight:600;margin:4px 0 8px;color:var(--ink2)}
+.sidebtn.on .side-due{color:var(--accent)}
+.sidebtn .mem{width:100%;height:5px}
+
 /* The app's tokens are scoped to `.app`, but the reference stylesheet paints `.frame` — which is
    its parent, and so resolves `--bg` against the *marketing* page's palette. Without this the demo
    is a light-themed app sitting on the page's dark background, and every text colour is measured

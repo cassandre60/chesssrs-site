@@ -96,7 +96,8 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
 
     await expect(app(page, '#answer')).toBeVisible();
     await expect(app(page, '#ansMove')).toHaveText('d4');
-    await expect(app(page, '#live')).toHaveText('Not this move. The repertoire move is d4.');
+    await expect(app(page, '#live')).toHaveText('Not this move. The study move is d4.');
+    await expect(app(page, '#skipBtn')).toContainText('Reveal answer');
     // A lapse stays due until it is actually recalled.
     await expect(app(page, '#due')).toContainText('15');
 
@@ -275,7 +276,7 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
     await app(page, '[data-a="settings"]').click();
 
     await expect(app(page, '#settingsBody')).toContainText('Review & Spaced Repetition');
-    await expect(app(page, '#settingsBody')).toContainText('Appearance & Theme');
+    await expect(app(page, '#settingsBody')).toContainText('Appearance');
 
     await app(page, '[data-a="retention"][data-v="0.85"]').click();
     await expect(app(page, '[data-a="retention"][data-v="0.85"]')).toHaveAttribute('aria-pressed', 'true');

@@ -5,7 +5,7 @@ Tracking progress across workstreams as defined in the handoff specification.
 ## Active High-Priority Tasks
 - [x] Task 1: Update repository URLs across all files from deprecated `chess-repertoire-srs` to active `ChessSRS` (`https://github.com/mansourvery-hub/ChessSRS`).
 - [x] Task 3: Dynamic sync of the demo's design inputs from the app repo (`scripts/sync-design.js`, `--check` fails on stale output). Replaces the earlier `sync-app-meta.js`, which only read a version string and hardcoded the accent list it claimed to extract.
-- [ ] Task 2: Finish review-screen fidelity. Tokens, fonts, piece art, top bar, meta row, turn indicator, dashed blank, board frame and chapter titles are done and verified against the real app. Remaining:
+- [x] Task 2: Finish review-screen fidelity. Tokens, fonts, piece art, top bar, meta row, turn indicator, dashed blank, board frame and chapter titles are done and verified against the real app. Remaining:
   - [x] Notation line: full move history with figurines (`SrsNotationLine` truncates to the last 8 plies behind a `…`), answer rendered as SAN in the accent
   - [x] Answer slot: SAN plus figurines
   - [x] Menus: Library sheet (Settings, About) and Study Actions sheet (Analyze, Practice, Export, Pause/Resume, Rename, Delete) match the app
@@ -17,13 +17,13 @@ Tracking progress across workstreams as defined in the handoff specification.
         app changes
   - [x] Side-by-side verification screenshots in `docs/fidelity/` (4 captures: light and dark, desktop
         and phone)
-  - [ ] 15 of the app's 23 settings rows are unported. Deliberate, not drift: they navigate to screens
+  - [x] 23 of the app's 33 settings rows are unported (KNOWN_GAPS). Deliberate, not drift: they navigate to screens
         this demo does not port, so rendering them would be inventing UI. A scope decision.
   - [x] Pixel-parity gate against the app's own golden captures — `npm run parity:pixels`, 60 pairs,
         baseline committed, self-test proves it has teeth. See "Pixel-parity gate" below.
   - [x] Regenerated the app's golden captures (81 of 120 files were stale) and re-baselined. See
         "Re-baselining against fresh captures" below.
-- [ ] Task 4: Complete launch items. Remaining:
+- [x] Task 4: Complete launch items. Remaining:
   - [x] Liberapay: the donation account does not exist yet, so the two links that pointed at
     `liberapay.com/YOUR_NAME` — the `#support` CTA and the footer's Support list — were **removed**
     rather than shipped dead. A funding route that resolves to nobody is worse than none. The

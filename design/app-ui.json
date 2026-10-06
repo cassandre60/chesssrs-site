@@ -77,7 +77,7 @@
       ]
     },
     {
-      "header": "Appearance & Theme",
+      "header": "Appearance",
       "rows": [
         {
           "label": "Theme",
@@ -90,24 +90,64 @@
           "conditional": false
         },
         {
-          "label": "Theme & appearance",
+          "label": "Board theme",
           "kind": "nav",
+          "conditional": false
+        },
+        {
+          "label": "Piece set",
+          "kind": "nav",
+          "conditional": false
+        },
+        {
+          "label": "Board coordinates",
+          "kind": "switch",
+          "conditional": false
+        },
+        {
+          "label": "Piece animation",
+          "kind": "switch",
+          "conditional": false
+        },
+        {
+          "label": "Board highlights",
+          "kind": "switch",
+          "conditional": false
+        },
+        {
+          "label": "Shape drawing",
+          "kind": "switch",
           "conditional": false
         }
       ]
     },
     {
-      "header": "Board & Pieces",
+      "header": "Game behaviour",
       "rows": [
         {
-          "label": "Board & pieces",
-          "kind": "nav",
+          "label": "Premoves",
+          "kind": "switch",
+          "conditional": false
+        },
+        {
+          "label": "How you move pieces",
+          "kind": "segmented",
+          "conditional": false
+        },
+        {
+          "label": "Move on release",
+          "kind": "switch",
+          "conditional": false
+        },
+        {
+          "label": "Castling method",
+          "kind": "segmented",
           "conditional": false
         }
       ]
     },
     {
-      "header": "Sound & Audio",
+      "header": "Sound",
       "rows": [
         {
           "label": "Sound",
@@ -115,8 +155,8 @@
           "conditional": false
         },
         {
-          "label": "Sound & audio details",
-          "kind": "nav",
+          "label": "Volume",
+          "kind": "slider",
           "conditional": false
         }
       ]
@@ -137,17 +177,17 @@
         {
           "label": "Local database size",
           "kind": "text",
-          "conditional": false
+          "conditional": true
         },
         {
           "label": "HTTP network logs",
           "kind": "nav",
-          "conditional": false
+          "conditional": true
         },
         {
           "label": "App diagnostics logs",
           "kind": "nav",
-          "conditional": false
+          "conditional": true
         }
       ]
     },
@@ -206,9 +246,19 @@
     ]
   },
   "scopeDrawer": {
-    "everywhere": "All studies",
+    "searchHint": "Search",
+    "groups": [
+      "Repertoires",
+      "Openings",
+      "Studies"
+    ],
+    "sideButtons": [
+      "White repertoire",
+      "Black repertoire"
+    ],
     "pausedSub": "Paused",
-    "positionsSub": "${progress.totalDecisions} positions"
+    "positionsSub": "${progress.totalDecisions} positions",
+    "importLabel": "Import PGN"
   },
   "idle": {
     "nothingDue": "Nothing due.",

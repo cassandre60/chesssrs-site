@@ -92,16 +92,20 @@
   };
 
   studies = PRESETS.map(p => mkStudy(p.name, p.side, p.lines));
-  /* `sel` is the scope: -1 is the everywhere scope, which is where the app starts and what its
-     top bar calls "All repertoires"; >= 0 is one repertoire. `scope()` is the list a session
-     draws from, so the review loop never has to care which scope is active. */
-  const st = () => (sel >= 0 ? studies[sel] : null);
-  const scope = () => (sel >= 0 ? [studies[sel]] : studies);
+  /* `sel` is the scope. The app's drawer offers no "everywhere" row: the top-level scopes are the
+     two side buttons (`White repertoire` / `Black repertoire`), then one row per study. `sel` is -1
+     for the everywhere scope (which the app starts in and the top bar still calls `All studies`),
+     a side string for a repertoire scope, or an index for one study. `scope()` is the list a
+     session draws from, so the review loop never has to care which scope is active. */
+  const st = () => (typeof sel === "number" && sel >= 0 ? studies[sel] : null);
+  const scope = () => (typeof sel === "string" ? studies.filter(s => s.side === sel) : sel >= 0 ? [studies[sel]] : studies);
   const dueN = s => s ? s.lines.reduce((n, l) => n + l.cards.filter(c => c.due).length, 0) : 0;
   const scopeDue = () => scope().reduce((n, s) => n + (s.active ? dueN(s) : 0), 0);
-  /* The everywhere scope is `All studies` in both places the app shows it: the top bar
-     (`_computeScopeTitle`) and the drawer's first row (`review_scope_drawer.dart`). */
+  /* The everywhere scope is `All studies` in the top bar (`_computeScopeTitle`), and a side scope
+     names the side (`ReviewScopeDrawer.sideLabel`, one string shared by the drawer button and the
+     top bar so the two cannot disagree). */
   const SCOPE_ALL = "All studies";
+  const SIDE_LABEL = { w: "White repertoire", b: "Black repertoire" };
   /* The study a Study Actions sheet is acting on: the one it was opened for, falling back to
      the current scope. Actions in the app hang off a repertoire row, not off the session. */
   const tgt = () => studies[sa] || st() || studies[0];
@@ -437,8 +441,10 @@
   function head() {
     const s = st();
     const live = scope().filter(x => x.active);
-    $("#scopeName").textContent = !s ? (studies.length ? SCOPE_ALL : "No repertoire") : s.name;
-    const dueCount = !studies.length ? 0 : !live.length ? 0 : practice ? 0 : (sel >= 0 ? dueN(s) : scopeDue());
+    /* _computeScopeTitle: an opening names itself (the demo has no openings), a side names the
+       side, a study names the study, and the everywhere scope is `All studies`. */
+    $("#scopeName").textContent = !studies.length ? "No repertoire" : typeof sel === "string" ? SIDE_LABEL[sel] : s ? s.name : SCOPE_ALL;
+    const dueCount = !studies.length ? 0 : !live.length ? 0 : practice ? 0 : (sel === -1 ? scopeDue() : live.reduce((n, x) => n + dueN(x), 0));
     $("#due").innerHTML = practice ? `<b>Practice</b>` : `<b>${dueCount}</b> due`;
   }
 
@@ -474,6 +480,8 @@
     $("#answer").hidden = true;
     $("#contBtn").hidden = true;
     $("#skipBtn").hidden = false;
+    // A previous lapse may have renamed it; every new card starts by asking.
+    $("#skipBtn").innerHTML = `Skip <kbd>S</kbd>`;
     arrow();
     head();
 
@@ -637,9 +645,10 @@
         $("#noteText").textContent = cur.line.note;
         $("#note").hidden = false;
       }
+      lapseUI();
       place(at(f), f);
       // The app's wording, verbatim: review_screen.dart's _verdictAnnouncement.
-      say(`Not this move. The repertoire move is ${revealSan()}.`);
+      say(`Not this move. The study move is ${revealSan()}.`);
     }
   }
 
@@ -651,7 +660,43 @@
         $("#noteText").textContent = cur.line.note;
         $("#note").hidden = false;
       }
+      lapseUI();
     }
+  };
+
+  /* Once recall has failed, "Skip" mislabels what is left: the app swaps the action to
+     `Reveal answer` (same S shortcut), which plays the study move on the learner's behalf through
+     the normal retry path. The lapse already stands, so this changes the flow, not the grade. */
+  const lapseUI = () => {
+    $("#skipBtn").innerHTML = `Reveal answer <kbd>S</kbd>`;
+  };
+
+  const revealAnswer = () => {
+    if (!(enabled && cur?.missed && !cur?.wait)) return;
+    const want = cur.line.m[cur.c.k];
+    const f = sq(want.slice(0, 2)), t = sq(want.slice(2, 4));
+    move(f, t);
+    lastMove = [f, t];
+    mark(lastMove, -1);
+    ping();
+    const sanMove = cur.line.san[cur.c.k] || want.slice(2, 4);
+    $("#line").innerHTML = notationHTML(cur.line.san.slice(0, cur.c.k), sanMove);
+    cur.wait = true;
+    $("#skipBtn").hidden = true;
+    $("#contBtn").hidden = false;
+    if (cur.line.note) {
+      $("#noteText").textContent = cur.line.note;
+      $("#note").hidden = false;
+    }
+    say(`Correct. ${sanMove}.`);
+  };
+
+  /* S follows the visible action: before any lapse it skips, in a lapse it reveals, and once the
+     card is awaiting Continue it does nothing. */
+  const pressS = () => {
+    if (!(enabled && cur) || cur.wait) return;
+    if (cur.missed) revealAnswer();
+    else skip();
   };
 
   const cont = () => {
@@ -737,11 +782,12 @@
 
   const row = (a, label, sub) => `<div class="lib-row" data-a="${a}"><span>${label}${sub ? `<small>${sub}</small>` : ""}</span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></div>`;
 
-  /* The scope list: the everywhere row, then one row per repertoire, and Import PGN at the foot
-     (review_scope_drawer.dart `_ScopeRow`). The shape is the reference's: name over a sub-line of
-     memory bar plus a figure, with the due numeral to the right.
+  /* The scope list: the Repertoires side buttons, one row per study under Studies, and
+     Import PGN at the foot (review_scope_drawer.dart `_SideScopeButton` / `_ScopeRow`). The shape
+     of a study row is the reference's: name over a sub-line of memory bar plus a figure, with the
+     due numeral to the right.
 
-     A suspended repertoire keeps its numeral — pausing removes it from the review pool, it does not
+     A suspended study keeps its numeral — pausing removes it from the review pool, it does not
      reset its schedule — and the app swaps the sub-line's figure for `Paused` and recolours the name
      and numeral to ink3 (`.row.paused`) rather than hiding either. */
   const memBar = s => {
@@ -759,13 +805,17 @@
 
   const picker = () => {
     const options = i => `<button class="icon-btn" data-a="sacts" data-i="${i}" aria-label="Study options"><svg viewBox="0 0 20 20"><circle cx="4" cy="10" r="1.7"/><circle cx="10" cy="10" r="1.7"/><circle cx="16" cy="10" r="1.7"/></svg></button>`;
-    // The everywhere row counts active studies only (`_getActiveDecisions` in review_service.dart);
-    // a per-study row keeps its own numeral whether or not it is suspended.
-    const active = studies.filter(s => s.active);
-    const everywhere = { lines: active.flatMap(s => s.lines) };
-    const everywhereDue = active.reduce((n, s) => n + dueN(s), 0);
-    $("#scopeList").innerHTML = `<div class="list"><div class="lib-group">` +
-      scopeRow(`data-a="scope" data-all="1" aria-current="${sel < 0}"`, SCOPE_ALL, everywhereDue, everywhere, false) +
+    // Side scopes count active studies of that side only, like the app's sideProgress.
+    const sideDue = side => studies.filter(s => s.side === side && s.active).reduce((n, s) => n + dueN(s), 0);
+    const sideBtn = side => {
+      const n = sideDue(side);
+      const agg = { lines: studies.filter(s => s.side === side).flatMap(s => s.lines) };
+      return `<button class="sidebtn${sel === side ? " on" : ""}" data-a="side" data-v="${side}" aria-current="${sel === side}" aria-label="${SIDE_LABEL[side]}, ${n} due">` +
+        `<span class="side-name">${SIDE_LABEL[side]}</span><span class="side-due">${n}</span>${memBar(agg)}</button>`;
+    };
+    $("#scopeList").innerHTML = `<div class="list">` +
+      `<div class="lib-group"><div class="group-title">Repertoires</div><div class="sidebtns">${sideBtn("w")}${sideBtn("b")}</div></div>` +
+      `<div class="lib-group"><div class="group-title">Studies</div>` +
       studies.map((s, i) => scopeRow(`data-a="pick" data-i="${i}" aria-current="${sel === i}"`, s.name, dueN(s), s, !s.active, options(i))).join("") +
       `</div><div class="lib-group">${row("import", "Import PGN", "From a file, pasted text or a Lichess study")}</div></div>`;
     openSheet("sheetScope");
@@ -832,11 +882,11 @@
         sr("Show notes after a move", "Comments from your study appear once you have answered.", sw("showNotes", "Show notes after a move")),
         sr("Review Diagnostics HUD", "Show real-time FSRS retrievability, stability, and difficulty HUD in review.", sw("diagnostics", "Review Diagnostics HUD")),
       ]),
-      section("Appearance & Theme", [
+      section("Appearance", [
         sr("Theme", "", seg({false:"Light",true:"Dark"}, set.theme === "dark", "theme")),
         sr("Accent", "Colour of the correct move arrow and selection.", accentDots()),
       ]),
-      section("Sound & Audio", [sr("Sound", "", sw("sound", "Sound"))]),
+      section("Sound", [sr("Sound", "", sw("sound", "Sound"))]),
     ].join("");
     view("settings");
   };
@@ -874,8 +924,9 @@
 
   /* ---------- Action Handler Registry ---------- */
   const A = {
-    close: closeSheet, picker, more, about, import: importModal, doimport: doImport, analyze, skip, cont,
+    close: closeSheet, picker, more, about, import: importModal, doimport: doImport, analyze, skip: pressS, cont,
     pick: el => { sel = +el.dataset.i; practice = false; closeSheet(); startSession(); },
+    side: el => { sel = el.dataset.v; practice = false; closeSheet(); startSession(); },
     scope: () => { sel = -1; practice = false; closeSheet(); startSession(); },
     sacts: el => studyActions(+el.dataset.i),
     practice: () => { practice = !practice; closeSheet(); startSession(); },
@@ -896,7 +947,7 @@
     rename: () => { closeSheet(); $("#setTitle").textContent = "Rename"; view("settings"); $("#settingsBody").innerHTML = `<div class="set-group"><input id="r-in" value="${esc(tgt().name)}" aria-label="Repertoire name" autofocus style="display:block;width:100%;margin-bottom:12px;background:transparent;border:1px solid var(--hair);border-radius:12px;padding:12px;color:var(--ink);font:14px var(--font-ui)"><div class="idle-actions"><button class="pill" data-a="dorename">Rename</button><button class="link" data-a="aback">Cancel</button></div></div>`; },
     dorename: () => { const v = $("#r-in").value.trim(); if (v) tgt().name = v; view("rev"); head(); },
     delete: () => { closeSheet(); $("#setTitle").textContent = "Delete"; view("settings"); $("#settingsBody").innerHTML = `<div class="set-group"><p class="pad">Delete ${esc(tgt().name)}? Its lines and review schedule are removed.</p><div class="idle-actions"><button class="link" data-a="aback">Cancel</button><button class="pill danger" data-a="dodelete">Delete</button></div></div>`; },
-    dodelete: () => { const i = sa; studies.splice(i, 1); sel = Math.min(sel, studies.length - 1); practice = false; view("rev"); startSession(); },
+    dodelete: () => { const i = sa; studies.splice(i, 1); if (typeof sel === "number") sel = Math.min(sel, studies.length - 1); practice = false; view("rev"); startSession(); },
     /* Switching source rebuilds the form from state, as the app's dialog does — but the fields the
        user has already typed into are carried across, because losing a pasted PGN to a mis-tap
        on the tab would be the demo inventing a bug the app does not have. */
@@ -971,7 +1022,7 @@
       if (e.key === "ArrowRight") showPly(an.i + 1);
       return;
     }
-    if (e.key.toLowerCase() === "s") skip();
+    if (e.key.toLowerCase() === "s") pressS();
     else if (e.key === " " && (cur?.wait || host.contains(document.activeElement))) {
       // review_screen.dart wraps the whole screen in CallbackShortcuts, so Continue wins even when a
       // button holds focus. Swallowing the key is what stops Space from also counting as a click on
@@ -989,7 +1040,7 @@
   $("#scrim").addEventListener("click", closeSheet);
   $("#scopeBtn").addEventListener("click", picker);
   $("#moreBtn").addEventListener("click", more);
-  $("#skipBtn").addEventListener("click", skip);
+  $("#skipBtn").addEventListener("click", pressS);
   $("#contBtn").addEventListener("click", cont);
   $("#backBtn").addEventListener("click", () => { an = null; view("rev"); startSession(); });
 
