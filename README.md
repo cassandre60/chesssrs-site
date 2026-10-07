@@ -2,6 +2,8 @@
 
 The official website and interactive web demo for **ChessSRS**, a free, open-source, local-first spaced-repetition trainer for chess openings.
 
+**Live site: https://cassandre60.github.io/chesssrs-site/**
+
 ---
 
 ## Architecture & Files
