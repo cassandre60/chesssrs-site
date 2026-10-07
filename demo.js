@@ -894,7 +894,7 @@
   const about = () => {
     closeSheet();
     $("#setTitle").textContent = "About";
-    $("#settingsBody").innerHTML = `<div class="set-group"><p class="pad">ChessSRS 0.2.0 is free software under GPL-3.0, a fork of Lichess Mobile. This demo runs entirely in your browser and saves nothing.</p><div class="lib-group"><a class="lib-row" href="https://github.com/mansourvery-hub/ChessSRS" target="_blank" rel="noopener"><span>ChessSRS source</span></a><a class="lib-row" href="https://github.com/lichess-org/mobile" target="_blank" rel="noopener"><span>Lichess Mobile source</span></a></div></div>`;
+    $("#settingsBody").innerHTML = `<div class="set-group"><p class="pad">ChessSRS 0.2.0 is free software under GPL-3.0, a fork of Lichess Mobile. This demo runs entirely in your browser and saves nothing.</p><div class="lib-group"><a class="lib-row" href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener"><span>ChessSRS source</span></a><a class="lib-row" href="https://github.com/lichess-org/mobile" target="_blank" rel="noopener"><span>Lichess Mobile source</span></a></div></div>`;
     view("settings");
   };
 

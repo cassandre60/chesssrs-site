@@ -5,7 +5,7 @@ Tracking progress across workstreams for the ChessSRS website and live interacti
 ## Status Overview
 
 All core milestones are completed and verified:
-- [x] **Task 1: Repository Alignment**: Active repo pointers configured to `https://github.com/mansourvery-hub/ChessSRS`.
+- [x] **Task 1: Repository Alignment**: Active repo pointers configured to `https://github.com/cassandre60/ChessSRS`.
 - [x] **Task 2: Review Screen Fidelity**: Authentic pieces, fonts, board geometry, review queue, side-scope buttons, settings, and library sheets match Flutter app behavior.
 - [x] **Task 3: Dynamic Design Sync**: `scripts/sync-design.js` extracts tokens, fonts, and piece silhouettes directly from the app codebase.
 - [x] **Task 4: Launch Items**: Canonical/OG metadata configured for GitHub Pages ($0 free hosting); dead donation links removed until an account is created.

@@ -127,5 +127,6 @@ Deployments to GitHub Pages run automatically on pushes to `main` via `.github/w
 
 ### Launch Checklist
 1. **Custom Domain (Optional)**: If attaching a custom domain, update `CNAME` and canonical URL in `index.html`, `sitemap.xml`, and `robots.txt`, plus the `SITE_ROOT` constant in `tests/e2e/basic.spec.js`.
-2. **Donations**: The Liberapay account does not exist yet, so the donation links have been **removed** rather than shipped pointing at `liberapay.com/YOUR_NAME`. When the account is created, add the link back in two places — the `#support` section in `index.html` and the footer's Support list. The section's headline was changed to "Free software, built in the open." because it previously read "funded by the people who use it", which was a claim with no funding route behind it; revisit that wording too. `tests/e2e/basic.spec.js` fails if a placeholder href returns.
-3. **Releases**: Verify latest releases on GitHub attach `app-release.apk` for direct download.
+2. **Renames (account, app repo, or site repo)**: Edit `site.config.json` and run `node scripts/sync-site.js`. Every GitHub-derived URL (canonical, og:/twitter: meta, JSON-LD, app links in `index.html`/`demo.js`, `sitemap.xml`, `robots.txt`, `SITE_ROOT` in `tests/e2e/basic.spec.js`, and the doc pointers) is derived from that one file, and `npm run sync:check` fails if any of them drift.
+3. **Donations**: Live via Buy Me a Coffee (`https://buymeacoffee.com/cassandre60`) in three places — the `#support` section, the footer's Support list, and the "Is ChessSRS free?" FAQ. `tests/e2e/basic.spec.js` fails if a placeholder href returns.
+4. **Releases**: Verify latest releases on GitHub attach `app-release.apk` for direct download.

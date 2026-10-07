@@ -27,12 +27,12 @@ test('matches ChessFSRS scheduling mathematics verified against app repo', async
    fixing it afterwards needs re-submission in Search Console.
 
    Note this is the site *root*, not an origin: this is a Pages project site, so `/chesssrs-site`
-   is part of the path. `new URL(...).origin` would reduce it to mansourvery-hub.github.io and hide
+   is part of the path. `new URL(...).origin` would reduce it to the bare Pages domain and hide
    a project moved out of `/chesssrs-site`, so every tag is compared against the full prefix.
 
    og:image is the other half of the same trap: it pointed at the same non-existent origin, so every
    social share rendered as a bare link. Hence the reachability check below. */
-const SITE_ROOT = 'https://mansourvery-hub.github.io/chesssrs-site';
+const SITE_ROOT = 'https://cassandre60.github.io/chesssrs-site';
 
 /* RFC 2606 reserves these, so they can only ever be placeholders in shipped markup. */
 const PLACEHOLDER = /(\.example|\.test|\.invalid|\.localhost|example\.(com|org|net)|your-)/i;
@@ -109,7 +109,7 @@ test('no shipped page links to a placeholder', async () => {
   expect(pages.length, 'expected the root HTML pages to be found').toBeGreaterThan(1);
 
   /* An earlier version of this test looked for any run of three capitals in an href, which flagged
-     `github.com/mansourvery-hub/ChessSRS` because it contains `SRS`. A gate that fires on correct
+     `github.com/<owner>/ChessSRS` because it contains `SRS`. A gate that fires on correct
      markup is worse than no gate, because it teaches people to ignore it. These are the markers
      that actually mean "unfilled": the RFC 2606 reserved names, plus the conventional
      fill-me-in tokens. */

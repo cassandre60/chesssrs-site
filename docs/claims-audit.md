@@ -22,7 +22,7 @@ This document verifies and sources every factual claim made on the ChessSRS mark
 
 | Claim | Verified Reality | Source / Proof |
 |---|---|---|
-| **Supported Platforms** | Built with Flutter; active CI releases produce Android builds (`app-release.apk` / `app-release.aab`). Desktop and iOS platform trees exist in the codebase. | `pubspec.yaml`, `.github/workflows/release-proof.yml`, GitHub Releases for `mansourvery-hub/ChessSRS` |
+| **Supported Platforms** | Built with Flutter; active CI releases produce Android builds (`app-release.apk` / `app-release.aab`). Desktop and iOS platform trees exist in the codebase. | `pubspec.yaml`, `.github/workflows/release-proof.yml`, GitHub Releases for `https://github.com/cassandre60/ChessSRS` |
 | **Release Artifacts** | Release `v0.2.1-beta` and `v0.2.0-beta` attach `app-release.apk` for direct on-device testing | GitHub Releases API via `gh release view v0.2.1-beta` |
 | **Installation Instruction** | Direct APK install on Android with browser install permission; no Google Play Store account required | `release-proof.yml` and release release notes |
 
