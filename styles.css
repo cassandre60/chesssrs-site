@@ -236,6 +236,12 @@ h2{font:400 clamp(36px,4.8vw,68px)/1.04 var(--serif);letter-spacing:-.02em;max-w
 @media(max-width:860px){
 .nv>a:not(.btn){display:none}.mm{display:block}
 .story,.split,.grid,.fc{grid-template-columns:1fr}.two{grid-template-columns:1fr}
+/* Phone-width page overflow came from the story grid: the PGN panel's
+   unbreakable `white-space:pre` line sets the .stg track's min-content width,
+   and grid items default to min-width:auto, so the track (and with it every
+   .st) stretched to ~391px on a 320px column. Let the tracks shrink; the
+   cards already scroll internally (overflow:auto). Desktop untouched. */
+.story>*{min-width:0}
 .js .st{opacity:1;min-height:0;padding:56px 0 20px}.stg{position:static;height:auto;margin:0 0 40px}.js .pn{position:static;opacity:1;transform:none;margin-bottom:28px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 @media print{.hd,.stg{display:none}}
