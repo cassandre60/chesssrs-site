@@ -27,6 +27,9 @@ npm run test:e2e                # Playwright E2E suite (accessibility, parity, i
 python3 build.py                # Verifies single-file distribution bundle
 ```
 
+## 4. Experience Invariants
+`docs/site-invariants.md` is binding: the download button must always resolve to something real (live direct download with a per-file chooser, honest releases-page fallback otherwise), and every support route in `#support`/footer/FAQ/`privacy.html` §3 must resolve — both selected by DOM scope so new providers are covered without edits. Add no friction to these paths; run their gates (`tests/download.test.js`, `tests/support-links.test.js`, `tests/e2e/download.spec.js`) with any change near them.
+
 For visual review against the app's headless screenshot captures:
 ```bash
 npm run parity:pixels           # 60-pair visual diff against app goldens

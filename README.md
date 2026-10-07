@@ -16,6 +16,7 @@ The official website and interactive web demo for **ChessSRS**, a free, open-sou
 - **`engine.js`**: ChessSRS FSRS-5 mathematical scheduler (Decision D015 DSR model) and PGN parsing/export logic. Zero DOM dependencies.
 - **`pieces.js`**: Authentic vector piece definitions (`gK`, `gQ`, `gR`, `gB`, `gN`, `gP`) from the ChessSRS Diagram identity, plus static story board rendering.
 - **`demo.js`**: Interactive Review screen demo (study picker, study actions, library/settings sheet, FSRS binary recall, practice mode, keyboard navigation, and PGN import).
+- **`download.js`**: Live download block for `#download` — fetches the releases API, turns the primary button into a direct download of the newest installable build with a per-file chooser, and keeps an honest releases-page fallback offline or when no files are attached. Pure picking logic is unit-tested (`tests/download.test.js`).
 - **`assets/`**:
   - `fonts/`: Self-hosted OFL fonts (`Geist`, `Geist Mono`, `Instrument Serif`).
   - `app-review.webp`: High-resolution authentic screenshot of the app's review screen.
@@ -24,6 +25,7 @@ The official website and interactive web demo for **ChessSRS**, a free, open-sou
 - **`build.py`**: Inlines CSS, JS, and font assets into `dist/index.single.html` for single-file previewing, writes strict `_headers` Content-Security-Policy, and packages `dist/chesssrs-site.zip`.
 - **`docs/`**:
   - `demo-spec.md`: Detailed fidelity specification mapping app tokens, widgets, and strings to the web demo.
+  - `site-invariants.md`: Binding experience invariants — the download button must always resolve to something real, and every support route must resolve (both provider-agnostic, so new providers need no doc edit).
   - `claims-audit.md`: Source audit proving every factual claim on the site against the app repository.
   - `fidelity/`: Side-by-side screenshots verifying demo rendering across desktop and phone viewports in dark and light themes.
 
@@ -131,4 +133,4 @@ Deployments to GitHub Pages run automatically on pushes to `main` via `.github/w
 1. **Custom Domain (Optional)**: If attaching a custom domain, update `CNAME` and canonical URL in `index.html`, `sitemap.xml`, and `robots.txt`, plus the `SITE_ROOT` constant in `tests/e2e/basic.spec.js`.
 2. **Renames (account, app repo, or site repo)**: Edit `site.config.json` and run `node scripts/sync-site.js`. Every GitHub-derived URL (canonical, og:/twitter: meta, JSON-LD, app links in `index.html`/`demo.js`, `sitemap.xml`, `robots.txt`, `SITE_ROOT` in `tests/e2e/basic.spec.js`, and the doc pointers) is derived from that one file, and `npm run sync:check` fails if any of them drift.
 3. **Donations**: Live via Buy Me a Coffee (`https://buymeacoffee.com/cassandre60`) in three places — the `#support` section, the footer's Support list, and the "Is ChessSRS free?" FAQ. `tests/e2e/basic.spec.js` fails if a placeholder href returns.
-4. **Releases**: Verify latest releases on GitHub attach `app-release.apk` for direct download.
+4. **Releases**: Nothing to update by hand when a release ships — `#download` fetches the release list live and lights up direct downloads automatically. Just verify the workflow attached the files (`tests/download.test.js` + `tests/e2e/download.spec.js` cover the rendering).

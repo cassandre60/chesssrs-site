@@ -105,9 +105,10 @@
 </section>
 
 <section class="c sec" id="download"><div class="dl split">
-  <div><span class="kick mono">Download</span><h2>Get ChessSRS 0.2.0.</h2><p class="mu" style="margin-top:18px;max-width:34ch">In internal testing: installable builds are not published yet. They will ship with the first release — Linux and Android first.</p>
-    <div class="cta"><a class="btn p" href="https://github.com/cassandre60/ChessSRS"><svg class="ic" aria-hidden="true"><use href="#i-gh"/></svg>View source</a><a class="btn s" href="https://github.com/cassandre60/ChessSRS/releases">Releases</a></div></div>
-  <ol><li><span>Try the live demo above — the real review flow with a toy repertoire.</span></li><li><span>Watch the releases page for the first installable builds.</span></li><li><span>Developers can run it from source today: <span class="mono">fvm flutter run -d linux</span>.</span></li></ol>
+  <div><span class="kick mono">Download</span><h2 id="dl-title">Get ChessSRS.</h2><p class="mu" id="dl-sub" style="margin-top:18px;max-width:34ch" aria-live="polite">Installable builds ship with GitHub releases — Linux and Android first.</p>
+    <div class="cta"><a class="btn p" id="dl-primary" href="https://github.com/cassandre60/ChessSRS/releases"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg><span id="dl-primary-tx">See releases on GitHub</span></a><a class="btn s" href="https://github.com/cassandre60/ChessSRS/releases">All releases</a></div></div>
+  <div><ol id="dl-pick"><li><span>Try the live demo above — the real review flow with a toy repertoire.</span></li><li><span>Watch the <a href="https://github.com/cassandre60/ChessSRS/releases">releases page</a> for installable builds.</span></li><li><span>Developers can run it from source today: <span class="mono">fvm flutter run -d linux</span>.</span></li></ol>
+  <p class="mono mu" id="dl-note" style="margin-top:16px">Checking GitHub for the latest build…</p></div>
 </div></section>
 
 <section class="c sec" id="faq">
@@ -144,6 +145,7 @@
   <div class="fb"><span>© 2026 ChessSRS. Not affiliated with Lichess. This site sets no cookies and uses no analytics.</span><span>Version 0.2.0</span></div>
 </div></footer>
 <script src="main.js" defer></script>
+<script src="download.js" defer></script>
 <script src="chess.bundle.js" defer></script>
 <script src="engine.js" defer></script>
 <script src="assets/app-meta.js" defer></script>

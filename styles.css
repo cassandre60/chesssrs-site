@@ -213,6 +213,16 @@ h2{font:400 clamp(36px,4.8vw,68px)/1.04 var(--serif);letter-spacing:-.02em;max-w
 .dl li{counter-increment:s;display:flex;gap:16px;padding:14px 0;border-top:1px solid var(--ln)}
 .dl li::before{content:counter(s);font:500 13px/1.9 var(--mono);color:var(--ac);width:16px}
 .dl .cta{margin-top:28px}
+/* Download chooser: live rows rendered by download.js reuse the .dl ordered
+   rhythm (counter, hairline separators), with a small platform pill in the
+   accent so the direct file and its platform scan as one row. */
+.dl-file{flex-direction:column;align-items:stretch;gap:6px}
+.dl-file-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dl-file-h a{overflow-wrap:anywhere}
+.dl-tag{display:inline-block;font-size:12px;color:var(--ac);border:1px solid var(--ac);border-radius:99px;padding:3px 12px;white-space:nowrap}
+.dl-file.skip{color:var(--mu)}
+#dl-note{font-size:13px}
+#dl-sub{min-height:3.2em}
 .lk a{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 0;border-bottom:1px solid var(--ln);text-decoration:none;font:400 clamp(22px,2.4vw,30px)/1.2 var(--serif)}
 .lk a:first-child{border-top:1px solid var(--ln)}.lk a span{display:block;font:400 14px/1.4 var(--sans);color:var(--mu);margin-top:4px}
 .lk .ic{transition:transform .2s;color:var(--mu)}.lk a:hover .ic{transform:translate(3px,-3px);color:var(--tx)}

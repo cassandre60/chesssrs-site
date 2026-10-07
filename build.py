@@ -14,7 +14,7 @@ src = (r/"index.html").read_text(); h = src
 # tokens and reference rules must land before the marketing rules, exactly as index.html loads them.
 for href in ("assets/demo-tokens.css", "assets/demo-reference.css", "styles.css"):
     h = h.replace('<link rel="stylesheet" href="%s">' % href, "<style>%s</style>" % inline_css(href))
-for j in ("main", "chess.bundle", "engine", "pieces", "demo"):
+for j in ("main", "download", "chess.bundle", "engine", "pieces", "demo"):
     h = h.replace('<script src="%s.js" defer></script>' % j, "<script>%s</script>" % (r/(j+".js")).read_text())
 # The generated asset scripts too. Order in index.html is load-bearing (app-meta and figurines must
 # be defined before demo.js reads them), so they are inlined in place rather than base64'd.
@@ -25,7 +25,7 @@ h = re.sub(r'((?:src|href)=")(assets/[^"]+)', lambda m: m.group(1)+data(m.group(
 inline = re.search(r"<script>(document\.documentElement.*?)</script>", src, re.S).group(1)
 sha = base64.b64encode(hashlib.sha256(inline.encode()).digest()).decode()
 (r/"_headers").write_text(f"""/*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-{sha}'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-{sha}'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.github.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()

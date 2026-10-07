@@ -23,8 +23,8 @@ This document verifies and sources every factual claim made on the ChessSRS mark
 | Claim | Verified Reality | Source / Proof |
 |---|---|---|
 | **Supported Platforms** | Flutter codebase with `android/`, `ios/`, `linux/` trees. `release.yml` packages a Linux tarball plus Android AAB/APK (throwaway-signed, testing only). Not packaged: iOS (no signing certs), Windows/macOS (no platform directories), Web. | `pubspec.yaml`, `.github/workflows/release.yml` header comment |
-| **Release Artifacts** | No public releases published yet — verified 2026-10-07: the releases page is empty and no `v*` tags exist (only `legacy/pre-reset`). | `gh release list --repo cassandre60/ChessSRS`, `git ls-remote --tags` |
-| **Installation Instruction** | No installable builds yet. Developers run `fvm flutter run -d linux` from source; the site's download section says so. | App `README.md`, site `index.html` `#download` |
+| **Release Artifacts** | Pre-release tags exist (`v0.1.3`–`v0.4.0`, all `--prerelease`) but carry **zero attached files** — verified 2026-10-08 via the releases API. The site's `#download` block fetches the release list live: direct download + per-file chooser once files are attached, honest releases-page fallback until then (see `docs/site-invariants.md` I-1). | `gh api repos/cassandre60/ChessSRS/releases`, `download.js` |
+| **Installation Instruction** | No installable builds yet. The site links the releases page and developers run `fvm flutter run -d linux` from source; the static fallback says exactly this. | App `README.md`, site `index.html` `#download` |
 
 ---
 
@@ -58,5 +58,5 @@ This document verifies and sources every factual claim made on the ChessSRS mark
 |---|---|---|
 | **Cookies & Tracking** | Zero cookies, zero analytics, zero external tracking beacons | Audit of all web source (`index.html`, `main.js`, `demo.js`, `styles.css`) |
 | **Local Storage** | Only stores user preference for color theme (`light` / `dark`) | `index.html` inline script, `main.js` |
-| **Content Security Policy** | Strict CSP: `default-src 'self'`, `font-src 'self'`, no third-party script/font origins | `_headers`, `build.py` |
-| **Donations / Funding** | Community funded; Liberapay link placeholder awaits user handle | Handoff prompt §7 and §11 |
+| **Content Security Policy** | Strict CSP: `default-src 'self'`, `font-src 'self'`, no third-party script/font origins; `connect-src` allows only the public releases API (`api.github.com`) so `#download` can fetch the live build list. | `_headers`, `build.py` |
+| **Donations / Funding** | Community funded via the support routes listed in `#support` and the footer; every route is verified live (see `docs/site-invariants.md` I-2). No platform is named here so new providers need no doc edit. | `index.html` `#support`, `tests/support-links.test.js` |

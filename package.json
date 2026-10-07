@@ -4,8 +4,8 @@
   "scripts": {
     "lint": "biome check",
     "lint:fix": "biome check --write",
-    "test": "biome check && node tests/demo.test.js && node tests/fsrs.test.js",
-    "test:e2e": "playwright test tests/e2e/basic.spec.js tests/e2e/interactions.spec.js tests/e2e/app-parity.spec.js tests/e2e/style-namespace.spec.js tests/e2e/accessibility.spec.js",
+    "test": "biome check && node tests/demo.test.js && node tests/fsrs.test.js && node tests/download.test.js && node tests/support-links.test.js",
+    "test:e2e": "playwright test tests/e2e/basic.spec.js tests/e2e/download.spec.js tests/e2e/interactions.spec.js tests/e2e/app-parity.spec.js tests/e2e/style-namespace.spec.js tests/e2e/accessibility.spec.js",
     "sync": "node scripts/sync-site.js && node scripts/sync-design.js && node scripts/sync-strings.js",
     "sync:check": "node scripts/sync-site.js --check && node scripts/sync-design.js --check && node scripts/sync-strings.js --check",
     "screenshots": "playwright test tests/e2e/screenshots.spec.js",
