@@ -44,13 +44,13 @@ test.describe('Accessibility audit (axe-core)', () => {
 
     const screens = [
       async () => {},
-      async (p) => p.locator('#app #scopeBtn').click(),
+      async (p) => p.locator('#app #sqW').click(),
       async (p) => {
-        await p.locator('#app #scopeBtn').click();
+        await p.locator('#app #sqB').click();
         await p.locator('#app [data-a="sacts"][data-i="1"]').click();
       },
       async (p) => {
-        await p.locator('#app #scopeBtn').click();
+        await p.locator('#app #sqB').click();
         await p.locator('#app [data-a="sacts"][data-i="1"]').click();
         await p.locator('#app [data-a="export"]').click();
       },
@@ -78,7 +78,7 @@ test.describe('Accessibility audit (axe-core)', () => {
     // you the exemption above can be deleted.
     await page.goto('/');
     await page.locator('#app').scrollIntoViewIfNeeded();
-    await page.locator('#app #scopeBtn').click();
+    await page.locator('#app #sqW').click();
     await page.waitForTimeout(350);
     const { ink3 } = await analyse(page);
     test.info().annotations.push({ type: 'ink3 nodes', description: String(ink3) });

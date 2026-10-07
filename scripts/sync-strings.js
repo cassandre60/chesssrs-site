@@ -165,14 +165,34 @@ const sheetStart = drawerSrc.indexOf('class StudyActionsSheet');
 if (sheetStart < 0) throw new Error(`${DRAWER_FILE}: class StudyActionsSheet not found`);
 const sheetSrc = drawerSrc.slice(sheetStart);
 const sheetRows = [];
-for (const m of sheetSrc.matchAll(/SrsSheetRow\(\s*label:\s*([^,]+?),/g)) {
-  const label = m[1].trim();
-  // Pause and Resume are one row whose label depends on the study's state; both are recorded so a
-  // rename of either is caught, and the demo renders whichever applies.
+/* Labels and subtitles come out in source order: the parity test asserts the demo renders them in
+   exactly this order, so an app reorder fails there rather than silently passing here. */
+const rowRe =
+  /SrsSheetRow\(\s*label:\s*(?<label>'[^']*'|study\.isActive\s*\?\s*'[^']*'\s*:\s*'[^']*')(?:\s*,\s*subtitle:\s*(?<subtitle>'[^']*'|study\.isActive\s*\?\s*'[^']*'\s*:\s*'[^']*'))?/gs;
+for (const m of sheetSrc.matchAll(rowRe)) {
+  const row = {};
+  const label = m.groups.label.trim();
+  // `Create $otherLabel` names the drawer the copy goes to; the manifest keeps a placeholder the
+  // test and demo fill with the other side's label.
+  const dyn = label.match(/^'Create \$(\w+)'$/);
   const pair = label.match(/study\.isActive\s*\?\s*'([^']+)'\s*:\s*'([^']+)'/);
-  sheetRows.push(pair ? { label: pair[1], labelAlt: pair[2] } : { label: label.replace(/^'|'$/g, '') });
+  if (dyn) row.label = 'Create {other}';
+  else if (pair) {
+    // Pause and Resume are one row whose label depends on the study's state; both are recorded so
+    // a rename of either is caught, and the demo renders whichever applies.
+    row.label = pair[1];
+    row.labelAlt = pair[2];
+  } else row.label = label.replace(/^'|'$/g, '');
+  const sub = (m.groups.subtitle || '').trim();
+  const subPair = sub.match(/study\.isActive\s*\?\s*'([^']+)'\s*:\s*'([^']+)'/s);
+  const subLit = sub.match(/^'([^']*)'$/);
+  if (subPair) {
+    row.subtitle = subPair[1];
+    row.subtitleAlt = subPair[2];
+  } else row.subtitle = subLit ? subLit[1] : null;
+  sheetRows.push(row);
 }
-if (sheetRows.length < 6) throw new Error(`${DRAWER_FILE}: expected 6 StudyActionsSheet rows, found ${sheetRows.length}`);
+if (sheetRows.length !== 7) throw new Error(`${DRAWER_FILE}: expected 7 StudyActionsSheet rows, found ${sheetRows.length}`);
 
 log('[sync-strings] scope drawer copy');
 const need = (re, what, from = drawerSrc) => {
@@ -181,26 +201,36 @@ const need = (re, what, from = drawerSrc) => {
   if (!m || typeof m[1] !== 'string') throw new Error(`${DRAWER_FILE}: could not find ${what}`);
   return m[1];
 };
-/* The drawer has no "everywhere" row any more: the top-level scopes are the two side buttons
- * (`White repertoire` / `Black repertoire`), then Openings and Studies groups, then Import PGN.
- * `ReviewScope.all()` still exists and the top bar still calls it `All studies`, but the drawer
- * itself no longer lists it — so the manifest records what the drawer shows, not the scope model. */
+/* One drawer per repertoire colour, opened by the matching square in the top bar. A drawer lists
+ * only its own colour's Openings and Studies — the side buttons are gone, and the colour is never
+ * spelled out inside it: the square that opened it already says which one this is. `ReviewScope`
+ * still has `all()`/`white()`/`black()`/study/opening variants, but the drawer only ever produces
+ * study and opening scopes plus the side the squares selected — so the manifest records what the
+ * drawer shows, not the scope model. */
 const scopeGroups = [];
 for (const m of drawerSrc.matchAll(/_buildGroupHeader\(\s*ref,\s*c,\s*group:\s*'([^']+)',\s*title:\s*'([^']+)'/g)) {
   scopeGroups.push({ group: m[1], title: m[2] });
 }
-if (scopeGroups.length !== 3) throw new Error(`${DRAWER_FILE}: expected 3 scope groups, found ${scopeGroups.length}`);
+if (scopeGroups.length !== 2) throw new Error(`${DRAWER_FILE}: expected 2 scope groups, found ${scopeGroups.length}`);
+// `sideLabel` is the one string shared by the top-bar squares, the drawer semantics and the study
+// actions sheet's Create row, so the three can never disagree — and neither can the demo.
+const sideLabel = drawerSrc.match(
+  /static String sideLabel\(Side side\)\s*=>\s*side == Side\.white \? '([^']+)' : '([^']+)'/
+);
+if (!sideLabel) throw new Error(`${DRAWER_FILE}: could not find sideLabel`);
+// `'Nothing matches \u201c$_searchQuery\u201d.'` — the escapes become real curly quotes and the
+// interpolation becomes the placeholder the demo fills with the typed query.
+const noResults = drawerSrc.match(/'Nothing matches \\u201c\$\w+\\u201d\.'/);
+if (!noResults) throw new Error(`${DRAWER_FILE}: could not find the no-results string`);
 const scope = {
   searchHint: need(/hintText:\s*'([^']+)'/, 'the scope search hint'),
   groups: scopeGroups.map((g) => g.title),
-  sideButtons: [
-    need(/_whiteLabel\s*=\s*'([^']+)'/, 'the White repertoire button label'),
-    need(/_blackLabel\s*=\s*'([^']+)'/, 'the Black repertoire button label'),
-  ],
+  sideLabels: { white: sideLabel[1], black: sideLabel[2] },
   // `isPaused ? 'Paused' : '${progress.totalDecisions} positions'` — both branches of one row.
   pausedSub: need(/isPaused\s*\?\s*'([^']+)'\s*:/, 'the paused row sub-label'),
   positionsSub: need(/isPaused\s*\?\s*'[^']+'\s*:\s*'([^']+)'/, 'the position-count row sub-label'),
   importLabel: need(/label:\s*'(Import PGN)'/, 'the scope drawer import label'),
+  noResults: 'Nothing matches “{query}”.',
 };
 
 log('[sync-strings] review screen idle copy');

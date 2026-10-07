@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-/* The demo's chrome is reached the way the app's is: the top bar carries only the scope button
-   and the overflow (⋯) button, so #scopeBtn and #moreBtn are the entry points, and every screen
-   below them hangs off `data-a` actions. */
+/* The demo's chrome is reached the way the app's is: the top bar carries only the two colour
+   squares and the overflow (⋯) button, so #sqW/#sqB and #moreBtn are the entry points. A square
+   both selects its colour's scope and opens that colour's drawer, and every screen below them
+   hangs off `data-a` actions. */
 const app = (page, sel) => page.locator(`#app ${sel}`);
-const openActions = async (page, i) => {
-  await app(page, '#scopeBtn').click();
+const openActions = async (page, sq, i) => {
+  await app(page, sq).click();
   await app(page, `[data-a="sacts"][data-i="${i}"]`).click();
 };
 
@@ -201,11 +202,11 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
     // Regression guard: a focused <button> is a click on Space, so after Escape closed the scope
     // drawer, Space re-opened it instead of continuing — the session looked frozen. The app's
     // CallbackShortcuts sit above the whole screen, so nothing under them can consume the key.
-    await app(page, '#scopeBtn').click();
+    await app(page, '#sqW').click();
     await expect(app(page, '#scrim')).toHaveClass(/open/);
     await page.keyboard.press('Escape');
     await expect(app(page, '#scrim')).not.toHaveClass(/open/);
-    await expect(app(page, '#scopeBtn')).toBeFocused();
+    await expect(app(page, '#sqW')).toBeFocused();
 
     await page.keyboard.press(' ');
     await page.waitForTimeout(250);
@@ -213,17 +214,21 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
   });
 
   test('scope picker switches study to the Sicilian repertoire', async ({ page }) => {
-    await app(page, '#scopeBtn').click();
+    // The Black square selects the Black scope and opens its drawer; picking the study starts a
+    // Black session. There is no scope name in the top bar any more — the pressed square says
+    // which colour is live — so assert the session instead: Black to play, 7 due.
+    await app(page, '#sqB').click();
     expect(await sheetOpen(page, 'sheetScope')).toEqual({ open: true, hittable: true });
 
     await app(page, '[data-a="pick"][data-i="1"]').click();
     expect(await sheetOpen(page, 'sheetScope')).toEqual({ open: false, hittable: false });
-    await expect(app(page, '#scopeName')).toHaveText('Sicilian Defense Repertoire');
+    await expect(app(page, '#sqB')).toHaveAttribute('aria-pressed', 'true');
+    await expect(app(page, '#turnTxt')).toHaveText(/Black to play/);
     await expect(app(page, '#due')).toContainText('7');
   });
 
   test('Escape dismisses an open sheet', async ({ page }) => {
-    await app(page, '#scopeBtn').click();
+    await app(page, '#sqW').click();
     await expect(app(page, '#scrim')).toHaveClass(/open/);
     await page.keyboard.press('Escape');
     await expect(app(page, '#scrim')).not.toHaveClass(/open/);
@@ -236,12 +241,12 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
 
-    await openActions(page, 1);
+    await openActions(page, '#sqB', 1);
     await app(page, '[data-a="analyze"]').click();
 
     await expect(app(page, '#setTitle')).toHaveText('Game 1');
     await app(page, '[data-a="ply"][data-i="3"]').click();
-    await expect(app(page, '.t-san .ply.on')).toHaveText('d4');
+    await expect(app(page, '.t-san .ply.on')).toHaveText('Nf3');
 
     await app(page, '#backBtn').click();
     await expect(page.locator('#app')).toHaveAttribute('data-screen', 'review');
@@ -260,7 +265,7 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
 
-    await openActions(page, 1);
+    await openActions(page, '#sqB', 1);
     await app(page, '[data-a="export"]').click();
 
     // Leaving the scrim up would put a modal barrier over the screen that replaced the sheet.
@@ -295,9 +300,9 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
   });
 
   test('import sheet handles valid PGN and invalid PGN', async ({ page }) => {
-    // Import PGN sits at the foot of the scope list, not in the Library sheet: the app's library
-    // sheet carries only Settings and About (library_sheet.dart).
-    await app(page, '#scopeBtn').click();
+    // Import PGN is the full-width pill at the foot of the scope drawer, not in the Library
+    // sheet: the app's library sheet carries only Settings and About (library_sheet.dart).
+    await app(page, '#sqW').click();
     await app(page, '[data-a="import"]').click();
     expect(await sheetOpen(page, 'sheetScope')).toEqual({ open: false, hittable: false });
 
@@ -310,20 +315,22 @@ test.describe('Demo Interactions & End-to-End Tests', () => {
     await app(page, '#i-pgn').fill(pgn);
     await app(page, '[data-a="doimport"]').click();
 
-    await expect(app(page, '#scopeName')).toHaveText('Test Repertoire');
+    // No orientation header means a White study: it lands in the White drawer's Studies group.
+    await app(page, '#sqW').click();
+    await expect(app(page, '#scopeList .row .row-name')).toContainText(['Test Repertoire']);
   });
 
   test('pausing keeps the due count and marks the row', async ({ page }) => {
     // Pausing removes a study from the pool without resetting its schedule, so the scope row keeps
     // its numeral and is recoloured `.paused` (review_scope_drawer.dart `_ScopeRow`).
-    await app(page, '#scopeBtn').click();
+    await app(page, '#sqW').click();
     const row = app(page, '[data-a="pick"][data-i="0"]');
     await expect(row).not.toHaveClass(/paused/);
 
     await app(page, '[data-a="sacts"][data-i="0"]').click();
     await app(page, '[data-a="pause"]').click();
 
-    await app(page, '#scopeBtn').click();
+    await app(page, '#sqW').click();
     await expect(row).toHaveClass(/paused/);
     await expect(row).toContainText('16');
   });

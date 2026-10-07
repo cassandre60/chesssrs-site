@@ -225,40 +225,51 @@
   "studyActionsSheet": {
     "rows": [
       {
-        "label": "Analyze"
+        "label": "Create {other}",
+        "subtitle": "Same positions, in the other drawer"
       },
       {
-        "label": "Practice"
+        "label": "Analyze",
+        "subtitle": "Browse moves and variations"
       },
       {
-        "label": "Export PGN"
+        "label": "Practice",
+        "subtitle": "Drill lines without changing your schedule"
+      },
+      {
+        "label": "Export PGN",
+        "subtitle": "Share or copy standard PGN notation"
       },
       {
         "label": "Pause",
-        "labelAlt": "Resume"
+        "labelAlt": "Resume",
+        "subtitle": "Suspend from active review pool",
+        "subtitleAlt": "Activate in review pool"
       },
       {
-        "label": "Rename"
+        "label": "Rename",
+        "subtitle": null
       },
       {
-        "label": "Delete"
+        "label": "Delete",
+        "subtitle": null
       }
     ]
   },
   "scopeDrawer": {
     "searchHint": "Search",
     "groups": [
-      "Repertoires",
       "Openings",
       "Studies"
     ],
-    "sideButtons": [
-      "White repertoire",
-      "Black repertoire"
-    ],
+    "sideLabels": {
+      "white": "White repertoire",
+      "black": "Black repertoire"
+    },
     "pausedSub": "Paused",
     "positionsSub": "${progress.totalDecisions} positions",
-    "importLabel": "Import PGN"
+    "importLabel": "Import PGN",
+    "noResults": "Nothing matches “{query}”."
   },
   "idle": {
     "nothingDue": "Nothing due.",

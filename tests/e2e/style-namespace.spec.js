@@ -32,13 +32,13 @@ test.describe('Style namespace', () => {
     // reaches (settings, the sheets) still fails.
     const screens = [
       async () => {},
-      async (p) => p.locator('#app #scopeBtn').click(),
+      async (p) => p.locator('#app #sqW').click(),
       async (p) => {
-        await p.locator('#app #scopeBtn').click();
+        await p.locator('#app #sqB').click();
         await p.locator('#app [data-a="sacts"][data-i="1"]').click();
       },
       async (p) => {
-        await p.locator('#app #scopeBtn').click();
+        await p.locator('#app #sqB').click();
         await p.locator('#app [data-a="sacts"][data-i="1"]').click();
         await p.locator('#app [data-a="export"]').click();
       },

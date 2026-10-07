@@ -188,7 +188,7 @@ async function gotoState(page, state) {
   if (state === 'review-empty') {
     // The app has no "paused" screen: a suspended study shows the same nothing-due screen, which is
     // why suspending is the honest way to reach this capture rather than draining the queue.
-    await click('#scopeBtn');
+    await click('#sqW');
     await page.locator(app('[data-a="sacts"][data-i="0"]')).click();
     await page.locator(app('[data-a="pause"]')).click();
     await page.locator('#app').getAttribute('data-screen', { timeout: 5000 }).then((v) => {
@@ -197,7 +197,7 @@ async function gotoState(page, state) {
     return;
   }
 
-  if (state === 'review-scope') return click('#scopeBtn');
+  if (state === 'review-scope') return click('#sqW');
 
   if (state === 'review-actions') {
     /* The app captures this sheet in isolation: `home: Scaffold(body: StudyActionsSheet(...))` with
@@ -208,7 +208,7 @@ async function gotoState(page, state) {
      * Driven through the DOM for the same reason as the settings rows: the ⋯ button sits near the
      * right edge of the drawer and drops outside the viewport at the narrower surfaces. */
     await page.evaluate(() => {
-      document.querySelector('#app #scopeBtn').click();
+      document.querySelector('#app #sqW').click();
       document.querySelector('#app [data-a="sacts"][data-i="0"]').click();
     });
     return;

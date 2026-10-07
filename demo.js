@@ -92,19 +92,25 @@
   };
 
   studies = PRESETS.map(p => mkStudy(p.name, p.side, p.lines));
-  /* `sel` is the scope. The app's drawer offers no "everywhere" row: the top-level scopes are the
-     two side buttons (`White repertoire` / `Black repertoire`), then one row per study. `sel` is -1
-     for the everywhere scope (which the app starts in and the top bar still calls `All studies`),
-     a side string for a repertoire scope, or an index for one study. `scope()` is the list a
-     session draws from, so the review loop never has to care which scope is active. */
+  /* `sel` is the scope. One drawer per colour, opened by the matching square in the top bar
+     (`_openColourDrawer`): a drawer lists only its own colour's studies, and tapping a square
+     switches to that side's scope as well as opening its drawer. `sel` is a side string for a
+     repertoire scope or an index for one study — the app always resolves the initial `all()` to a
+     side the same way (White wins when the library holds any White chapter), so the demo starts
+     there too rather than inventing an everywhere scope the UI can no longer produce. `scope()` is
+     the list a session draws from, so the review loop never has to care which scope is active. */
+  sel = studies.some(s => s.side === "w") ? "w" : "b";
   const st = () => (typeof sel === "number" && sel >= 0 ? studies[sel] : null);
   const scope = () => (typeof sel === "string" ? studies.filter(s => s.side === sel) : sel >= 0 ? [studies[sel]] : studies);
   const dueN = s => s ? s.lines.reduce((n, l) => n + l.cards.filter(c => c.due).length, 0) : 0;
-  const scopeDue = () => scope().reduce((n, s) => n + (s.active ? dueN(s) : 0), 0);
-  /* The everywhere scope is `All studies` in the top bar (`_computeScopeTitle`), and a side scope
-     names the side (`ReviewScopeDrawer.sideLabel`, one string shared by the drawer button and the
-     top bar so the two cannot disagree). */
-  const SCOPE_ALL = "All studies";
+  // Side scopes count active studies of that side only, like the app's sideProgress.
+  const sideDue = side => studies.filter(s => s.side === side && s.active).reduce((n, s) => n + dueN(s), 0);
+  /* The colour whose drawer is open and whose positions are being reviewed (`SrsTopBar.activeSide`):
+     the side string in scope, the side of the single study in scope, White before anything loads. */
+  const liveSide = () => (typeof sel === "string" ? sel : sel >= 0 && studies[sel] ? studies[sel].side : "w");
+  /* `ReviewScopeDrawer.sideLabel`: one string shared by the squares, the drawer semantics and the
+     study actions sheet's Create row, so the three can never disagree. Renames are caught by the
+     scope-drawer parity test against `design/app-ui.json`. */
   const SIDE_LABEL = { w: "White repertoire", b: "Black repertoire" };
   /* The study a Study Actions sheet is acting on: the one it was opened for, falling back to
      the current scope. Actions in the app hang off a repertoire row, not off the session. */
@@ -112,7 +118,10 @@
 
   /* ---------- SVG Icons ---------- */
 
-  /* ---------- Shell HTML: mirror design/reference/index.html exactly ---------- */
+  /* ---------- Shell HTML: mirrors design/reference/index.html, except the top bar ----------
+     The reference specimen still renders the old scope-name button; the app itself replaced it with
+     the two colour squares (`SrsTopBar`), so the demo renders the squares and the square styles live
+     in styles.css rather than in the generated reference stylesheet. */
   host.innerHTML = `
     <div class="statusbar" aria-hidden="true">
       <span>9:41</span>
@@ -120,10 +129,10 @@
     </div>
 
     <header class="topbar">
-      <button class="scope" id="scopeBtn" aria-haspopup="dialog" aria-expanded="false">
-        <span id="scopeName">All repertoires</span>
-        <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>
-      </button>
+      <div class="sqs" role="group" aria-label="Repertoire colour">
+        <button class="sq sq-w on" id="sqW" data-a="square" data-v="w" aria-label="White repertoire" aria-pressed="true" aria-haspopup="dialog"><i></i></button>
+        <button class="sq sq-b" id="sqB" data-a="square" data-v="b" aria-label="Black repertoire" aria-pressed="false" aria-haspopup="dialog"><i></i></button>
+      </div>
       <span class="due" id="due"><b>16</b> due</span>
       <span class="spacer"></span>
       <button class="icon-btn" id="moreBtn" aria-label="Library and settings" aria-haspopup="dialog">
@@ -439,12 +448,16 @@
   };
 
   function head() {
-    const s = st();
     const live = scope().filter(x => x.active);
-    /* _computeScopeTitle: an opening names itself (the demo has no openings), a side names the
-       side, a study names the study, and the everywhere scope is `All studies`. */
-    $("#scopeName").textContent = !studies.length ? "No repertoire" : typeof sel === "string" ? SIDE_LABEL[sel] : s ? s.name : SCOPE_ALL;
-    const dueCount = !studies.length ? 0 : !live.length ? 0 : practice ? 0 : (sel === -1 ? scopeDue() : live.reduce((n, x) => n + dueN(x), 0));
+    /* The squares say the same two things forever (`SrsTopBar`): the active side carries the accent
+       ring, and the due count beside them is that side's. There is no scope-name button any more. */
+    const side = liveSide();
+    for (const [v, id] of [["w", "#sqW"], ["b", "#sqB"]]) {
+      const on = v === side;
+      $(id).classList.toggle("on", on);
+      $(id).setAttribute("aria-pressed", on);
+    }
+    const dueCount = !studies.length ? 0 : !live.length ? 0 : practice ? 0 : sideDue(side);
     $("#due").innerHTML = practice ? `<b>Practice</b>` : `<b>${dueCount}</b> due`;
   }
 
@@ -740,7 +753,7 @@
   /* ---------- Analyze View ---------- */
   function showPly(i) {
     an.i = Math.max(0, Math.min(an.L.m.length, i));
-    snapTo(an.L, an.i, st().side);
+    snapTo(an.L, an.i, an.side);
     drawAn();
   }
 
@@ -759,12 +772,18 @@
      (review_scope_drawer.dart: `Navigator.of(dialogContext).pop()` then `Navigator.of(context).pop()`).
      Leaving the scrim up would put a modal barrier over the screen that replaced it. */
   function analyze() {
-    const s = st();
+    // Actions hang off a repertoire row, not off the session: analyze the sheet's target, which is
+    // the study in scope when the sheet was opened for the current one. `st()` alone would be null
+    // for a side scope.
+    const s = tgt();
+    const L = cur ? cur.line : s.lines[0];
+    // Every queued card carries its study (`c.s`), so mid-review analysis orients by the position
+    // on screen; otherwise by the sheet's target study. Either way it is a real side, never null.
+    const side = (cur?.c?.s ? cur.c.s : s).side;
     closeSheet();
     clearTimeout(timer);
-    const L = cur ? cur.line : s.lines[0];
     cur = null; enabled = false; arrow();
-    an = { L, i: 0 };
+    an = { L, i: 0, side };
     showPly(0);
     view("settings");
   }
@@ -780,16 +799,17 @@
     $(".sheet.open")?.classList.remove("open");
   }
 
-  const row = (a, label, sub) => `<div class="lib-row" data-a="${a}"><span>${label}${sub ? `<small>${sub}</small>` : ""}</span><svg viewBox="0 0 14 14"><path d="m5 2.5 4.5 4.5L5 11.5"/></svg></div>`;
+  /* One drawer per colour, opened by the matching square (`ReviewScopeDrawer.show`). A drawer lists
+     only its own colour's studies under Studies — the demo ports no openings, so the Openings group
+     stays hidden exactly the way the app hides an empty group — then the full-width Import PGN pill
+     (`SrsPillButton`, expanded). The colour is never spelled out inside: the square that opened the
+     drawer already says which one this is.
 
-  /* The scope list: the Repertoires side buttons, one row per study under Studies, and
-     Import PGN at the foot (review_scope_drawer.dart `_SideScopeButton` / `_ScopeRow`). The shape
-     of a study row is the reference's: name over a sub-line of memory bar plus a figure, with the
-     due numeral to the right.
-
-     A suspended study keeps its numeral — pausing removes it from the review pool, it does not
-     reset its schedule — and the app swaps the sub-line's figure for `Paused` and recolours the name
-     and numeral to ink3 (`.row.paused`) rather than hiding either. */
+     The search field filters by study title, and a query with no matches gets the app's empty state
+     rather than an empty list. A suspended study keeps its numeral — pausing removes it from the
+     review pool, it does not reset its schedule — and the app swaps the sub-line's figure for
+     `Paused` and recolours the name and numeral to ink3 (`.row.paused`) rather than hiding either. */
+  let drawerSide = "w";
   const memBar = s => {
     const all = s.lines.flatMap(l => l.cards);
     const learned = all.filter(c => c.ivl > 0).length;
@@ -803,21 +823,22 @@
     `<span class="row-sub">${memBar(study)}<span>${paused ? "Paused" : study.lines.flatMap(l => l.cards).length + " positions"}</span></span></span>` +
     `<span class="row-due"><b>${due}</b> <i>due</i></span>${trail}</div>`;
 
-  const picker = () => {
-    const options = i => `<button class="icon-btn" data-a="sacts" data-i="${i}" aria-label="Study options"><svg viewBox="0 0 20 20"><circle cx="4" cy="10" r="1.7"/><circle cx="10" cy="10" r="1.7"/><circle cx="16" cy="10" r="1.7"/></svg></button>`;
-    // Side scopes count active studies of that side only, like the app's sideProgress.
-    const sideDue = side => studies.filter(s => s.side === side && s.active).reduce((n, s) => n + dueN(s), 0);
-    const sideBtn = side => {
-      const n = sideDue(side);
-      const agg = { lines: studies.filter(s => s.side === side).flatMap(s => s.lines) };
-      return `<button class="sidebtn${sel === side ? " on" : ""}" data-a="side" data-v="${side}" aria-current="${sel === side}" aria-label="${SIDE_LABEL[side]}, ${n} due">` +
-        `<span class="side-name">${SIDE_LABEL[side]}</span><span class="side-due">${n}</span>${memBar(agg)}</button>`;
-    };
-    $("#scopeList").innerHTML = `<div class="list">` +
-      `<div class="lib-group"><div class="group-title">Repertoires</div><div class="sidebtns">${sideBtn("w")}${sideBtn("b")}</div></div>` +
-      `<div class="lib-group"><div class="group-title">Studies</div>` +
-      studies.map((s, i) => scopeRow(`data-a="pick" data-i="${i}" aria-current="${sel === i}"`, s.name, dueN(s), s, !s.active, options(i))).join("") +
-      `</div><div class="lib-group">${row("import", "Import PGN", "From a file, pasted text or a Lichess study")}</div></div>`;
+  const options = i => `<button class="icon-btn" data-a="sacts" data-i="${i}" aria-label="Study options"><svg viewBox="0 0 20 20"><circle cx="4" cy="10" r="1.7"/><circle cx="10" cy="10" r="1.7"/><circle cx="16" cy="10" r="1.7"/></svg></button>`;
+  const picker = side => {
+    drawerSide = side;
+    const q = $("#scopeSearch").value.trim().toLowerCase();
+    const list = studies.map((s, i) => ({ s, i })).filter(({ s }) => s.side === side && (!q || s.name.toLowerCase().includes(q)));
+    let h = `<div class="list">`;
+    if (q && !list.length) h += `<div class="no-results">Nothing matches “${esc($("#scopeSearch").value.trim())}”.</div>`;
+    else {
+      if (list.length) {
+        h += `<div class="lib-group"><div class="group-title">Studies</div>` +
+          list.map(({ s, i }) => scopeRow(`data-a="pick" data-i="${i}" aria-current="${sel === i}"`, s.name, dueN(s), s, !s.active, options(i))).join("") +
+          `</div>`;
+      }
+    }
+    h += `<div class="imp"><button class="pill" data-a="import">Import PGN</button></div></div>`;
+    $("#scopeList").innerHTML = h;
     openSheet("sheetScope");
   };
 
@@ -832,21 +853,27 @@
     openSheet("sheetLib");
   };
 
-  /* StudyActionsSheet: three hairline-separated groups, in the app's order and wording.
-     No chevrons (app: §12 says "no icons"), hairline separators between groups. */
+  /* StudyActionsSheet: four hairline-separated groups, in the app's order and wording, with the
+     app's subtitles — and no title, no chevrons (§12 says "no icons"). First is the row this whole
+     sheet exists for: a repertoire in the wrong colour is the most common reason the other drawer
+     is empty, and `Create …` fixes it in one tap. Every label and subtitle is pinned to
+     `design/app-ui.json` by the study-actions parity test. */
   function studyActions(i) {
     const s = studies[i];
     if (!s) return;
     sa = i;
     closeSheet();
-    // Reuse the scope sheet container for actions
-    $("#sheetScope .list").innerHTML = `<div class="lib-group"><div class="group-title" style="padding-left:20px">${esc(s.name)}</div></div>` +
-      `<div class="lib-group"><button class="lib-row" data-a="analyze"><span>Analyze<small>Browse moves and variations</small></span></button></div>` +
-      `<div class="lib-group"><button class="lib-row" data-a="practice"><span>${practice ? "End practice" : "Practice"}<small>Drill lines without changing your schedule</small></span></button></div>` +
-      `<div class="lib-group"><button class="lib-row" data-a="export"><span>Export PGN<small>Share or copy standard PGN notation</small></span></button></div>` +
-      `<div class="lib-group"><button class="lib-row" data-a="pause"><span>${s.active ? "Pause" : "Resume"}<small>${s.active ? "Suspend from active review pool" : "Activate in review pool"}</small></span></button></div>` +
-      `<div class="lib-group"><button class="lib-row" data-a="rename"><span>Rename</span></button></div>` +
-      `<div class="lib-group"><button class="lib-row" data-a="delete"><span>Delete</span></button></div>`;
+    const other = s.side === "w" ? "b" : "w";
+    const act = s.active;
+    const sub = t => `<small>${t}</small>`;
+    $("#sheetScope .list").innerHTML =
+      `<div class="lib-group"><button class="lib-row" data-a="create"><span>Create ${SIDE_LABEL[other]}${sub("Same positions, in the other drawer")}</span></button></div>` +
+      `<div class="lib-group"><button class="lib-row" data-a="analyze"><span>Analyze${sub("Browse moves and variations")}</span></button>` +
+      `<button class="lib-row" data-a="practice"><span>${practice ? "End practice" : "Practice"}${sub("Drill lines without changing your schedule")}</span></button></div>` +
+      `<div class="lib-group"><button class="lib-row" data-a="export"><span>Export PGN${sub("Share or copy standard PGN notation")}</span></button>` +
+      `<button class="lib-row" data-a="pause"><span>${act ? "Pause" : "Resume"}${sub(act ? "Suspend from active review pool" : "Activate in review pool")}</span></button></div>` +
+      `<div class="lib-group"><button class="lib-row" data-a="rename"><span>Rename</span></button>` +
+      `<button class="lib-row" data-a="delete"><span>Delete</span></button></div>`;
     openSheet("sheetScope");
   }
 
@@ -926,11 +953,24 @@
   const A = {
     close: closeSheet, picker, more, about, import: importModal, doimport: doImport, analyze, skip: pressS, cont,
     pick: el => { sel = +el.dataset.i; practice = false; closeSheet(); startSession(); },
-    side: el => { sel = el.dataset.v; practice = false; closeSheet(); startSession(); },
-    scope: () => { sel = -1; practice = false; closeSheet(); startSession(); },
+    /* Tapping a square switches to that colour's scope as well as opening its drawer
+       (`_openColourDrawer`). Tapping the colour already in scope only re-opens the drawer: the
+       session underneath is already that colour's, so restarting it would throw away the queue. */
+    square: el => { const v = el.dataset.v; if (sel !== v) { sel = v; practice = false; startSession(); } picker(v); },
     sacts: el => studyActions(+el.dataset.i),
     practice: () => { practice = !practice; closeSheet(); startSession(); },
-    choose: picker,
+    choose: () => picker(liveSide()),
+    /* `createStudyInSide`: the same positions, freshly scheduled, under the same title in the other
+       colour — deduplicated per side, so re-running it is a no-op rather than a second copy. And
+       like the app it does not move the user: a study part-way through stays part-way through, so
+       the session is left alone and only the chrome is refreshed. */
+    create: () => {
+      const s = tgt(), other = s.side === "w" ? "b" : "w";
+      if (!studies.some(x => x.side === other && x.name === s.name)) {
+        studies.push(mkStudy(s.name, other, s.lines.map(l => ({ t: l.t, s: l.s, note: l.note, noteSource: l.noteSource }))));
+      }
+      closeSheet(); head();
+    },
     pause: () => { const s = tgt(); s.active = !s.active; closeSheet(); startSession(); },
     export: () => { closeSheet(); $("#setTitle").textContent = tgt().name; view("settings"); $("#settingsBody").innerHTML = `<div class="set-group"><pre id="x-pgn" style="white-space:pre-wrap;font:13px/1.7 var(--mono)">${esc(toPGN(tgt()))}</pre><div class="idle-actions"><button class="pill" data-a="copy">Copy PGN</button></div></div>`; },
     copy: el => {
@@ -1038,7 +1078,9 @@
 
   // Wire up sheet backdrop and Escape
   $("#scrim").addEventListener("click", closeSheet);
-  $("#scopeBtn").addEventListener("click", picker);
+  // The search field filters the open drawer's studies; the query belongs to the field, not the
+  // drawer, so re-rendering from it on every keystroke keeps both in agreement for free.
+  $("#scopeSearch").addEventListener("input", () => picker(drawerSide));
   $("#moreBtn").addEventListener("click", more);
   $("#skipBtn").addEventListener("click", pressS);
   $("#contBtn").addEventListener("click", cont);

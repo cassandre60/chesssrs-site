@@ -7,7 +7,7 @@
 const timers=[];let fails=0;const ALL=[];
 const ok=(c,m)=>{console.log((c?"PASS ":"FAIL ")+m);if(!c)fails++};
 function mk(){const o={style:{setProperty(){}},_h:{},_s:{},children:[],hidden:false,innerHTML:"",value:"",dataset:{},
- classList:{toggle(c){this[c]=!this[c]},add(c){this[c]=true},remove(c){delete this[c]},contains(c){return !!this[c]}},addEventListener(t,f){let a=o._h[t];if(!a){a=[];o._h[t]=a;}a.push(f)},append(c){o.children.push(c)},appendChild(c){o.children.push(c)},remove(){},
+ classList:{toggle(c,f){this[c]=f===undefined?!this[c]:!!f},add(c){this[c]=true},remove(c){delete this[c]},contains(c){return !!this[c]}},addEventListener(t,f){let a=o._h[t];if(!a){a=[];o._h[t]=a;}a.push(f)},append(c){o.children.push(c)},appendChild(c){o.children.push(c)},remove(){},
  setPointerCapture(){},setAttribute(){},getAttribute(){return null},focus(){},getBoundingClientRect:()=>({left:0,top:0,width:560,height:560}),querySelectorAll:()=>[],
  querySelector(s){
   if(/^\.[\w-]+(\.[\w-]+)+$/.test(s)){const parts=s.split(".").slice(1);for(let i=ALL.length-1;i>=0;i--)if(parts.every(p=>ALL[i].classList[p]))return ALL[i];return undefined}
@@ -38,7 +38,7 @@ const mv=(m,flip)=>{for(const s of [m.slice(0,2),m.slice(2,4)]){bd._h.pointerdow
 const E=SRSEngine,U=s=>E.compile(s);
 const L1=U("e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Qb6 a3 c4 Nbd2"),L2=U("e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Bd7 Be2 Nge7 Na3 cxd4 cxd4 Nf5 Nc2"),L3=U("e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5 Nb3 Be6");
 flush();
-ok(q("#scopeName").textContent==="Queen Pawn Repertoire"&&/16/.test(q("#due").innerHTML),"initial: study + 16 due");
+ok(q("#sqW").classList.contains("on")&&/16/.test(q("#due").innerHTML),"initial: White square pressed + 16 due");
 mv(L1[0]);ok(q("#turnTxt").textContent==="White to play"&&/^Correct\./.test(q("#live").textContent),"first move remembered, turn row untouched");
 ok(/15/.test(q("#due").innerHTML),"due count drops to 15");
 // wrong move -> reveal, then correct -> Continue
@@ -59,9 +59,10 @@ ok(q(".view-idle").hidden===false&&q(".idle").innerHTML.includes("Nothing due.")
 ok(/Next review/.test(q(".idle").innerHTML),"empty state shows next review");
 // practice
 click("practice");flush();ok(q("#due").innerHTML.includes("Practice"),"practice mode label");click("practice");flush();ok(q(".view-idle").hidden===false,"ending practice returns to empty");
-// switch study, play black
-click("picker");ok(q("#sheetScope").classList.contains("open")&&q("#scopeList").innerHTML.includes("Sicilian Defense Repertoire"),"picker lists studies");
-click("pick",{i:"1"});flush();ok(q("#scopeName").textContent==="Sicilian Defense Repertoire"&&/>7</.test(q("#due").innerHTML),"picked Sicilian: 7 due");
+// each square opens only its own colour's drawer: White lists the French, Black the Sicilian
+click("square",{v:"w"});ok(q("#sheetScope").classList.contains("open")&&q("#scopeList").innerHTML.includes("Queen Pawn Repertoire")&&!q("#scopeList").innerHTML.includes("Sicilian"),"White drawer lists only White studies");
+click("square",{v:"b"});ok(q("#scopeList").innerHTML.includes("Sicilian Defense Repertoire")&&!q("#scopeList").innerHTML.includes("Queen Pawn"),"Black drawer lists only Black studies");
+click("pick",{i:"1"});flush();ok(q("#turnTxt").textContent==="Black to play"&&/>7</.test(q("#due").innerHTML),"picked Sicilian: Black to play, 7 due");
 for(let k=1;k<L3.length;k+=2)mv(L3[k],true);flush();ok(q(".idle").innerHTML.includes("Nothing due."),"black study completes");
 
 // keyboard-only play: focus the board, arrow to the pawn, Enter to select, arrow to the target, Enter to move.
@@ -79,27 +80,27 @@ click("more");ok(q("#sheetLib").classList.contains("open")&&lib().includes("Sett
 
 // Study actions are reached from the scope list's options button
 const acts = () => q("#sheetScope .list").innerHTML;
-click("picker");click("sacts",{i:"1"});flush();ok(q("#sheetScope").classList.contains("open")&&acts().includes("Analyze")&&acts().includes("Export PGN")&&acts().includes("Practice"),"study actions sheet has real entries");
+click("square",{v:"b"});click("sacts",{i:"1"});flush();ok(q("#sheetScope").classList.contains("open")&&acts().includes("Create White repertoire")&&acts().includes("Analyze")&&acts().includes("Export PGN")&&acts().includes("Practice"),"study actions sheet has real entries in app order");
 // Analyze renders into the settings shell, so it must leave #settingsBody and #backBtn in place —
 // overwriting the section used to detach the back button's listener and break every later screen.
 click("analyze");click("ply",{i:"3"});click("anext");click("aprev");ok(q(".view-settings").hidden===false&&q("#setTitle").textContent==="Game 1"&&q("#settingsBody").innerHTML.includes("Nxd4"),"analysis view lists moves");ok(q("#settingsBody").innerHTML.includes('class="ply on"'),"analysis view marks the current ply");click("aback");flush();
 
 // export from the study actions sheet
-click("picker");click("sacts",{i:"1"});flush();click("export");ok(q(".view-settings").hidden===false&&q("#settingsBody").innerHTML.includes("Sicilian Defense Repertoire"),"export shows PGN");click("copy",{});
+click("square",{v:"b"});click("sacts",{i:"1"});flush();click("export");ok(q(".view-settings").hidden===false&&q("#settingsBody").innerHTML.includes("Sicilian Defense Repertoire"),"export shows PGN");click("copy",{});
 // Escape dismisses an open sheet (prototype.js: `if(e.key==='Escape'){ closeSheets(); return; }`),
 // which is what the key is for — a pushed screen has its own back button, not a dismiss key.
-click("picker");ok(q("#scrim").classList.contains("open"),"picker raises the scrim");key("Escape");ok(!q("#scrim").classList.contains("open"),"Escape closes sheet");
+click("square",{v:"w"});ok(q("#scrim").classList.contains("open"),"square raises the scrim");key("Escape");ok(!q("#scrim").classList.contains("open"),"Escape closes sheet");
 // import: success, error, lichess
 click("import");q("#i-pgn").value=`[Event "My Rep for White"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 5. d4 exd4 6. cxd4 Bb4+ 7. Nc3 Nxe4 8. O-O Bxc3 9. d5 Bf6 10. Re1 Ne7 *`;q("#i-title").value="";
-click("doimport");flush();ok(q("#scopeName").textContent==="My Rep for White"&&/10/.test(q("#due").innerHTML)&&q(".view-settings").hidden===true,"import succeeds: 10 due");
+click("doimport");flush();ok(/10/.test(q("#due").innerHTML)&&q(".view-settings").hidden===true,"import succeeds: 10 due");click("square",{v:"w"});ok(q("#scopeList").innerHTML.includes("My Rep for White"),"import lands in the White drawer");
 click("import");q("#i-pgn").value="1. e4 e5 2. Qh8";click("doimport");ok(/Import failed: could not read the move/.test(q("#i-err").textContent),"bad PGN shows error");
 click("isrc",{v:"lichess"});click("doimport");ok(/can't reach Lichess/.test(q("#i-err").textContent),"Lichess tab explains the limit");click("close");
 // rename / pause / delete -- reached through study actions sheet on the current study
-click("picker");click("sacts",{i:"2"});flush();click("rename");q("#r-in").value="french-rep";click("dorename");ok(q("#scopeName").textContent==="french-rep","rename");
+click("square",{v:"w"});click("sacts",{i:"2"});flush();click("rename");q("#r-in").value="french-rep";click("dorename");click("square",{v:"w"});ok(q("#scopeList").innerHTML.includes("french-rep"),"rename");
 // Pause takes the repertoire out of the pool without resetting its schedule, so the scope row
 // keeps its numeral and is recoloured `.paused` (review_scope_drawer.dart `_ScopeRow`), and the
 // review screen falls back to its nothing-due copy.
-click("picker");click("sacts",{i:"2"});flush();click("pause");flush();ok(/due/.test(q("#due").innerHTML),"pause empties the review screen");click("picker");ok(/class="row paused/.test(q("#scopeList").innerHTML),"paused row is marked");
+click("square",{v:"w"});click("sacts",{i:"2"});flush();click("pause");flush();ok(/due/.test(q("#due").innerHTML),"pause empties the review screen");click("square",{v:"w"});ok(/class="row paused/.test(q("#scopeList").innerHTML),"paused row is marked");
 // The numeral must survive pausing — the app only recolours it, because pausing removes the study
 // from the pool without touching its schedule. Capture it from the row rather than hardcoding one.
 const pausedN=+(/class="row paused[^"]*"[^>]*>[\s\S]*?<b>(\d+)<\/b>/.exec(q("#scopeList").innerHTML)||[0,0])[1];
@@ -120,6 +121,6 @@ click("retention",{v:"0.85"});ok(/data-v="0\.85" aria-pressed="true"/.test(q("#s
 // match neither block. A real dataset coerces to a string; the shim's plain object does not.
 click("theme",{v:"true"});ok(`${host.dataset.theme}`==="dark","theme applied to the demo root");click("accent",{v:"#E2A84B"});ok(`${host.dataset.accent}`==="#E2A84B","accent applied to the demo root");
 click("about");ok(q("#setTitle").textContent==="About"&&q("#settingsBody").innerHTML.includes("GPL-3.0"),"about sheet");
-for(let i=0;i<3;i++){click("picker");click("sacts",{i:"0"});flush();click("delete");click("dodelete");flush();}
+for(const [sq,i] of [["w",0],["w",1],["b",0]]){click("square",{v:sq});click("sacts",{i:String(i)});flush();click("delete");click("dodelete");flush();}
 ok(q(".idle").innerHTML.includes("Bring your study."),"deleting all shows the app's first-run copy");
 process.exitCode=fails?1:0;console.log(fails?`\n${fails} FAILED`:"\nALL PASSED");

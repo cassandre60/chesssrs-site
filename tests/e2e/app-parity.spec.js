@@ -134,21 +134,33 @@ test.describe('App parity (design/app-ui.json vs the running demo)', () => {
   });
 
   test('study actions sheet: rows match the app, in order', async ({ page }) => {
-    await app(page, '#scopeBtn').click();
-    await app(page, '[data-a="sacts"][data-i="0"]').click();
+    // Opened from the Black drawer's Sicilian row, so Create names the other drawer.
+    await app(page, '#sqB').click();
+    await app(page, '[data-a="sacts"][data-i="1"]').click();
     const labels = await page
       .locator('#app #sheetScope .lib-row > span')
       .evaluateAll((els) => els.map((e) => e.childNodes[0]?.textContent?.trim()));
 
-    // Pause/Resume is one row whose label depends on the study's state; this study starts active.
-    expect(labels).toEqual(manifest.studyActionsSheet.rows.map((r) => r.label));
+    const expected = manifest.studyActionsSheet.rows.map((r) =>
+      r.label.replace('{other}', manifest.scopeDrawer.sideLabels.white)
+    );
+    // Pause/Resume is one row whose label depends on the study's state; this study starts active,
+    // so the manifest's `Pause` is what the demo must show.
+    expect(labels).toEqual(expected);
+
+    // Subtitles ride along on every row but Rename/Delete, which carry none.
+    const subs = await page
+      .locator('#app #sheetScope .lib-row > span')
+      .evaluateAll((els) => els.map((e) => e.querySelector('small')?.textContent ?? null));
+    const expectedSubs = manifest.studyActionsSheet.rows.map((r) => r.subtitle);
+    expect(subs).toEqual(expectedSubs);
   });
 
   test("the nothing-due screen uses the app's copy", async ({ page }) => {
     // Suspending the active study is the app's own route to this screen, and it is the case that
     // used to be wrong: an earlier version rendered a `Paused` headline with its own Resume button,
     // a state the app cannot produce. `Nothing due.` is all it shows.
-    await app(page, '#scopeBtn').click();
+    await app(page, '#sqW').click();
     await app(page, '[data-a="sacts"][data-i="0"]').click();
     await app(page, '[data-a="pause"]').click();
 
@@ -163,9 +175,10 @@ test.describe('App parity (design/app-ui.json vs the running demo)', () => {
 
   test('with no studies at all the demo uses the app first-run copy', async ({ page }) => {
     // The app answers this on a separate first-run screen the demo does not port. It borrows that
-    // screen's words and keeps the import affordance, and this pins both.
-    for (let i = 0; i < 2; i++) {
-      await app(page, '#scopeBtn').click();
+    // screen's words and keeps the import affordance, and this pins both. Each colour's drawer
+    // holds only its own studies, so delete from each in turn (the survivor always sits at index 0).
+    for (const sq of ['#sqW', '#sqB']) {
+      await app(page, sq).click();
       await app(page, '[data-a="sacts"][data-i="0"]').click();
       await app(page, '[data-a="delete"]').click();
       await app(page, '[data-a="dodelete"]').click();
@@ -176,29 +189,76 @@ test.describe('App parity (design/app-ui.json vs the running demo)', () => {
     await expect(idle.locator('[data-a="import"]')).toBeVisible();
   });
 
-  test('scope drawer: side buttons, groups and paused sub-label match the app', async ({ page }) => {
-    await app(page, '#scopeBtn').click();
+  test('scope drawer: one drawer per colour, groups and paused sub-label match the app', async ({ page }) => {
+    // The top bar is two colour squares, not a scope button: each carries its side's label and the
+    // live side is pressed.
+    for (const [id, key] of [['#sqW', 'white'], ['#sqB', 'black']]) {
+      await expect(app(page, id)).toHaveAttribute('aria-label', manifest.scopeDrawer.sideLabels[key]);
+    }
+    await expect(app(page, '#sqW')).toHaveAttribute('aria-pressed', 'true');
+    await expect(app(page, '#sqB')).toHaveAttribute('aria-pressed', 'false');
 
-    // Search hint
+    // The White drawer lists only White studies. The demo ports no openings, so the Openings group
+    // stays hidden the way the app hides an empty group — every other manifest group must be there.
+    await app(page, '#sqW').click();
     await expect(page.locator('#app #scopeSearch')).toHaveAttribute('placeholder', manifest.scopeDrawer.searchHint);
-
-    // Group titles
     const groups = await page.locator('#app #scopeList .group-title').allInnerTexts();
     for (const g of manifest.scopeDrawer.groups.filter((name) => name !== 'Openings')) {
       expect(groups).toContain(g);
     }
+    expect(groups).not.toContain('Openings');
+    const names = await page.locator('#app #scopeList .row .row-name').allInnerTexts();
+    expect(names).toEqual(['Queen Pawn Repertoire']);
 
-    // Side buttons (White repertoire / Black repertoire)
-    const sideButtons = await page.locator('#app #scopeList .sidebtn .side-name').allInnerTexts();
-    expect(sideButtons).toEqual(manifest.scopeDrawer.sideButtons);
+    // And the Black drawer lists only Black studies. One drawer at a time: the open drawer is
+    // modal, so the White one has to go away first — exactly as a visitor must dismiss it.
+    await page.keyboard.press('Escape');
+    await app(page, '#sqB').click();
+    const black = await page.locator('#app #scopeList .row .row-name').allInnerTexts();
+    expect(black).toEqual(['Sicilian Defense Repertoire']);
 
-    await app(page, '[data-a="sacts"][data-i="0"]').click();
+    await app(page, '[data-a="sacts"][data-i="1"]').click();
     await app(page, '[data-a="pause"]').click();
-    await app(page, '#scopeBtn').click();
+    await app(page, '#sqB').click();
 
     const paused = page.locator('#app #scopeList .row.paused').first();
     await expect(paused).toHaveClass(/paused/);
     // The app replaces the position count with `Paused` on a suspended study.
     await expect(paused.locator('.row-sub')).toContainText(manifest.scopeDrawer.pausedSub);
+  });
+
+  test('scope search filters studies and uses the app empty state', async ({ page }) => {
+    await app(page, '#sqW').click();
+    await page.locator('#app #scopeSearch').fill('queen');
+    await expect(page.locator('#app #scopeList .row .row-name')).toHaveText(['Queen Pawn Repertoire']);
+
+    const missing = 'zzz-no-such-study';
+    await page.locator('#app #scopeSearch').fill(missing);
+    await expect(page.locator('#app .no-results')).toHaveText(
+      manifest.scopeDrawer.noResults.replace('{query}', missing)
+    );
+  });
+
+  test('Create copies a study into the other drawer without moving the session', async ({ page }) => {
+    // From the Black drawer's Sicilian row: the copy lands in White's drawer under the same name,
+    // freshly scheduled, while the session stays Black.
+    await app(page, '#sqB').click();
+    await expect(app(page, '#sqB')).toHaveAttribute('aria-pressed', 'true');
+    await app(page, '[data-a="sacts"][data-i="1"]').click();
+    await app(page, '[data-a="create"]').click();
+    await expect(app(page, '#sqB')).toHaveAttribute('aria-pressed', 'true');
+
+    await app(page, '#sqW').click();
+    const names = await page.locator('#app #scopeList .row .row-name').allInnerTexts();
+    expect(names).toEqual(['Queen Pawn Repertoire', 'Sicilian Defense Repertoire']);
+
+    // Re-running is a no-op, not a second copy.
+    await page.keyboard.press('Escape');
+    await app(page, '#sqB').click();
+    await app(page, '[data-a="sacts"][data-i="1"]').click();
+    await app(page, '[data-a="create"]').click();
+    await app(page, '#sqW').click();
+    const again = await page.locator('#app #scopeList .row .row-name').allInnerTexts();
+    expect(again).toEqual(['Queen Pawn Repertoire', 'Sicilian Defense Repertoire']);
   });
 });

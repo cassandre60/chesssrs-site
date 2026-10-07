@@ -56,8 +56,8 @@ Default accent in app: **Ultramarine**.
 Derived from `lib/src/review/` and `docs/04-screens-and-flows.md`.
 
 ### 2.1 Top Bar
-- **Scope Title Button**: Displays current scope (e.g. `Scandinavian Defense` or `All repertoires`), with chevron/arrow indicating it opens the Scope popover/sheet.
-- **Due Count Indicator**: E.g. `16 due` (tabular numerals in `--ink` 600, `due` in `--ink2`), or `Practice` in accent color when drilling.
+- **Colour Squares**: a white and a black square (20px on 44px targets); the live side carries a 2px accent ring. Tapping a square selects that colour's scope and opens its drawer; tapping the live square re-opens the drawer without restarting the session.
+- **Due Count Indicator**: the live side's due, e.g. `16 due` (tabular numerals in `--ink` 600, `due` in `--ink2`), or `Practice` in accent color when drilling.
 - **Overflow Button (`⋯`)**: Opens the Library sheet.
 
 ### 2.2 Board Region
@@ -107,7 +107,8 @@ Derived from `lib/src/domain/chess_fsrs_scheduler.dart`.
 ---
 
 ## 4. Sheets & Modals
-- **Scope List**: Grouped by `Everywhere`, `Openings`, `Repertoires`. Shows counts and due status.
+- **Scope List**: one drawer per colour, listing only that colour's studies under `Studies` (the `Openings` group appears when opening hubs exist), with due counts, memory bars and per-study options; full-width `Import PGN` pill at the foot; live search with a `Nothing matches "…".` empty state.
+- **Study Actions Sheet**: `Create <other side> repertoire`, `Analyze`, `Practice`, `Export PGN`, `Pause`/`Resume`, `Rename`, `Delete` — four hairline-separated groups, subtitles on all but Rename/Delete, no title.
 - **Library Sheet**:
   - `Import PGN` (sub: `From a file, pasted text or a Lichess study`)
   - `Explore`: `Analysis board`, `Opening explorer`, `Board editor`
