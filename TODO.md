@@ -47,3 +47,10 @@ For detailed technical post-mortems of subtle bugs discovered and fixed during d
 
 ### Workstream H: Deployment & Automation
 - [x] Automated GitHub Actions deploy workflow to GitHub Pages with artifact minimization.
+
+---
+
+## Known Blockers (found 2026-10-07, pre-existing — not caused by launch polish)
+
+- [ ] **Demo scope-drawer drift vs app (`npm run sync:check` fails).** Symptom: `scripts/sync-strings.js --check` throws `review_scope_drawer.dart: expected 3 scope groups, found 2`. Cause: app commits #173–#182 made the drawer per-side (Openings + Studies groups, no White/Black side buttons) and added a `Create <other-side> repertoire` study action (7 rows, demo renders 6). Fix direction: a demo-fidelity workstream — per-side drawer model plus opening hubs in `demo.js`, then regen `design/app-ui.json`. CI is unaffected (it skips `sync:check` without a sibling app checkout).
+- [ ] **Horizontal overflow at phone widths (pre-existing).** Symptom: `documentElement.scrollWidth` exceeds viewport by 51px at 360px / 21px at 390px; identical on the pristine tree. Culprit: the `#how` scroll-story section (`.st`/`h3`). Fix direction: constrain story headings/panels below ~400px without touching the desktop sticky behavior.
