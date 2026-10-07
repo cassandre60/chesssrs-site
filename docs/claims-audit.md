@@ -22,9 +22,9 @@ This document verifies and sources every factual claim made on the ChessSRS mark
 
 | Claim | Verified Reality | Source / Proof |
 |---|---|---|
-| **Supported Platforms** | Built with Flutter; active CI releases produce Android builds (`app-release.apk` / `app-release.aab`). Desktop and iOS platform trees exist in the codebase. | `pubspec.yaml`, `.github/workflows/release-proof.yml`, GitHub Releases for `https://github.com/cassandre60/ChessSRS` |
-| **Release Artifacts** | Release `v0.2.1-beta` and `v0.2.0-beta` attach `app-release.apk` for direct on-device testing | GitHub Releases API via `gh release view v0.2.1-beta` |
-| **Installation Instruction** | Direct APK install on Android with browser install permission; no Google Play Store account required | `release-proof.yml` and release release notes |
+| **Supported Platforms** | Flutter codebase with `android/`, `ios/`, `linux/` trees. `release.yml` packages a Linux tarball plus Android AAB/APK (throwaway-signed, testing only). Not packaged: iOS (no signing certs), Windows/macOS (no platform directories), Web. | `pubspec.yaml`, `.github/workflows/release.yml` header comment |
+| **Release Artifacts** | No public releases published yet — verified 2026-10-07: the releases page is empty and no `v*` tags exist (only `legacy/pre-reset`). | `gh release list --repo cassandre60/ChessSRS`, `git ls-remote --tags` |
+| **Installation Instruction** | No installable builds yet. Developers run `fvm flutter run -d linux` from source; the site's download section says so. | App `README.md`, site `index.html` `#download` |
 
 ---
 
