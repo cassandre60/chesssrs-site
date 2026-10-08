@@ -7,24 +7,24 @@ getting the app and supporting the project must flow with zero friction.
 
 Violating any invariant fails the gates in §4, not just review.
 
-## I-1. The download button always downloads something real
+## I-1. Download in two clicks, zero detours
 
-- The `#download` primary button (`#dl-primary`) resolves to a **direct file
-  download** whenever the newest release carrying an installable attachment
-  exists. The file list is fetched live from the releases API at page load
-  (`download.js`), never from a hardcoded version or filename.
-- Beside it, the chooser (`#dl-pick`) lists **every attachment** of that
-  release with a platform label, so a visitor on any OS reaches their file
-  in one more click. Nothing installable is hidden; nothing
-  non-installable (e.g. store-upload bundles) is presented as installable.
-- When no release carries files yet — or the API is unreachable — the button
-  falls back to the **releases index page** (which always exists) and says so
-  (`#dl-note`). A dead button, a placeholder href, or a silently stale
-  version string all violate this invariant.
-- The version shown in `#download` is the **live release tag**, not a
-  hardcoded string. Static markup ships a truthful fallback ("Installable
-  builds ship with GitHub releases") so no-JS and offline visitors still get
-  a working path.
+- The `#download` block is one button plus one platform menu. Click
+  **Download** → pick the platform → the file downloads straight away from
+  its attachment URL. No accounts, no intermediate pages, no forge, host, or
+  build-toolchain surface anywhere in the block.
+- The homepage carries **no developer instructions** (no build/run commands,
+  no source checkouts). Developer paths live with the Source links in the
+  nav and footer, where developers already look.
+- The file list is fetched live from the releases API at page load
+  (`download.js`); the version shown is the **live release tag**, never a
+  hardcoded string. Until a release carries installable files, the button
+  waits honestly as **"Coming soon"** with "Installable builds are on the
+  way — Linux and Android first." A dead button, a placeholder href, or a
+  silently stale version all violate this invariant.
+- Only genuinely installable files are offered (store-upload bundles are
+  never listed). Nothing installable is hidden; every attachment gets a
+  menu row with its platform and size.
 - Styling reuses the existing system (`.dl` card, `.btn.p` primary block,
   `.mono` meta, `--ac` pills). No new palette, no framework, no second
   button language.
@@ -58,9 +58,9 @@ named in `privacy.html` §3 — **selected by DOM scope, not by provider name**.
 
 | Gate | Catches |
 |---|---|
-| `node tests/download.test.js` (in `npm test`) | picking logic: OS preselect, AAB exclusion, empty/error shapes |
+| `node tests/download.test.js` (in `npm test`) | picking logic, AAB exclusion, honest waiting state, no external links inside `#download` |
 | `node tests/support-links.test.js` (in `npm test`) | placeholder hrefs in support scopes; live reachability of every support route |
-| `tests/e2e/download.spec.js` (in `npm run test:e2e`) | primary becomes a direct download with mocked assets; honest fallback with none; offline leaves the static path intact with no page errors |
+| `tests/e2e/download.spec.js` (in `npm run test:e2e`) | menu opens from the button and a platform click starts a real download; waiting state exposes no external links; offline degrades with no page errors |
 | `tests/e2e/basic.spec.js` (existing) | placeholder hrefs anywhere shipped; canonical/OG integrity |
 
 `python3 build.py` must still pass: the bundle inlines the new script and the

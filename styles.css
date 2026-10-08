@@ -213,14 +213,17 @@ h2{font:400 clamp(36px,4.8vw,68px)/1.04 var(--serif);letter-spacing:-.02em;max-w
 .dl li{counter-increment:s;display:flex;gap:16px;padding:14px 0;border-top:1px solid var(--ln)}
 .dl li::before{content:counter(s);font:500 13px/1.9 var(--mono);color:var(--ac);width:16px}
 .dl .cta{margin-top:28px}
-/* Download chooser: live rows rendered by download.js reuse the .dl ordered
-   rhythm (counter, hairline separators), with a small platform pill in the
-   accent so the direct file and its platform scan as one row. */
-.dl-file{flex-direction:column;align-items:stretch;gap:6px}
-.dl-file-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.dl-file-h a{overflow-wrap:anywhere}
+/* Download menu: a small platform popover on the same primary block. One
+   button, one menu, one click per file — no intermediate pages. */
+.dl-cta{position:relative}
+.dl-menu{position:absolute;top:calc(100% + 8px);left:0;z-index:5;min-width:260px;background:var(--sf);border:1px solid var(--ln);border-radius:16px;padding:8px;box-shadow:0 20px 50px -20px #0006}
+.dl-menu[hidden]{display:none}
+.dl-menu a{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;text-decoration:none;font-weight:500}
+.dl-menu a:hover{background:var(--bg2)}
 .dl-tag{display:inline-block;font-size:12px;color:var(--ac);border:1px solid var(--ac);border-radius:99px;padding:3px 12px;white-space:nowrap}
-.dl-file.skip{color:var(--mu)}
+/* Reassurance facts beside the button: established claims only, no dev noise. */
+.dl-facts{margin:24px 0 0;padding:0;list-style:none;color:var(--mu)}
+.dl-facts li{padding:14px 0;border-top:1px solid var(--ln)}
 #dl-note{font-size:13px}
 #dl-sub{min-height:3.2em}
 .lk a{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 0;border-bottom:1px solid var(--ln);text-decoration:none;font:400 clamp(22px,2.4vw,30px)/1.2 var(--serif)}

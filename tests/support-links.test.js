@@ -5,6 +5,13 @@
 // route" and must (a) contain no placeholder and (b) resolve live. Adding a
 // new donation provider inside one of those scopes covers it automatically;
 // nothing here names any provider, so no edit is needed when the set grows.
+//
+// NOTE: run with `node --dns-result-order=ipv4first` (see package.json).
+// Some networks hand out an unreachable IPv6 address for these hosts while
+// IPv4 works; without the flag the check stalls on IPv6 instead of testing
+// the link. Verified failure mode, 2026-10-08: undici timed out on
+// www.gnu.org (AAAA 2001:470:142:5::116 unroutable locally) while the same
+// URL returned 200 over IPv4.
 const fs = require("fs");
 const path = require("path");
 

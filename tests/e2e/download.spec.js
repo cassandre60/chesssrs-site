@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-/* Invariant I-1, in the browser: the #download primary is a direct file
- * download whenever the release API lists installable files, and an honest
- * releases-page link otherwise. The API is mocked so these run with no
- * network; the live reachability of the real links is covered by
- * tests/support-links.test.js instead.
+/* Invariant I-1, in the browser: Download opens a small platform menu and a
+ * platform click starts a real file download — no intermediate pages. The
+ * API is mocked so these run with no network.
  *
  * Invariant I-2, structurally: every link in the support scopes is a real
  * https URL with no placeholder, and new-tab donation links carry
@@ -54,56 +52,74 @@ const withoutFiles = [
 
 const download = (page, sel) => page.locator(`#download ${sel}`);
 
-test('the primary button becomes a direct download when files are attached', async ({ page }) => {
+test('a platform click starts a real file download', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route(API, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withFiles) }));
+  await page.route('**/releases/download/**', (r) =>
+    r.fulfill({
+      status: 200,
+      headers: { 'content-type': 'application/octet-stream' },
+      body: 'fake-binary',
+    }),
+  );
   await page.goto('/');
   await page.locator('#download').scrollIntoViewIfNeeded();
 
-  // The lab runner reports Linux, so the tarball is preselected — but any
-  // installable file counts: the point is direct, not preselected.
-  await expect(download(page, '#dl-primary')).toHaveAttribute('href', /\.(tar\.gz|apk)$/);
-  await expect(download(page, '#dl-title')).toContainText('v9.9.0-e2e');
-  // Every attachment is listed with its platform; the store-upload bundle is
-  // present but explicitly marked not installable.
-  await expect(download(page, '#dl-pick')).toContainText('Android (APK)');
-  await expect(download(page, '#dl-pick')).toContainText('Linux (.tar.gz)');
-  await expect(download(page, '#dl-pick')).toContainText('not installable');
-  // The primary keeps the congruent black-block styling while its label names
-  // the file's platform.
-  await expect(download(page, '#dl-primary')).toHaveClass(/btn p/);
-  await expect(download(page, '#dl-primary-tx')).toContainText(/Download for/);
+  await expect(download(page, '#dl-primary')).toBeEnabled();
+  // The menu starts closed and names both platforms once opened.
+  await expect(download(page, '#dl-menu')).toBeHidden();
+  await download(page, '#dl-primary').click();
+  await expect(download(page, '#dl-menu')).toBeVisible();
+  await expect(download(page, '#dl-menu')).toContainText('Linux');
+  await expect(download(page, '#dl-menu')).toContainText('Android');
+  // The store-upload bundle is not offered at all.
+  await expect(download(page, '#dl-menu')).not.toContainText('aab');
+  // Clicking a platform starts the file download right away.
+  const [dl] = await Promise.all([
+    page.waitForEvent('download'),
+    download(page, '#dl-menu a').first().click(),
+  ]);
+  expect(dl.suggestedFilename()).toMatch(/\.tar\.gz$/);
   expect(errors).toEqual([]);
 });
 
-test('an asset-less release stays honest instead of going dead', async ({ page }) => {
+test('the block exposes no detours: no forge, no toolchain, no dead ends', async ({ page }) => {
+  await page.route(API, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withFiles) }));
+  await page.goto('/');
+  await expect(download(page, '#dl-primary')).toBeEnabled();
+  // File URLs are necessarily hosted on the forge; what the block must never
+  // show is a forge *page* (repo, releases index, tag notes) or dev setup.
+  const hrefs = await page.locator('#download a').evaluateAll((as) => as.map((a) => a.href));
+  expect(hrefs.length).toBeGreaterThan(0);
+  for (const h of hrefs) expect(h, 'every link in the block downloads a file').toMatch(/\/releases\/download\//);
+  const text = await page.locator('#download').innerText();
+  expect(text).not.toMatch(/fvm|flutter run|from source/i);
+});
+
+test('an asset-less release waits honestly instead of going dead', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route(API, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withoutFiles) }));
   await page.goto('/');
   await page.locator('#download').scrollIntoViewIfNeeded();
 
-  await expect(download(page, '#dl-title')).toContainText('v9.9.0-e2e');
-  await expect(download(page, '#dl-primary')).toHaveAttribute('href', /releases\/tag\/v9\.9\.0-e2e/);
-  await expect(download(page, '#dl-sub')).toContainText(/no installable files/);
-  await expect(download(page, '#dl-note')).toContainText(/no downloads attached/);
+  await expect(download(page, '#dl-primary')).toBeDisabled();
+  await expect(download(page, '#dl-primary')).toContainText('Coming soon');
+  await expect(download(page, '#dl-sub')).toContainText(/on the way/);
+  expect(await download(page, '#dl-menu')).toBeHidden();
   expect(errors).toEqual([]);
 });
 
-test('an unreachable API leaves the shipped fallback working', async ({ page }) => {
+test('an unreachable API waits honestly with no page errors', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route(API, (r) => r.abort('failed'));
   await page.goto('/');
   await page.locator('#download').scrollIntoViewIfNeeded();
 
-  // Static href survives untouched: the releases index always exists.
-  await expect(download(page, '#dl-primary')).toHaveAttribute(
-    'href',
-    'https://github.com/cassandre60/ChessSRS/releases',
-  );
-  await expect(download(page, '#dl-note')).toContainText(/releases page link still works/);
+  await expect(download(page, '#dl-primary')).toBeDisabled();
+  await expect(download(page, '#dl-note')).toContainText(/update server/);
   expect(errors).toEqual([]);
 });
 

@@ -1,8 +1,7 @@
-// Unit tests for download.js picking logic (invariant I-1).
+// Unit tests for download.js (invariant I-1: two clicks, zero detours).
 //
-// Pure helpers need no DOM. renderDownload/initDownload run against a tiny
-// fake document implementing only what download.js touches: getElementById,
-// createElement, setAttribute/getAttribute, textContent, append/remove.
+// renderDownload/initDownload run against a tiny fake document implementing
+// only what download.js touches.
 let fails = 0;
 const ok = (c, m) => {
   console.log((c ? "PASS " : "FAIL ") + m);
@@ -15,7 +14,10 @@ function fakeEl(tag) {
   return {
     tag,
     attrs: {},
+    dataset: {},
     children: [],
+    handlers: {},
+    hidden: false,
     _tc: "",
     firstChild: null,
     setAttribute(k, v) {
@@ -23,6 +25,16 @@ function fakeEl(tag) {
     },
     getAttribute(k) {
       return this.attrs[k] ?? null;
+    },
+    removeAttribute(k) {
+      delete this.attrs[k];
+    },
+    addEventListener(t, f) {
+      if (!this.handlers[t]) this.handlers[t] = [];
+      this.handlers[t].push(f);
+    },
+    fire(t, e = {}) {
+      for (const f of this.handlers[t] ?? []) f(e);
     },
     append(...nodes) {
       for (const n of nodes) this.children.push(n);
@@ -32,6 +44,9 @@ function fakeEl(tag) {
       this.children = this.children.filter((c) => c !== n);
       this.firstChild = this.children[0] ?? null;
     },
+    querySelector: () => undefined,
+    closest: () => null,
+    focus() {},
     get textContent() {
       return this._tc;
     },
@@ -43,18 +58,34 @@ function fakeEl(tag) {
 
 function fakeDoc() {
   const ids = {};
-  for (const id of ["dl-title", "dl-sub", "dl-primary", "dl-primary-tx", "dl-pick", "dl-note"]) {
-    const e = fakeEl("div");
-    if (id === "dl-primary") e.attrs.href = "https://github.com/o/r/releases";
-    ids[id] = e;
+  for (const id of ["dl-title", "dl-sub", "dl-primary", "dl-primary-tx", "dl-menu", "dl-note"]) {
+    ids[id] = fakeEl("div");
   }
+  ids["dl-primary"].setAttribute("disabled", "");
+  ids["dl-menu"].hidden = true;
   return {
     ids,
+    handlers: {},
     getElementById: (id) => ids[id] ?? null,
     createElement: (t) => fakeEl(t),
-    createTextNode: (v) => ({ nodeType: 3, text: String(v) }),
     querySelectorAll: () => [],
+    addEventListener(t, f) {
+      if (!this.handlers[t]) this.handlers[t] = [];
+      this.handlers[t].push(f);
+    },
   };
+}
+
+/** Every href rendered anywhere inside the block. */
+function blockHrefs(doc) {
+  const out = [];
+  const walk = (n) => {
+    if (!n || typeof n !== "object") return;
+    if (typeof n.attrs?.href === "string") out.push(n.attrs.href);
+    for (const c of n.children ?? []) walk(c);
+  };
+  for (const n of Object.values(doc.ids)) walk(n);
+  return out;
 }
 
 const asset = (name, size = 40 * 1024 * 1024) => ({
@@ -62,86 +93,85 @@ const asset = (name, size = 40 * 1024 * 1024) => ({
   size,
   browser_download_url: `https://github.com/o/r/releases/download/v9/${name}`,
 });
-const rel = (tag, assets, extra = {}) => ({
+const rel = (tag, assets) => ({
   tag_name: tag,
   prerelease: true,
   published_at: "2026-10-08T00:00:00Z",
   html_url: `https://github.com/o/r/releases/tag/${tag}`,
   assets,
-  ...extra,
 });
 
-// --- labels: every workflow artifact maps to a platform, AAB flagged ---
-ok(D.platformLabel("chesssrs-v0.4.0-linux-x64.tar.gz") === "Linux (.tar.gz)", "tarball labels Linux");
-ok(D.platformLabel("chesssrs-v0.4.0-android-testing.apk") === "Android (APK)", "apk labels Android");
-ok(
-  D.platformLabel("chesssrs-v0.4.0-android-testing.aab").includes("not installable"),
-  "aab flagged not installable",
-);
+// --- short labels for the menu pills ---
+ok(D.platformShort("chesssrs-v0.4.0-linux-x64.tar.gz") === "Linux", "tarball -> Linux");
+ok(D.platformShort("chesssrs-v0.4.0-android-testing.apk") === "Android", "apk -> Android");
 
-// --- installability: the store-upload bundle must never be a download ---
+// --- installability: the store-upload bundle is never offered ---
 ok(D.isInstallable("chesssrs-v0.4.0-linux-x64.tar.gz"), "tarball installable");
 ok(D.isInstallable("chesssrs-v0.4.0-android-testing.apk"), "apk installable");
-ok(!D.isInstallable("chesssrs-v0.4.0-android-testing.aab"), "aab excluded from direct download");
+ok(!D.isInstallable("chesssrs-v0.4.0-android-testing.aab"), "aab excluded");
 ok(!D.isInstallable("notes.txt"), "stray files excluded");
 
-// --- picking: OS preselect, newest release with files wins ---
+// --- picking: newest release carrying files wins ---
 const releases = [
   rel("v0.4.0", []),
-  rel("v0.3.0", [asset("chesssrs-v0.3.0-linux-x64.tar.gz"), asset("chesssrs-v0.3.0-android-testing.apk")]),
+  rel("v0.3.0", [
+    asset("chesssrs-v0.3.0-linux-x64.tar.gz"),
+    asset("chesssrs-v0.3.0-android-testing.apk"),
+    asset("chesssrs-v0.3.0-android-testing.aab"),
+  ]),
 ];
-const linux = D.pickPrimary(releases, "linux");
-ok(linux?.asset.name.endsWith(".tar.gz") && linux.release.tag_name === "v0.3.0", "linux preselects tarball from newest release carrying files");
-const android = D.pickPrimary(releases, "android");
-ok(android?.asset.name.endsWith(".apk"), "android preselects apk");
-const other = D.pickPrimary(releases, "other");
-ok(other?.asset.name.endsWith(".tar.gz"), "unknown OS defaults to the desktop build");
-ok(D.pickPrimary([rel("v0.4.0", [])], "linux") === null, "no files anywhere -> null");
-ok(D.pickPrimary([], "linux") === null, "no releases -> null");
-ok(D.pickPrimary(null, "linux") === null, "garbage input -> null");
+const picked = D.pickRelease(releases);
+ok(picked?.release.tag_name === "v0.3.0", "newest release carrying files wins");
+ok(picked?.files.length === 2, "only installable files picked (aab dropped)");
+ok(D.pickRelease([rel("v0.4.0", [])]) === null, "no files anywhere -> null");
+ok(D.pickRelease([]) === null, "no releases -> null");
+ok(D.pickRelease(null) === null, "garbage input -> null");
 
-// newestRelease ignores attachments
-ok(D.newestRelease(releases)?.tag_name === "v0.4.0", "newest release returned regardless of files");
-ok(D.newestRelease([]) === null, "empty list -> null");
-
-// --- platform detection never throws on odd inputs ---
-ok(D.detectPlatform("Linux x86_64", "", "") === "linux", "linux detected");
-ok(D.detectPlatform("", "Android", "") === "android", "android detected");
-ok(D.detectPlatform(undefined, undefined, undefined) === "other", "missing navigator -> other");
-
-// --- sizes stay human ---
-ok(D.formatSize(38 * 1024 * 1024).includes("MB"), "megabytes formatted");
-ok(D.formatSize(512) === "512 B", "bytes formatted");
+ok(D.formatSize(41 * 1024 * 1024).includes("MB"), "megabytes formatted");
 ok(D.formatSize(-1) === "", "negative size blanked");
 
-// --- rendering: direct state rewrites primary + chooser ---
+// --- rendering: button + menu, direct file hrefs, nothing else ---
 {
   const doc = fakeDoc();
-  const state = D.renderDownload(doc, releases, "linux");
+  const state = D.renderDownload(doc, releases);
   ok(state === "direct", "files present -> direct state");
-  ok(doc.ids["dl-primary"].attrs.href.includes(".tar.gz"), "primary href is the direct file");
-  ok(doc.ids["dl-title"].textContent.includes("v0.3.0"), "title carries the live tag");
-  ok(doc.ids["dl-pick"].children.length === 3, "chooser lists both files plus the all-files row");
+  ok(doc.ids["dl-primary"].getAttribute("disabled") === null, "button enabled");
+  ok(doc.ids["dl-primary-tx"].textContent.includes("v0.3.0"), "button names the live tag");
+  ok(doc.ids["dl-menu"].children.length === 2, "menu lists exactly the installable files");
+  const hrefs = blockHrefs(doc);
+  ok(hrefs.length === 2 && hrefs.every((h) => h.includes("/releases/download/")), "menu rows link straight at the files");
+  // File URLs are necessarily hosted there; what the block must never show
+  // is a forge *page* (repo, releases index, tag notes).
+  ok(hrefs.every((h) => !/\/(tree|blob|releases\/(tag|latest)|releases\/?$)/.test(h)), "no forge pages anywhere in the block");
 }
 
-// --- rendering: asset-less release stays honest ---
+// --- menu toggle: click opens, click closes, Escape closes ---
 {
   const doc = fakeDoc();
-  const state = D.renderDownload(doc, [rel("v0.4.0", [])], "linux");
-  ok(state === "notes", "files absent -> notes state");
-  ok(doc.ids["dl-primary-tx"].textContent.includes("v0.4.0"), "primary names the tag, not a file");
-  ok(doc.ids["dl-primary"].attrs.href.includes("/releases/tag/v0.4.0"), "primary falls back to the release page");
-  ok(/no installable files/.test(doc.ids["dl-sub"].textContent), "copy admits no files are attached");
+  D.renderDownload(doc, releases);
+  const primary = doc.ids["dl-primary"];
+  const menu = doc.ids["dl-menu"];
+  primary.fire("click");
+  ok(menu.hidden === false && primary.getAttribute("aria-expanded") === "true", "click opens the menu");
+  primary.fire("click");
+  ok(menu.hidden === true && primary.getAttribute("aria-expanded") === "false", "click closes the menu");
+  primary.fire("click");
+  menu.fire("keydown", { key: "Escape" });
+  ok(menu.hidden === true, "Escape closes the menu");
 }
 
-// --- rendering: offline never breaks the shipped fallback ---
+// --- waiting state: honest, no external links, no dev noise ---
 {
   const doc = fakeDoc();
-  ok(D.renderOffline(doc) === "offline", "offline path returns offline");
-  ok(doc.ids["dl-primary"].attrs.href === "https://github.com/o/r/releases", "offline leaves the static releases link untouched");
+  const state = D.renderDownload(doc, [rel("v0.4.0", [])]);
+  ok(state === "soon", "files absent -> soon state");
+  ok(doc.ids["dl-primary"].getAttribute("disabled") === "", "button waits disabled");
+  ok(doc.ids["dl-primary-tx"].textContent === "Coming soon", "button says coming soon");
+  ok(blockHrefs(doc).length === 0, "waiting block links nowhere");
+  ok(!JSON.stringify(doc.ids).includes("fvm"), "no toolchain instructions in the block");
 }
 
-// --- initDownload: repo derived from page links, failures degrade ---
+// --- initDownload: repo derived from page links, failures wait honestly ---
 {
   const doc = fakeDoc();
   doc.querySelectorAll = () => [{ getAttribute: () => "https://github.com/cassandre60/ChessSRS" }];
@@ -150,15 +180,15 @@ ok(D.formatSize(-1) === "", "negative size blanked");
     seen.push([url, opts]);
     return Promise.resolve({ ok: true, json: () => Promise.resolve([rel("v0.4.0", [])]) });
   };
-  D.initDownload(doc, fetchFn, {}).then((state) => {
-    ok(state === "notes", "init resolves through the derived repo");
+  D.initDownload(doc, fetchFn).then((state) => {
+    ok(state === "soon", "asset-less release waits honestly");
     ok(seen[0][0] === "https://api.github.com/repos/cassandre60/ChessSRS/releases?per_page=10", "API URL derived from the page, not hardcoded");
-    ok((seen[0][1].headers.Accept ?? "").includes("github+json"), "versioned Accept header sent");
-    const badDoc = fakeDoc();
-    badDoc.querySelectorAll = () => [{ getAttribute: () => "https://github.com/cassandre60/ChessSRS" }];
-    const bad = D.initDownload(badDoc, () => Promise.reject(new Error("down")), {});
-    bad.then((s) => {
-      ok(s === "error", "fetch rejection degrades instead of throwing");
+    const offDoc = fakeDoc();
+    offDoc.querySelectorAll = doc.querySelectorAll;
+    D.initDownload(offDoc, () => Promise.reject(new Error("down"))).then((s) => {
+      ok(s === "soon", "fetch rejection waits instead of throwing");
+      ok(/update server/.test(offDoc.ids["dl-note"].textContent), "offline note names the problem, not a forge");
+      ok(blockHrefs(offDoc).length === 0, "offline block links nowhere");
       process.exitCode = fails ? 1 : 0;
       console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
     });

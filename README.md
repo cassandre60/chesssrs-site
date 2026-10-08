@@ -16,7 +16,7 @@ The official website and interactive web demo for **ChessSRS**, a free, open-sou
 - **`engine.js`**: ChessSRS FSRS-5 mathematical scheduler (Decision D015 DSR model) and PGN parsing/export logic. Zero DOM dependencies.
 - **`pieces.js`**: Authentic vector piece definitions (`gK`, `gQ`, `gR`, `gB`, `gN`, `gP`) from the ChessSRS Diagram identity, plus static story board rendering.
 - **`demo.js`**: Interactive Review screen demo (study picker, study actions, library/settings sheet, FSRS binary recall, practice mode, keyboard navigation, and PGN import).
-- **`download.js`**: Live download block for `#download` — fetches the releases API, turns the primary button into a direct download of the newest installable build with a per-file chooser, and keeps an honest releases-page fallback offline or when no files are attached. Pure picking logic is unit-tested (`tests/download.test.js`).
+- **`download.js`**: Download block for `#download` — fetches the releases API, offers a Download button opening a small platform menu where each click starts the file directly. Honest "Coming soon" wait while no files are attached; no forge or toolchain surface in the block. Pure picking logic is unit-tested (`tests/download.test.js`).
 - **`assets/`**:
   - `fonts/`: Self-hosted OFL fonts (`Geist`, `Geist Mono`, `Instrument Serif`).
   - `app-review.webp`: High-resolution authentic screenshot of the app's review screen.
