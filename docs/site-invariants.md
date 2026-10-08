@@ -12,7 +12,9 @@ Violating any invariant fails the gates in §4, not just review.
 - The `#download` block is one button plus one platform menu. Click
   **Download** → pick the platform → the file downloads straight away from
   its attachment URL. No accounts, no intermediate pages, no forge, host, or
-  build-toolchain surface anywhere in the block.
+  build-toolchain surface anywhere in the block. Every Download entry point
+  (nav, hero, section) opens the same menu in place — the visitor never
+  travels down the page to find their file.
 - The homepage carries **no developer instructions** (no build/run commands,
   no source checkouts). Developer paths live with the Source links in the
   nav and footer, where developers already look.

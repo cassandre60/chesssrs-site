@@ -51,6 +51,7 @@ const withoutFiles = [
 ];
 
 const download = (page, sel) => page.locator(`#download ${sel}`);
+const menu = (page, sel = '') => page.locator(`#dl-menu${sel ? ` ${sel}` : ''}`);
 
 test('a platform click starts a real file download', async ({ page }) => {
   const errors = [];
@@ -68,19 +69,42 @@ test('a platform click starts a real file download', async ({ page }) => {
 
   await expect(download(page, '#dl-primary')).toBeEnabled();
   // The menu starts closed and names both platforms once opened.
-  await expect(download(page, '#dl-menu')).toBeHidden();
+  await expect(menu(page)).toBeHidden();
   await download(page, '#dl-primary').click();
-  await expect(download(page, '#dl-menu')).toBeVisible();
-  await expect(download(page, '#dl-menu')).toContainText('Linux');
-  await expect(download(page, '#dl-menu')).toContainText('Android');
+  await expect(menu(page)).toBeVisible();
+  await expect(menu(page)).toContainText('Linux');
+  await expect(menu(page)).toContainText('Android');
   // The store-upload bundle is not offered at all.
-  await expect(download(page, '#dl-menu')).not.toContainText('aab');
+  await expect(menu(page)).not.toContainText('aab');
   // Clicking a platform starts the file download right away.
   const [dl] = await Promise.all([
     page.waitForEvent('download'),
-    download(page, '#dl-menu a').first().click(),
+    menu(page, 'a').first().click(),
   ]);
   expect(dl.suggestedFilename()).toMatch(/\.tar\.gz$/);
+  expect(errors).toEqual([]);
+});
+
+test('nav and hero Download entries open the menu in place', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.route(API, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withFiles) }));
+  await page.goto('/');
+  await expect(page.locator('.hd [data-dlmenu]')).toBeVisible();
+
+  // Header entry: the menu appears at the top, the page never scrolls.
+  await page.locator('.hd [data-dlmenu]').click();
+  const popover = page.locator('#dl-menu');
+  await expect(popover).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  const headBox = await popover.boundingBox();
+  expect(headBox.y, 'menu opens under the header entry').toBeLessThan(200);
+  await page.keyboard.press('Escape');
+
+  // Hero entry: same menu, anchored near the hero button instead.
+  await page.locator('.hero [data-dlmenu]').click();
+  await expect(popover).toBeVisible();
+  await expect(popover).toContainText('Linux');
   expect(errors).toEqual([]);
 });
 
@@ -90,11 +114,13 @@ test('the block exposes no detours: no forge, no toolchain, no dead ends', async
   await expect(download(page, '#dl-primary')).toBeEnabled();
   // File URLs are necessarily hosted on the forge; what the block must never
   // show is a forge *page* (repo, releases index, tag notes) or dev setup.
-  const hrefs = await page.locator('#download a').evaluateAll((as) => as.map((a) => a.href));
+  const hrefs = await menu(page, 'a').evaluateAll((as) => as.map((a) => a.href));
   expect(hrefs.length).toBeGreaterThan(0);
   for (const h of hrefs) expect(h, 'every link in the block downloads a file').toMatch(/\/releases\/download\//);
   const text = await page.locator('#download').innerText();
   expect(text).not.toMatch(/fvm|flutter run|from source/i);
+  // And the section itself links nowhere external at all.
+  expect(await page.locator('#download a').count()).toBe(0);
 });
 
 test('an asset-less release waits honestly instead of going dead', async ({ page }) => {
@@ -107,7 +133,7 @@ test('an asset-less release waits honestly instead of going dead', async ({ page
   await expect(download(page, '#dl-primary')).toBeDisabled();
   await expect(download(page, '#dl-primary')).toContainText('Coming soon');
   await expect(download(page, '#dl-sub')).toContainText(/on the way/);
-  expect(await download(page, '#dl-menu')).toBeHidden();
+  await expect(menu(page)).toBeHidden();
   expect(errors).toEqual([]);
 });
 

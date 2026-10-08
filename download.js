@@ -90,13 +90,25 @@
     return a;
   }
 
-  function setMenuOpen(doc, open) {
-    const primary = doc.getElementById("dl-primary");
+  function setMenuOpen(doc, open, trigger) {
     const menu = doc.getElementById("dl-menu");
-    if (!primary || !menu) return;
+    if (!menu) return;
+    if (open && trigger && typeof trigger.getBoundingClientRect === "function") placeMenu(menu, trigger);
     menu.hidden = !open;
-    primary.setAttribute("aria-expanded", String(open));
+    for (const t of doc.querySelectorAll('[data-dlmenu], #dl-primary')) {
+      t.setAttribute?.("aria-expanded", String(open && t === trigger));
+    }
     if (open) menu.querySelector("a")?.focus?.();
+  }
+
+  /** Anchors the shared menu under whichever Download entry opened it.
+   *  position:fixed uses viewport coordinates, so no scroll math needed. */
+  function placeMenu(menu, trigger) {
+    const r = trigger.getBoundingClientRect();
+    const vw = (typeof window !== "undefined" && window.innerWidth) || 1280;
+    const mw = 280;
+    menu.style.top = `${r.bottom + 8}px`;
+    menu.style.left = `${Math.max(8, Math.min(r.left, vw - mw - 8))}px`;
   }
 
   function bindMenu(doc) {
@@ -104,18 +116,30 @@
     const menu = doc.getElementById("dl-menu");
     if (!primary || !menu || primary.dataset?.bound) return;
     if (primary.dataset) primary.dataset.bound = "1";
-    primary.addEventListener("click", () => setMenuOpen(doc, menu.hidden));
+    const triggers = [...doc.querySelectorAll("[data-dlmenu]"), primary];
+    const toggle = (trigger, e) => {
+      // No files yet: leave the anchor alone so it scrolls to the
+      // honest "Coming soon" state instead of opening an empty menu.
+      if (!menu.children.length) return;
+      e?.preventDefault?.();
+      setMenuOpen(doc, menu.hidden, trigger);
+    };
+    for (const t of triggers) t.addEventListener("click", (e) => toggle(t, e));
     menu.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
+        const opener = triggers.find((t) => t.getAttribute?.("aria-expanded") === "true");
         setMenuOpen(doc, false);
-        primary.focus?.();
+        opener?.focus?.();
       }
     });
     menu.addEventListener("click", (e) => {
       if (e.target?.closest?.("a")) setMenuOpen(doc, false);
     });
     doc.addEventListener("click", (e) => {
-      if (!menu.hidden && !e.target?.closest?.(".dl-cta")) setMenuOpen(doc, false);
+      if (!menu.hidden && !e.target?.closest?.("#dl-menu, [data-dlmenu], #dl-primary")) setMenuOpen(doc, false);
+    });
+    doc.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !menu.hidden) setMenuOpen(doc, false);
     });
   }
 

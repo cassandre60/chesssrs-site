@@ -15,6 +15,7 @@ function fakeEl(tag) {
     tag,
     attrs: {},
     dataset: {},
+    style: {},
     children: [],
     handlers: {},
     hidden: false,
@@ -63,17 +64,20 @@ function fakeDoc() {
   }
   ids["dl-primary"].setAttribute("disabled", "");
   ids["dl-menu"].hidden = true;
-  return {
+  const doc = {
     ids,
     handlers: {},
+    triggers: [],
     getElementById: (id) => ids[id] ?? null,
     createElement: (t) => fakeEl(t),
-    querySelectorAll: () => [],
+    querySelectorAll: (sel) =>
+      String(sel).includes("#dl-primary") ? [...doc.triggers, doc.ids["dl-primary"]] : [...doc.triggers],
     addEventListener(t, f) {
       if (!this.handlers[t]) this.handlers[t] = [];
       this.handlers[t].push(f);
     },
   };
+  return doc;
 }
 
 /** Every href rendered anywhere inside the block. */
@@ -145,19 +149,36 @@ ok(D.formatSize(-1) === "", "negative size blanked");
   ok(hrefs.every((h) => !/\/(tree|blob|releases\/(tag|latest)|releases\/?$)/.test(h)), "no forge pages anywhere in the block");
 }
 
-// --- menu toggle: click opens, click closes, Escape closes ---
+// --- menu toggle: every Download entry opens the same menu in place ---
 {
   const doc = fakeDoc();
+  const nav = fakeEl("a");
+  nav.getBoundingClientRect = () => ({ left: 100, bottom: 50 });
+  doc.triggers = [nav];
   D.renderDownload(doc, releases);
   const primary = doc.ids["dl-primary"];
   const menu = doc.ids["dl-menu"];
-  primary.fire("click");
-  ok(menu.hidden === false && primary.getAttribute("aria-expanded") === "true", "click opens the menu");
-  primary.fire("click");
-  ok(menu.hidden === true && primary.getAttribute("aria-expanded") === "false", "click closes the menu");
-  primary.fire("click");
+  let prevented = 0;
+  primary.fire("click", { preventDefault: () => {} });
+  ok(menu.hidden === false && primary.getAttribute("aria-expanded") === "true", "section button opens the menu");
+  primary.fire("click", { preventDefault: () => {} });
+  ok(menu.hidden === true, "click closes the menu");
+  nav.fire("click", { preventDefault: () => prevented++ });
+  ok(menu.hidden === false && prevented === 1, "nav entry opens the same menu in place without navigating");
+  ok(menu.style.top === "58px" && menu.style.left === "100px", "menu anchors under the entry that opened it");
   menu.fire("keydown", { key: "Escape" });
   ok(menu.hidden === true, "Escape closes the menu");
+}
+
+// --- no files: entries keep their anchor fallback to the waiting block ---
+{
+  const doc = fakeDoc();
+  let prevented = 0;
+  const nav = fakeEl("a");
+  doc.triggers = [nav];
+  D.renderDownload(doc, [rel("v0.4.0", [])]);
+  nav.fire("click", { preventDefault: () => prevented++ });
+  ok(prevented === 0 && doc.ids["dl-menu"].hidden === true, "empty menu never opens; anchor scrolls to Coming soon");
 }
 
 // --- waiting state: honest, no external links, no dev noise ---
@@ -174,7 +195,7 @@ ok(D.formatSize(-1) === "", "negative size blanked");
 // --- initDownload: repo derived from page links, failures wait honestly ---
 {
   const doc = fakeDoc();
-  doc.querySelectorAll = () => [{ getAttribute: () => "https://github.com/cassandre60/ChessSRS" }];
+  doc.triggers = [{ getAttribute: () => "https://github.com/cassandre60/ChessSRS" }];
   const seen = [];
   const fetchFn = (url, opts) => {
     seen.push([url, opts]);
@@ -184,7 +205,7 @@ ok(D.formatSize(-1) === "", "negative size blanked");
     ok(state === "soon", "asset-less release waits honestly");
     ok(seen[0][0] === "https://api.github.com/repos/cassandre60/ChessSRS/releases?per_page=10", "API URL derived from the page, not hardcoded");
     const offDoc = fakeDoc();
-    offDoc.querySelectorAll = doc.querySelectorAll;
+    offDoc.triggers = doc.triggers;
     D.initDownload(offDoc, () => Promise.reject(new Error("down"))).then((s) => {
       ok(s === "soon", "fetch rejection waits instead of throwing");
       ok(/update server/.test(offDoc.ids["dl-note"].textContent), "offline note names the problem, not a forge");
