@@ -9,7 +9,7 @@ This document verifies and sources every factual claim made on the ChessSRS mark
 | Claim | Verified Reality | Source / Proof |
 |---|---|---|
 | **Name** | `ChessSRS` | `pubspec.yaml` (name: `chess_srs`), `PRODUCT.md` |
-| **Current Version** | `0.2.1-beta` / `0.2.0` | `pubspec.yaml` (version `0.2.0+1`), GitHub release tags `v0.2.0-beta`, `v0.2.1-beta` |
+| **Current Version** | Live release tag via the releases API (`v1.1.2` with Linux/Android files at last check); `pubspec.yaml` version `1.1.0+4` as the synced fallback | `pubspec.yaml`, GitHub release tags, `download.js` live tag + `data-app-version` slots (see `docs/site-invariants.md` I-1) |
 | **Licence** | GNU General Public License v3.0 (GPL-3.0) | `LICENSE` file in repo root, `COPYING.md` |
 | **Foundation / Pedigree** | Fork of Lichess Mobile (Flutter) | `COPYING.md`, `README.md`, commit `0bf10db2a` |
 | **Pricing** | Free, zero ads, no subscriptions | `docs/01-identity.md`, `COPYING.md`, `lib/src/` |

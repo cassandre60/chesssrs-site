@@ -72,6 +72,10 @@
   const META = window.CHESSSRS_META || { accents: [], motion: {} };
   const ACC = META.accents;
   const MOTION = META.motion || {};
+  /* The About screen names the app version from the same generated metadata
+     (pubspec.yaml via scripts/sync-design.js) — never a literal, so the demo
+     cannot drift a release behind the app. */
+  const APP_VERSION = META.version ? String(META.version).trim().replace(/^[vV]/, "") : "";
   const QUICK_ADVANCE_MS = MOTION.quietAdvanceMs ?? 560;
   const OPPONENT_REPLY_MS = MOTION.pieceMoveMs ?? 170;
   const set = { theme: "dark", accent: (ACC.find(a => a.default) || ACC[0])?.id, sound: false, coords: true, arrows: true, retention: 88, limit: 20, scheduler: "fsrs", showHistory: false, showArrows: true, showNotes: true, diagnostics: false, soundTheme: "Classic", masterVolume: 1 };
@@ -921,7 +925,7 @@
   const about = () => {
     closeSheet();
     $("#setTitle").textContent = "About";
-    $("#settingsBody").innerHTML = `<div class="set-group"><p class="pad">ChessSRS 0.2.0 is free software under GPL-3.0, a fork of Lichess Mobile. This demo runs entirely in your browser and saves nothing.</p><div class="lib-group"><a class="lib-row" href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener"><span>ChessSRS source</span></a><a class="lib-row" href="https://github.com/lichess-org/mobile" target="_blank" rel="noopener"><span>Lichess Mobile source</span></a></div></div>`;
+    $("#settingsBody").innerHTML = `<div class="set-group"><p class="pad">ChessSRS${APP_VERSION ? ` ${APP_VERSION}` : ""} is free software under GPL-3.0, a fork of Lichess Mobile. This demo runs entirely in your browser and saves nothing.</p><div class="lib-group"><a class="lib-row" href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener"><span>ChessSRS source</span></a><a class="lib-row" href="https://github.com/lichess-org/mobile" target="_blank" rel="noopener"><span>Lichess Mobile source</span></a></div></div>`;
     view("settings");
   };
 

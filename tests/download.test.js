@@ -13,11 +13,16 @@ const { fakeEl, fakeDoc } = require("./fake-dom");
 
 function downloadDoc(triggers = []) {
   const doc = fakeDoc(
-    ["dl-title", "dl-sub", "dl-primary", "dl-primary-tx", "dl-menu", "dl-note"],
+    ["dl-title", "dl-sub", "dl-primary", "dl-primary-tx", "dl-menu", "dl-note", "app-ld", "v-hero", "v-foot"],
     triggers,
   );
   doc.ids["dl-primary"].setAttribute("disabled", "");
   doc.ids["dl-menu"].hidden = true;
+  // Hero pill and footer share the data-app-version markup (no ids in the
+  // real DOM); the fake flags them the same way querySelectorAll selects.
+  doc.ids["v-hero"].dataset.appVersion = "";
+  doc.ids["v-foot"].dataset.appVersion = "";
+  doc.ids["app-ld"].textContent = JSON.stringify({ softwareVersion: "stale" });
   return doc;
 }
 
@@ -129,6 +134,89 @@ ok(D.formatSize(-1) === "", "negative size blanked");
   ok(doc.ids["dl-primary-tx"].textContent === "Coming soon", "button says coming soon");
   ok(blockHrefs(doc).length === 0, "waiting block links nowhere");
   ok(!JSON.stringify(doc.ids).includes("fvm"), "no toolchain instructions in the block");
+}
+
+// --- versions: every slot shows the live tag, never a hardcoded number ---
+{
+  ok(D.bareVersion("v1.1.2") === "1.1.2", "release tag v-prefix stripped for display");
+  ok(D.bareVersion("1.1.0") === "1.1.0", "bare version passes through");
+  ok(D.bareVersion("") === "" && D.bareVersion(null) === "", "empty version stays empty");
+
+  const doc = downloadDoc();
+  const v = D.renderVersion(doc, "v9.9.9-e2e");
+  ok(v === "9.9.9-e2e", "renderVersion returns the bare live tag");
+  ok(
+    doc.ids["v-hero"].textContent === "9.9.9-e2e" && doc.ids["v-foot"].textContent === "9.9.9-e2e",
+    "hero and footer slots updated",
+  );
+  ok(
+    JSON.parse(doc.ids["app-ld"].textContent).softwareVersion === "9.9.9-e2e",
+    "JSON-LD softwareVersion follows the live tag",
+  );
+}
+
+// --- versions: live tag wins on direct, synced app version while waiting ---
+{
+  const prevWindow = global.window;
+  global.window = { CHESSSRS_META: { version: "1.1.0" } };
+  try {
+    ok(D.metaVersion() === "1.1.0", "synced app version readable");
+    const direct = downloadDoc();
+    D.renderDownload(direct, releases);
+    ok(direct.ids["v-hero"].textContent === "0.3.0", "direct state shows the live tag, not the synced version");
+    const soon = downloadDoc();
+    D.renderDownload(soon, [rel("v0.4.0", [])]);
+    ok(soon.ids["v-hero"].textContent === "1.1.0", "waiting state falls back to the synced app version");
+  } finally {
+    if (prevWindow === undefined) delete global.window;
+    else global.window = prevWindow;
+  }
+}
+
+// --- menu: a page scroll dismisses it, a scroll inside it does not ---
+{
+  const doc = downloadDoc();
+  D.renderDownload(doc, releases);
+  const menu = doc.ids["dl-menu"];
+  const primary = doc.ids["dl-primary"];
+  primary.fire("click", { preventDefault: () => {} });
+  ok(menu.hidden === false, "menu open before scroll");
+  doc.fire("scroll", { target: null });
+  ok(menu.hidden === true, "page scroll dismisses the menu");
+  primary.fire("click", { preventDefault: () => {} });
+  ok(menu.hidden === false, "menu reopens after dismissal");
+  const inner = fakeEl("div");
+  inner.closest = () => menu;
+  doc.fire("scroll", { target: inner });
+  ok(menu.hidden === false, "scroll inside the menu keeps it open");
+}
+
+// --- menu: window scroll/resize listeners dismiss it in the browser ---
+{
+  const events = {};
+  const prevWindow = global.window;
+  global.window = {
+    CHESSSRS_META: { version: "1.1.0" },
+    innerWidth: 1280,
+    innerHeight: 800,
+    addEventListener: (t, f) => {
+      if (!events[t]) events[t] = [];
+      events[t].push(f);
+    },
+  };
+  try {
+    const doc = downloadDoc();
+    D.renderDownload(doc, releases);
+    const menu = doc.ids["dl-menu"];
+    doc.ids["dl-primary"].fire("click", { preventDefault: () => {} });
+    ok(menu.hidden === false, "menu open before resize");
+    for (const f of events.resize || []) f();
+    ok(menu.hidden === true, "resize dismisses the menu");
+    ok((events.scroll || []).length > 0, "scroll listener registered on window");
+  } finally {
+    if (prevWindow === undefined) delete global.window;
+    else global.window = prevWindow;
+  }
 }
 
 // --- initDownload: repo derived from page links, failures wait honestly ---

@@ -30,7 +30,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const APP_DIR = process.env.CHESSSRS_APP_DIR || '/home/mohamed/Desktop/Github/Chess Repertoire SRS';
+const APP_DIR =
+  require('./resolve-app-dir').resolveAppDir() ||
+  process.env.CHESSSRS_APP_DIR ||
+  '/home/mohamed/Desktop/Github/Chess Repertoire SRS';
 const SITE = path.resolve(__dirname, '..');
 const CHECK = process.argv.includes('--check');
 const OUT = 'design/app-ui.json';

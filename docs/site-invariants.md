@@ -20,10 +20,18 @@ Violating any invariant fails the gates in §4, not just review.
   nav and footer, where developers already look.
 - The file list is fetched live from the releases API at page load
   (`download.js`); the version shown is the **live release tag**, never a
-  hardcoded string. Until a release carries installable files, the button
+  hardcoded string — in the `#download` block itself and in every version
+  slot outside it (hero pill, footer line, JSON-LD `softwareVersion`, demo
+  About screen). Until the API answers, those slots show the app version
+  synced from `pubspec.yaml` (`scripts/sync-version.js`,
+  `assets/app-meta.js`); a stale hand-typed number anywhere visible violates
+  this invariant. Until a release carries installable files, the button
   waits honestly as **"Coming soon"** with "Installable builds are on the
   way — Linux and Android first." A dead button, a placeholder href, or a
   silently stale version all violate this invariant.
+- The platform menu is anchored under the entry that opened it and dismissed
+  by any page scroll or resize — a `position:fixed` menu that outlives its
+  trigger floats in the viewport after the visitor scrolls away.
 - Only genuinely installable files are offered (store-upload bundles are
   never listed). Nothing installable is hidden; every attachment gets a
   menu row with its platform and size.

@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="assets/demo-reference.css">
   <link rel="stylesheet" href="styles.css">
 <script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ChessSRS","url":"https://cassandre60.github.io/chesssrs-site/","applicationCategory":"EducationalApplication","operatingSystem":["Android","Linux"],"softwareVersion":"0.2.0","license":"https://www.gnu.org/licenses/gpl-3.0.html","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<script type="application/ld+json" id="app-ld">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ChessSRS","url":"https://cassandre60.github.io/chesssrs-site/","applicationCategory":"EducationalApplication","operatingSystem":["Android","Linux"],"softwareVersion":"1.1.0","license":"https://www.gnu.org/licenses/gpl-3.0.html","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -51,7 +51,7 @@
 
 <main id="main">
 <section class="c hero">
-  <p class="mk-meta mono"><i></i>Version 0.2.0 · Internal testing · Free and open source</p>
+  <p class="mk-meta mono"><i></i>Version <span data-app-version>1.1.0</span> · Internal testing · Free and open source</p>
   <h1>Remember every opening you've prepared.</h1>
   <p class="lede">ChessSRS turns your PGN studies into a calm daily review. Play each move from memory — your lines are the answer key, not an engine's — and see each line again right when it is due.</p>
   <div class="cta">
@@ -142,14 +142,14 @@
     <div><h3>Project</h3><ul><li><a href="https://github.com/cassandre60/ChessSRS">GitHub</a></li><li><a href="https://github.com/cassandre60/ChessSRS/releases">Releases</a></li><li><a href="credits.html">Credits & Licences</a></li><li><a href="privacy.html">Privacy Policy</a></li></ul></div>
     <div><h3>Support</h3><ul><li><a href="https://github.com/cassandre60/ChessSRS/issues">Report an issue</a></li><li><a href="https://buymeacoffee.com/cassandre60" target="_blank" rel="noopener">Buy me a coffee</a></li><li><a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0 licence</a></li></ul></div>
   </div>
-  <div class="fb"><span>© 2026 ChessSRS. Not affiliated with Lichess. This site sets no cookies and uses no analytics.</span><span>Version 0.2.0</span></div>
+  <div class="fb"><span>© 2026 ChessSRS. Not affiliated with Lichess. This site sets no cookies and uses no analytics.</span><span>Version <span data-app-version>1.1.0</span></span></div>
 </div></footer>
+<script src="assets/app-meta.js" defer></script>
 <script src="main.js" defer></script>
 <script src="download.js" defer></script>
 <div class="dl-menu" id="dl-menu" role="menu" aria-label="Choose your platform" hidden></div>
 <script src="chess.bundle.js" defer></script>
 <script src="engine.js" defer></script>
-<script src="assets/app-meta.js" defer></script>
 <script src="assets/figurines.js" defer></script>
 <script src="pieces.js" defer></script>
 <script src="demo.js" defer></script>

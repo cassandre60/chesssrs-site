@@ -29,13 +29,13 @@ jobs:
       - name: Run unit tests
         run: npm test
 
-      # scripts/sync-design.js and scripts/sync-strings.js read the Flutter app repo, which is not a
-      # submodule, so this only runs where a sibling checkout exists. The other half of the drift
+      # scripts/sync-*.js read the Flutter app repo, which is not a
+      # submodule, so this only runs where a checkout exists. The other half of the drift
       # gate — design/app-ui.json vs the running demo — is tests/e2e/app-parity.spec.js below, and
       # it runs everywhere, because the manifest is committed.
       - name: Check generated files against the app repo (skipped when absent)
         run: |
-          APP_DIR="${CHESSSRS_APP_DIR:-$HOME/Chess Repertoire SRS}"
+          APP_DIR="${CHESSSRS_APP_DIR:-$HOME/Desktop/Github/ChessSRS}"
           if [ -d "$APP_DIR" ]; then
             CHESSSRS_APP_DIR="$APP_DIR" npm run sync:check
           else

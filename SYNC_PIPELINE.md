@@ -1,9 +1,12 @@
 # ChessSRS Demo ↔ App Sync Pipeline
 
-The app repo (`/home/mohamed/Desktop/Github/Chess Repertoire SRS`) is the source of truth. This
+The app repo is the source of truth, resolved by `scripts/resolve-app-dir.js`
+(`CHESSSRS_APP_DIR` override, a `ChessSRS` checkout cloned alongside this
+repo, then legacy paths — a directory only counts when it carries a
+`pubspec.yaml`). This
 document records which of its inputs reach the demo without a human in the loop, and which do not.
 
-## What syncs automatically (`scripts/sync-design.js --check`, a CI gate)
+## What syncs automatically (`npm run sync:check`, a CI gate)
 
 | Source | Target | Note |
 |--------|--------|------|
@@ -11,6 +14,7 @@ document records which of its inputs reach the demo without a human in the loop,
 | `design/reference/styles.css` | `assets/demo-reference.css` | Verbatim. Never hand-edited — additions live in the `DEMO-ONLY ADDITIONS` block of `styles.css` |
 | `design/tokens/tokens.json` | `assets/app-meta.js` | Accent ids, fonts, motion |
 | `pubspec.yaml` version | `assets/app-meta.js` version | |
+| `pubspec.yaml` version | `index.html` hero pill, footer line, JSON-LD `softwareVersion` | Patched by `scripts/sync-version.js`; the live release tag overrides these slots at runtime once the releases API answers (`download.js`), the synced version is the offline/crawler fallback |
 | `assets/fonts/InstrumentSans[wdth,wght].ttf` | `assets/fonts/InstrumentSans-var.ttf` | Brackets renamed for URL safety; bytes untouched |
 | `assets/fonts/Newsreader[opsz,wght].ttf` | `assets/fonts/Newsreader-var.ttf` | |
 | `assets/figurines/*.svg` | `assets/figurines.js` + `assets/figurines/*.svg` | Inlined for the notation line, and copied for reference |

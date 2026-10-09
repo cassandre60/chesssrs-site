@@ -64,14 +64,23 @@ function fakeDoc(ids = [], triggers = []) {
     createElement: (t) => fakeEl(t),
     createTextNode: (v) => ({ nodeType: 3, text: String(v) }),
     querySelectorAll: (sel) => {
+      const s = String(sel);
+      // Version slots carry data-app-version rather than ids (hero pill and
+      // footer share the markup); tests flag them via dataset.appVersion.
+      if (s.includes("data-app-version")) {
+        return Object.values(byId).filter((n) => n.dataset?.appVersion !== undefined);
+      }
       const out = [...doc.triggers];
-      const m = String(sel).match(/#([\w-]+)/);
+      const m = s.match(/#([\w-]+)/);
       if (m && byId[m[1]] && !out.includes(byId[m[1]])) out.push(byId[m[1]]);
       return out;
     },
-    addEventListener(t, f) {
+    addEventListener(t, f, _opts) {
       if (!this.handlers[t]) this.handlers[t] = [];
       this.handlers[t].push(f);
+    },
+    fire(t, e = {}) {
+      for (const f of this.handlers[t] ?? []) f(e);
     },
   };
   return doc;

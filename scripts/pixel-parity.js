@@ -41,7 +41,9 @@ const { decodePng, encodePng } = require('./png.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const APP_DIR =
-  process.env.CHESSSRS_APP_DIR || path.join(os.homedir(), 'Desktop/Github/Chess Repertoire SRS');
+  require('./resolve-app-dir').resolveAppDir() ||
+  process.env.CHESSSRS_APP_DIR ||
+  path.join(os.homedir(), 'Desktop/Github/ChessSRS');
 const APP_SHOTS = path.join(APP_DIR, 'docs/screenshots');
 const DEMO_SHOTS = path.join(ROOT, 'docs/parity');
 const BASELINE = path.join(ROOT, 'design/pixel-parity.json');

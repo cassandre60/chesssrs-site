@@ -9,6 +9,14 @@
  * derived from the page's own links, so a rename handled by
  * scripts/sync-site.js flows through). Until a release carries installable
  * files, the button waits honestly as "Coming soon" instead of pretending.
+ * The same live tag also fills every version slot outside the block (hero
+ * pill, footer, JSON-LD softwareVersion); until it arrives those show the
+ * app version synced from pubspec.yaml by scripts/sync-version.js, so no
+ * hardcoded number is ever displayed.
+ *
+ * The menu is position:fixed under its trigger, so any page scroll or resize
+ * dismisses it — otherwise it would float in the viewport after its trigger
+ * scrolled away.
  *
  * Release asset names come from the app repo's release workflow
  * (.github/workflows/release.yml `publish` job):
@@ -102,13 +110,64 @@
   }
 
   /** Anchors the shared menu under whichever Download entry opened it.
-   *  position:fixed uses viewport coordinates, so no scroll math needed. */
+   *  position:fixed uses viewport coordinates, so no scroll math needed.
+   *  The menu never leaves the viewport: near the bottom edge it flips
+   *  above the trigger, then clamps, so it cannot end up out of view. */
   function placeMenu(menu, trigger) {
     const r = trigger.getBoundingClientRect();
     const vw = (typeof window !== "undefined" && window.innerWidth) || 1280;
+    const vh = (typeof window !== "undefined" && window.innerHeight) || 800;
     const mw = 280;
-    menu.style.top = `${r.bottom + 8}px`;
+    const mh = menu?.offsetHeight || 0;
+    let top = r.bottom + 8;
+    if (mh && top + mh > vh - 8) top = Math.max(8, r.top - mh - 8);
+    if (mh && top + mh > vh - 8) top = Math.max(8, vh - mh - 8);
+    menu.style.top = `${top}px`;
     menu.style.left = `${Math.max(8, Math.min(r.left, vw - mw - 8))}px`;
+  }
+
+  /** Release tags are v-prefixed ("v1.1.2"), pubspec versions are bare
+   *  ("1.1.0"): the slots outside #download show the bare number. */
+  function bareVersion(v) {
+    const s = String(v ?? "").trim();
+    if (!s) return "";
+    return s.replace(/^[vV]/, "");
+  }
+
+  /** App version synced from the app repo's pubspec.yaml by
+   *  scripts/sync-design.js (assets/app-meta.js). The fallback every
+   *  version slot shows until the live release tag arrives. */
+  function metaVersion() {
+    try {
+      const v =
+        typeof window !== "undefined" && window.CHESSSRS_META
+          ? window.CHESSSRS_META.version
+          : "";
+      return String(v ?? "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  /** Writes one version everywhere it appears outside #download: the hero
+   *  pill, the footer line (both `data-app-version` slots) and the JSON-LD
+   *  `softwareVersion`. Prefers the given live release tag, falls back to
+   *  the synced app version, leaves everything alone when neither exists. */
+  function renderVersion(doc, version) {
+    const v = bareVersion(version) || bareVersion(metaVersion());
+    if (!v) return "";
+    for (const n of doc.querySelectorAll("[data-app-version]")) n.textContent = v;
+    const ld = doc.getElementById("app-ld");
+    if (ld && typeof ld.textContent === "string" && ld.textContent) {
+      try {
+        const json = JSON.parse(ld.textContent);
+        json.softwareVersion = v;
+        ld.textContent = JSON.stringify(json);
+      } catch {
+        /* a crawler-visible fallback stays better than a thrown error */
+      }
+    }
+    return v;
   }
 
   function bindMenu(doc) {
@@ -141,6 +200,24 @@
     doc.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !menu.hidden) setMenuOpen(doc, false);
     });
+    // position:fixed would otherwise leave the menu floating in the viewport
+    // after its trigger scrolls away, so any page scroll dismisses it. A
+    // scroll inside the menu itself (should it ever overflow) is not a
+    // dismissal — the visitor is still working with it.
+    doc.addEventListener(
+      "scroll",
+      (e) => {
+        if (!menu.hidden && !e.target?.closest?.("#dl-menu")) setMenuOpen(doc, false);
+      },
+      true,
+    );
+    if (typeof window !== "undefined" && window.addEventListener) {
+      const close = () => {
+        if (!menu.hidden) setMenuOpen(doc, false);
+      };
+      window.addEventListener("scroll", close, { passive: true });
+      window.addEventListener("resize", close, { passive: true });
+    }
   }
 
   /** "Coming soon" state: honest wait, no external links, no dev noise. */
@@ -157,6 +234,7 @@
     primary.setAttribute("disabled", "");
     primaryTx.textContent = "Coming soon";
     setMenuOpen(doc, false);
+    renderVersion(doc);
     if (noteEl && note) noteEl.textContent = note;
     return "soon";
   }
@@ -181,6 +259,7 @@
       sub.textContent = `${picked.release.prerelease ? "Pre-release" : "Latest release"} · pick your platform, the file downloads straight away.`;
       primary.removeAttribute("disabled");
       primaryTx.textContent = `Download ${tag}`;
+      renderVersion(doc, tag);
       bindMenu(doc);
       if (noteEl) {
         const total = picked.files.map((f) => formatSize(f.size)).filter(Boolean).join(" · ");
@@ -208,11 +287,17 @@
 
   function boot() {
     if (typeof document === "undefined") return;
-    const run = () =>
-      initDownload(
+    // The static markup already carries the synced app version; hydrate the
+    // slots from it right away so no paint ever shows a stale number, then
+    // let the live release tag take over once the API answers.
+    const hydrate = () => renderVersion(document);
+    const run = () => {
+      hydrate();
+      return initDownload(
         document,
         typeof fetch === "function" ? fetch.bind(window) : () => Promise.reject(new Error("no fetch")),
       );
+    };
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run, { once: true });
     else run();
   }
@@ -227,6 +312,9 @@
     deriveRepo,
     releasesApi,
     setMenuOpen,
+    bareVersion,
+    metaVersion,
+    renderVersion,
     renderSoon,
     renderDownload,
     initDownload,

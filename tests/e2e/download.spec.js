@@ -108,6 +108,43 @@ test('nav and hero Download entries open the menu in place', async ({ page }) =>
   expect(errors).toEqual([]);
 });
 
+test('version slots follow the live release tag, never a hardcoded number', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.route(API, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withFiles) }));
+  await page.goto('/');
+
+  // The mocked tag is v-prefixed; the page shows the bare number everywhere.
+  await expect(page.locator('.hero [data-app-version]').first()).toContainText('9.9.0-e2e');
+  await expect(page.locator('.fb [data-app-version]').first()).toContainText('9.9.0-e2e');
+  const softwareVersion = await page.evaluate(() => {
+    try {
+      return JSON.parse(document.querySelector('script#app-ld').textContent).softwareVersion;
+    } catch {
+      return null;
+    }
+  });
+  expect(softwareVersion).toBe('9.9.0-e2e');
+  // And no stale hardcoded version survives anywhere visible.
+  expect(await page.locator('.hero .mk-meta').innerText()).not.toContain('0.2.0');
+  expect(errors).toEqual([]);
+});
+
+test('a page scroll dismisses the platform menu', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.route(API, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withFiles) }));
+  await page.goto('/');
+  await page.locator('#download').scrollIntoViewIfNeeded();
+
+  const popover = page.locator('#dl-menu');
+  await download(page, '#dl-primary').click();
+  await expect(popover).toBeVisible();
+  await page.evaluate(() => window.scrollBy(0, 400));
+  await expect(popover).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
 test('the block exposes no detours: no forge, no toolchain, no dead ends', async ({ page }) => {
   await page.route(API, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withFiles) }));
   await page.goto('/');
