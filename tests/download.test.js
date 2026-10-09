@@ -1,7 +1,7 @@
 // Unit tests for download.js (invariant I-1: two clicks, zero detours).
 //
-// renderDownload/initDownload run against a tiny fake document implementing
-// only what download.js touches.
+// renderDownload/initDownload run against the shared fake document in
+// ./fake-dom.js — fix fake quirks there, never per test file.
 let fails = 0;
 const ok = (c, m) => {
   console.log((c ? "PASS " : "FAIL ") + m);
@@ -9,74 +9,15 @@ const ok = (c, m) => {
 };
 
 const D = require("../download.js");
+const { fakeEl, fakeDoc } = require("./fake-dom");
 
-function fakeEl(tag) {
-  return {
-    tag,
-    attrs: {},
-    dataset: {},
-    style: {},
-    children: [],
-    handlers: {},
-    hidden: false,
-    _tc: "",
-    firstChild: null,
-    setAttribute(k, v) {
-      this.attrs[k] = String(v);
-    },
-    getAttribute(k) {
-      return this.attrs[k] ?? null;
-    },
-    removeAttribute(k) {
-      delete this.attrs[k];
-    },
-    addEventListener(t, f) {
-      if (!this.handlers[t]) this.handlers[t] = [];
-      this.handlers[t].push(f);
-    },
-    fire(t, e = {}) {
-      for (const f of this.handlers[t] ?? []) f(e);
-    },
-    append(...nodes) {
-      for (const n of nodes) this.children.push(n);
-      this.firstChild = this.children[0] ?? null;
-    },
-    removeChild(n) {
-      this.children = this.children.filter((c) => c !== n);
-      this.firstChild = this.children[0] ?? null;
-    },
-    querySelector: () => undefined,
-    closest: () => null,
-    focus() {},
-    get textContent() {
-      return this._tc;
-    },
-    set textContent(v) {
-      this._tc = String(v);
-    },
-  };
-}
-
-function fakeDoc() {
-  const ids = {};
-  for (const id of ["dl-title", "dl-sub", "dl-primary", "dl-primary-tx", "dl-menu", "dl-note"]) {
-    ids[id] = fakeEl("div");
-  }
-  ids["dl-primary"].setAttribute("disabled", "");
-  ids["dl-menu"].hidden = true;
-  const doc = {
-    ids,
-    handlers: {},
-    triggers: [],
-    getElementById: (id) => ids[id] ?? null,
-    createElement: (t) => fakeEl(t),
-    querySelectorAll: (sel) =>
-      String(sel).includes("#dl-primary") ? [...doc.triggers, doc.ids["dl-primary"]] : [...doc.triggers],
-    addEventListener(t, f) {
-      if (!this.handlers[t]) this.handlers[t] = [];
-      this.handlers[t].push(f);
-    },
-  };
+function downloadDoc(triggers = []) {
+  const doc = fakeDoc(
+    ["dl-title", "dl-sub", "dl-primary", "dl-primary-tx", "dl-menu", "dl-note"],
+    triggers,
+  );
+  doc.ids["dl-primary"].setAttribute("disabled", "");
+  doc.ids["dl-menu"].hidden = true;
   return doc;
 }
 
@@ -136,7 +77,7 @@ ok(D.formatSize(-1) === "", "negative size blanked");
 
 // --- rendering: button + menu, direct file hrefs, nothing else ---
 {
-  const doc = fakeDoc();
+  const doc = downloadDoc();
   const state = D.renderDownload(doc, releases);
   ok(state === "direct", "files present -> direct state");
   ok(doc.ids["dl-primary"].getAttribute("disabled") === null, "button enabled");
@@ -151,10 +92,9 @@ ok(D.formatSize(-1) === "", "negative size blanked");
 
 // --- menu toggle: every Download entry opens the same menu in place ---
 {
-  const doc = fakeDoc();
   const nav = fakeEl("a");
   nav.getBoundingClientRect = () => ({ left: 100, bottom: 50 });
-  doc.triggers = [nav];
+  const doc = downloadDoc([nav]);
   D.renderDownload(doc, releases);
   const primary = doc.ids["dl-primary"];
   const menu = doc.ids["dl-menu"];
@@ -172,10 +112,9 @@ ok(D.formatSize(-1) === "", "negative size blanked");
 
 // --- no files: entries keep their anchor fallback to the waiting block ---
 {
-  const doc = fakeDoc();
   let prevented = 0;
   const nav = fakeEl("a");
-  doc.triggers = [nav];
+  const doc = downloadDoc([nav]);
   D.renderDownload(doc, [rel("v0.4.0", [])]);
   nav.fire("click", { preventDefault: () => prevented++ });
   ok(prevented === 0 && doc.ids["dl-menu"].hidden === true, "empty menu never opens; anchor scrolls to Coming soon");
@@ -183,7 +122,7 @@ ok(D.formatSize(-1) === "", "negative size blanked");
 
 // --- waiting state: honest, no external links, no dev noise ---
 {
-  const doc = fakeDoc();
+  const doc = downloadDoc();
   const state = D.renderDownload(doc, [rel("v0.4.0", [])]);
   ok(state === "soon", "files absent -> soon state");
   ok(doc.ids["dl-primary"].getAttribute("disabled") === "", "button waits disabled");
@@ -194,8 +133,9 @@ ok(D.formatSize(-1) === "", "negative size blanked");
 
 // --- initDownload: repo derived from page links, failures wait honestly ---
 {
-  const doc = fakeDoc();
-  doc.triggers = [{ getAttribute: () => "https://github.com/cassandre60/ChessSRS" }];
+  const ghLink = fakeEl("a");
+  ghLink.getAttribute = () => "https://github.com/cassandre60/ChessSRS";
+  const doc = downloadDoc([ghLink]);
   const seen = [];
   const fetchFn = (url, opts) => {
     seen.push([url, opts]);
@@ -204,8 +144,7 @@ ok(D.formatSize(-1) === "", "negative size blanked");
   D.initDownload(doc, fetchFn).then((state) => {
     ok(state === "soon", "asset-less release waits honestly");
     ok(seen[0][0] === "https://api.github.com/repos/cassandre60/ChessSRS/releases?per_page=10", "API URL derived from the page, not hardcoded");
-    const offDoc = fakeDoc();
-    offDoc.triggers = doc.triggers;
+    const offDoc = downloadDoc(doc.triggers);
     D.initDownload(offDoc, () => Promise.reject(new Error("down"))).then((s) => {
       ok(s === "soon", "fetch rejection waits instead of throwing");
       ok(/update server/.test(offDoc.ids["dl-note"].textContent), "offline note names the problem, not a forge");

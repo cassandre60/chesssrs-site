@@ -4,7 +4,7 @@ This repository hosts the marketing website and live interactive web demo for **
 
 ## 1. Environment & CLI Conventions
 - **Shell**: The execution shell is **Zsh** on Arch Linux. There is no standalone `bash` tool—execute bash scripts via `bash -c "..."` inside `shell`.
-- **Throwaway Probes**: Always write temporary diagnostic scripts inside `/tmp/` (e.g. `/tmp/probe.js`), never in the git working tree. `node_modules` can be referenced by passing full paths or setting `NODE_PATH`.
+- **Throwaway Probes**: Always write temporary diagnostic scripts inside `/tmp/` (e.g. `/tmp/probe.js`), never in the git working tree. `node_modules` can be referenced by passing full paths or setting `NODE_PATH`. There is no top-level `playwright` package here — probe scripts must `require('<repo>/node_modules/@playwright/test')` by absolute path.
 - **Single-Worker Tests**: To preserve local system performance, always run Playwright tests file-by-file with `--workers=1`:
   ```bash
   npx playwright test tests/e2e/<file>.spec.js --workers=1
@@ -27,8 +27,10 @@ npm run test:e2e                # Playwright E2E suite (accessibility, parity, i
 python3 build.py                # Verifies single-file distribution bundle
 ```
 
+For UX-facing changes, gates passing is not enough: click through the happy path as a first-time visitor (screenshot or e2e) and confirm zero detours before declaring done. Green checks once shipped forge links and dev commands on this homepage — only looking at the result as a visitor catches that class of miss.
+
 ## 4. Experience Invariants
-`docs/site-invariants.md` is binding: the download button must always resolve to something real (live direct download with a per-file chooser, honest releases-page fallback otherwise), and every support route in `#support`/footer/FAQ/`privacy.html` §3 must resolve — both selected by DOM scope so new providers are covered without edits. Add no friction to these paths; run their gates (`tests/download.test.js`, `tests/support-links.test.js`, `tests/e2e/download.spec.js`) with any change near them.
+`docs/site-invariants.md` is binding: every Download entry opens the same platform menu in place with direct file downloads (honest "Coming soon" wait while no files are attached, no forge or toolchain surface in the block), and every support route in `#support`/footer/FAQ/`privacy.html` §3 must resolve — both selected by DOM scope so new providers are covered without edits. Add no friction to these paths; run their gates (`tests/download.test.js`, `tests/support-links.test.js`, `tests/e2e/download.spec.js`) with any change near them.
 
 For visual review against the app's headless screenshot captures:
 ```bash
