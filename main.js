@@ -22,4 +22,36 @@
     }), { rootMargin: "-45% 0px -45% 0px" });
     steps.forEach(s => { io.observe(s); });
   }
+  // Hero cursor spotlight: a golden-knight layer follows the cursor through
+  // a small radial mask (desktop pointers only; touch keeps the static base).
+  (() => {
+    const hero = document.querySelector(".spot-hero"), layer = document.getElementById("spotReveal");
+    if (!hero || !layer) return;
+    if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    const snap = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let tx = 0, ty = 0, cx = 0, cy = 0, live = false, seen = false, gen = 0;
+    const put = (x, y) => {
+      layer.style.maskPosition = `${x - 55}px ${y - 70}px`;
+      layer.style.webkitMaskPosition = `${x - 55}px ${y - 70}px`;
+    };
+    const tick = (g) => {
+      if (g !== gen) return;
+      if (snap) { cx = tx; cy = ty; } else { cx += (tx - cx) * 0.22; cy += (ty - cy) * 0.22; }
+      put(cx, cy);
+      if (Math.abs(tx - cx) < 0.3 && Math.abs(ty - cy) < 0.3) {
+        cx = tx; cy = ty; put(cx, cy); live = false; return;
+      }
+      requestAnimationFrame(() => tick(g));
+    };
+    hero.addEventListener("mousemove", (e) => {
+      const r = hero.getBoundingClientRect();
+      tx = e.clientX - r.left; ty = e.clientY - r.top;
+      if (!seen) { seen = true; cx = tx; cy = ty; put(cx, cy); layer.style.opacity = "1"; return; }
+      if (snap) { cx = tx; cy = ty; put(cx, cy); return; }
+      if (!live) { live = true; gen += 1; requestAnimationFrame(() => tick(gen)); }
+    });
+    hero.addEventListener("mouseleave", () => {
+      layer.style.opacity = "0"; seen = false; live = false; gen += 1;
+    });
+  })();
 })();

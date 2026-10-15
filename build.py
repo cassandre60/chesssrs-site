@@ -2,7 +2,7 @@
 import base64, hashlib, re, pathlib, zipfile
 r = pathlib.Path(__file__).parent
 MIME = {"webp": "image/webp", "svg": "image/svg+xml", "png": "image/png", "jpg": "image/jpeg",
-        "ttf": "font/ttf", "css": "text/css"}
+        "ttf": "font/ttf", "woff2": "font/woff2", "css": "text/css"}
 def data(path):
     p = r/path; return "data:%s;base64,%s" % (MIME[p.suffix[1:]], base64.b64encode(p.read_bytes()).decode())
 def inline_css(path):

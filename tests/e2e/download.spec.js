@@ -85,7 +85,7 @@ test('a platform click starts a real file download', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('nav and hero Download entries open the menu in place', async ({ page }) => {
+test('nav Download entry opens the menu in place; hero carries none by design', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route(API, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withFiles) }));
@@ -101,8 +101,11 @@ test('nav and hero Download entries open the menu in place', async ({ page }) =>
   expect(headBox.y, 'menu opens under the header entry').toBeLessThan(200);
   await page.keyboard.press('Escape');
 
-  // Hero entry: same menu, anchored near the hero button instead.
-  await page.locator('.hero [data-dlmenu]').click();
+  // Hero entry: the photographic hero has no buttons by design, so the
+  // header and section entries are the only ones — and they share one menu.
+  await expect(page.locator('.spot-hero [data-dlmenu]')).toHaveCount(0);
+  await page.locator('#download').scrollIntoViewIfNeeded();
+  await download(page, '#dl-primary').click();
   await expect(popover).toBeVisible();
   await expect(popover).toContainText('Linux');
   expect(errors).toEqual([]);
@@ -115,7 +118,6 @@ test('version slots follow the live release tag, never a hardcoded number', asyn
   await page.goto('/');
 
   // The mocked tag is v-prefixed; the page shows the bare number everywhere.
-  await expect(page.locator('.hero [data-app-version]').first()).toContainText('9.9.0-e2e');
   await expect(page.locator('.fb [data-app-version]').first()).toContainText('9.9.0-e2e');
   const softwareVersion = await page.evaluate(() => {
     try {
@@ -126,7 +128,7 @@ test('version slots follow the live release tag, never a hardcoded number', asyn
   });
   expect(softwareVersion).toBe('9.9.0-e2e');
   // And no stale hardcoded version survives anywhere visible.
-  expect(await page.locator('.hero .mk-meta').innerText()).not.toContain('0.2.0');
+  expect(await page.locator('.spot-hero').innerText()).not.toMatch(/\d+\.\d+\.\d+/);
   expect(errors).toEqual([]);
 });
 

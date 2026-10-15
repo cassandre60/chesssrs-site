@@ -13,6 +13,7 @@
 <meta property="og:description" content="Import your PGN studies, play each move from memory, and review lines right when they are due. Free and open source."><meta property="og:url" content="https://cassandre60.github.io/chesssrs-site/"><meta property="og:image" content="https://cassandre60.github.io/chesssrs-site/assets/og.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="ChessSRS — Spaced repetition for your chess openings"><meta name="twitter:description" content="Import your PGN studies, play each move from memory, and review lines right when they are due. Free and open source."><meta name="twitter:image" content="https://cassandre60.github.io/chesssrs-site/assets/og.jpg">
   <link rel="preload" href="assets/fonts/Geist-Regular.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="assets/fonts/Archivo-var.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/InstrumentSerif-Regular.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="assets/demo-tokens.css">
   <link rel="stylesheet" href="assets/demo-reference.css">
@@ -50,13 +51,25 @@
 </div></header>
 
 <main id="main">
-<section class="c hero">
-  <p class="mk-meta mono"><i></i>Version <span data-app-version>1.1.0</span> · Internal testing · Free and open source</p>
-  <h1>Remember every opening you've prepared.</h1>
-  <p class="lede">ChessSRS turns your PGN studies into a calm daily review. Play each move from memory — your lines are the answer key, not an engine's — and see each line again right when it is due.</p>
-  <div class="cta">
-    <a class="btn p" href="#download" data-dlmenu><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg>Download</a>
-    <a class="btn s" href="https://github.com/cassandre60/ChessSRS"><svg class="ic" aria-hidden="true"><use href="#i-gh"/></svg>View source</a>
+<section class="spot-hero" aria-label="chesssrs introduction">
+  <img class="spot-img spot-base" src="media/base.webp" alt="" draggable="false" fetchpriority="high" decoding="async">
+  <img class="spot-img spot-ghost" src="media/reveal.webp" alt="" aria-hidden="true" draggable="false" decoding="async">
+  <img class="spot-img spot-reveal" id="spotReveal" src="media/reveal.webp" alt="" aria-hidden="true" draggable="false" decoding="async">
+  <div class="spot-scrim" aria-hidden="true"></div>
+  <div class="spot-content">
+    <div class="spot-top">
+      <p class="spot-left"><span>chesssrs</span><span class="spot-desc">spaced repetition for chess openings</span></p>
+      <p class="spot-year">(c)2026</p>
+      <p class="spot-tags">( pgn / fsrs )</p>
+    </div>
+    <h1 class="spot-head"><span class="ln">remember every</span><span class="ln"><span class="spot-plus" aria-hidden="true">+</span>opening</span></h1>
+    <div class="spot-bottom">
+      <p class="spot-label">spaced repetition trainer</p>
+      <div class="spot-right">
+        <p class="spot-para">chesssrs turns your pgn studies into a calm daily review. play each move from memory and see each line again right when it is due.</p>
+        <div class="spot-meta"><span>live demo below</span><span>( scroll down )</span></div>
+      </div>
+    </div>
   </div>
 </section>
 <div class="c"><h2 class="mk-sr">Try the app</h2><figure class="stage" id="demo">
