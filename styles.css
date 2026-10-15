@@ -283,27 +283,9 @@ h2{font:400 clamp(36px,4.8vw,68px)/1.04 var(--serif);letter-spacing:-.02em;max-w
 .spot-reveal{opacity:0;transition:opacity .4s ease-out;will-change:opacity;pointer-events:none;-webkit-mask-image:radial-gradient(closest-side,#000 62%,transparent 100%);mask-image:radial-gradient(closest-side,#000 62%,transparent 100%);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:110px 140px;mask-size:110px 140px}
 .spot-scrim{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(13,11,9,.55) 0%,rgba(13,11,9,.12) 45%,rgba(13,11,9,.6) 100%)}
 .spot-content{position:relative;z-index:3;height:100%;display:flex;flex-direction:column;padding:44px 64px 40px;pointer-events:none}
-.spot-content p,.spot-content h1{margin:0}
-.spot-top{display:flex;justify-content:space-between;align-items:baseline;gap:24px;font-size:16px;font-weight:500;letter-spacing:.02em;text-transform:lowercase;white-space:nowrap}
-.spot-left{display:flex;gap:28px;min-width:0}
-.spot-year{border:1.5px solid currentColor;border-radius:999px;padding:4px 20px;font-size:15px}
+.spot-content h1{margin:0}
 .spot-head{margin-top:40px;font-family:Archivo,Geist,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:clamp(52px,7.4vw,104px);font-weight:500;letter-spacing:-.02em;line-height:.98;text-transform:lowercase;text-align:left}
 .spot-head .ln{display:block}
-.spot-bottom{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;gap:48px}
-.spot-label{font-size:18px;font-weight:500;white-space:nowrap}
-.spot-right{max-width:560px}
-.spot-para{font-size:15.5px;line-height:1.6;text-align:justify}
-.spot-meta{margin-top:20px;display:flex;justify-content:space-between;gap:24px;font-size:14px}
-@media(max-width:760px){
-.spot-desc{display:none}
-.spot-bottom{flex-direction:column;align-items:flex-start;gap:24px}
-.spot-right{max-width:none}
-}
 @media(max-width:640px){
 .spot-content{padding-left:20px;padding-right:20px}
-}
-@media(max-width:480px){
-.spot-top{font-size:14px;gap:16px}
-.spot-left{gap:0}
-.spot-year{padding:4px 14px;font-size:13px}
 }
