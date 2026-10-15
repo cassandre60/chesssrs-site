@@ -289,7 +289,6 @@ h2{font:400 clamp(36px,4.8vw,68px)/1.04 var(--serif);letter-spacing:-.02em;max-w
 .spot-year{border:1.5px solid currentColor;border-radius:999px;padding:4px 20px;font-size:15px}
 .spot-head{margin-top:40px;font-family:Archivo,Geist,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:clamp(52px,7.4vw,104px);font-weight:500;letter-spacing:-.02em;line-height:.98;text-transform:lowercase;text-align:left}
 .spot-head .ln{display:block}
-.spot-plus{display:inline-flex;align-items:center;justify-content:center;width:.8em;height:.8em;border:1.5px solid currentColor;border-radius:50%;margin-right:.18em;line-height:1;transform:translateY(-.06em)}
 .spot-bottom{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;gap:48px}
 .spot-label{font-size:18px;font-weight:500;white-space:nowrap}
 .spot-right{max-width:560px}
