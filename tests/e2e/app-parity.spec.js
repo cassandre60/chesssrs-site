@@ -24,8 +24,11 @@ const KNOWN_GAPS = new Set([
   // affect the review screen a visitor can actually see in the demo. The rest navigate to screens
   // this demo does not port, so rendering them would be inventing UI.
   'Lichess account',
+  'New positions per day',
   'Review order',
+  'Line continuity',
   'Transposed moves',
+  'Dynamic repertoire mode',
   'Initial ease factor',
   'Interval scaling',
   'Collapsible list groups',
@@ -45,7 +48,7 @@ const KNOWN_GAPS = new Set([
   'HTTP network logs',
   'App diagnostics logs',
   'Rate this app',
-  'Licences & open source',
+  'About and licences',
 ]);
 
 const app = (page, sel) => page.locator(`#app ${sel}`);

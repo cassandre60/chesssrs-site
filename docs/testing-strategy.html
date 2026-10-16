@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Deterministic Testing & Quality Gates — ChessSRS Documentation</title>
+<meta name="description" content="How quality invariants are mechanically enforced through deterministic gates, anti-weakening tripwires, and testing budgets.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F5F3EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F0D0B" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://cassandre60.github.io/chesssrs-site/docs/testing-strategy.html">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deterministic Testing & Quality Gates — ChessSRS Documentation">
+<meta property="og:description" content="How quality invariants are mechanically enforced through deterministic gates, anti-weakening tripwires, and testing budgets.">
+<meta property="og:url" content="https://cassandre60.github.io/chesssrs-site/docs/testing-strategy.html">
+<meta property="og:image" content="https://cassandre60.github.io/chesssrs-site/assets/og.jpg">
+<link rel="stylesheet" href="../assets/demo-tokens.css">
+<link rel="stylesheet" href="../assets/demo-reference.css">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="docs.css">
+<script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="doc-page">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></symbol>
+<symbol id="i-th" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.900 4.900l1.400 1.400m11.400 11.400 1.400 1.400M2 12h2m16 0h2M4.900 19.100l1.400-1.400M17.700 6.300l1.400-1.400"/></symbol>
+<symbol id="i-mn" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-lg" viewBox="0 0 22 22">
+  <defs><pattern id="h-brand-doc" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".9" height="2.4" fill="currentColor"/></pattern></defs>
+  <rect x=".75" y=".75" width="20.5" height="20.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <rect x="11" y="1.5" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+  <rect x="1.5" y="11" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+</symbol>
+</defs></svg>
+<a class="mk-sr" href="#main">Skip to main content</a>
+
+<header class="hd" id="top"><div class="c">
+  <a class="logo" href="../index.html" aria-label="ChessSRS home"><svg class="ic" aria-hidden="true" style="width:22px;height:22px"><use href="#i-lg"/></svg>ChessSRS</a>
+  <nav class="nv" aria-label="Primary">
+    <a href="../index.html">Home</a>
+    <a href="index.html" style="font-weight:600;color:var(--ac)">Docs</a>
+    <a href="../index.html#demo">Live Demo</a>
+    <a href="../index.html#how">How it works</a>
+    <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">GitHub</a>
+    <button class="ib" id="theme" type="button" aria-label="Switch colour theme"><svg class="ic" aria-hidden="true"><use href="#i-th"/></svg></button>
+    <a class="btn p sm" href="../index.html#download">Download</a>
+    <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Documentation Hub</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="fsrs-algorithm.html">FSRS Algorithm</a>
+      <a href="graph-coordinator.html">Graph Coordinator</a>
+      <a href="specifications.html">Specifications & Invariants</a>
+      <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">Source Code</a>
+      <a href="../index.html#download">Download</a>
+    </div></details>
+  </nav>
+</div></header>
+
+<div class="doc-wrap">
+  <nav class="doc-sidebar" aria-label="Documentation navigation">
+    <div class="doc-sidebar-nav">
+      
+    <div>
+      <div class="doc-nav-group-title">Getting Started</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="index.html">
+            <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="domain-model.html">
+            <span>Domain Model & Schemas</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Architecture & Engineering</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="architecture.html">
+            <span>System Architecture</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="specifications.html">
+            <span>System Invariants (SPEC)</span>
+            
+          </a>
+
+          <a class="doc-nav-link active" href="testing-strategy.html">
+            <span>Testing & Quality Gates</span>
+            <span class="doc-nav-badge">Current</span>
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Algorithms & Training Engine</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="fsrs-algorithm.html">
+            <span>FSRS Spaced Repetition</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="graph-coordinator.html">
+            <span>Graph-Aware Coordinator</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="pgn-pipeline.html">
+            <span>PGN & Study Ingestion</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Development & Operations</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="developer-guide.html">
+            <span>Developer Guide</span>
+            
+          </a>
+      </div>
+    </div>
+  
+    </div>
+  </nav>
+
+  <main class="doc-article" id="main">
+    <div class="doc-breadcrumb">
+      <a href="../index.html">Home</a> / <a href="index.html">Documentation</a> / <span>Deterministic Testing & Quality Gates</span>
+    </div>
+    <span class="doc-kicker">Verification</span>
+    <h1 class="doc-title">Deterministic Testing & Quality Gates</h1>
+    <p class="doc-lede">How quality invariants are mechanically enforced through deterministic gates, anti-weakening tripwires, and testing budgets.</p>
+    
+    <div class="doc-meta-bar">
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/TEST_STRATEGY.md" target="_blank" rel="noopener"><code>TEST_STRATEGY.md</code></a>
+      </div>
+      <div class="doc-meta-item">
+        <strong>App version:</strong> <code>v1.4.0</code>
+      </div>
+      <div class="doc-meta-item">
+        <strong>Licence:</strong> <code>GPL-3.0</code>
+      </div>
+    </div>
+    
+    <section id="gate-hierarchy">
+      <h2>1. The Deterministic Quality Gate Hierarchy</h2>
+      <p>
+        ChessSRS enforces an automated referee pipeline that mechanically verifies every pull request before code reaches <code>main</code>:
+      </p>
+      <div class="doc-table-wrap">
+        <table class="doc-table">
+          <thead>
+            <tr>
+              <th>Gate</th>
+              <th>Name</th>
+              <th>Description & Enforcement</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>G01</strong></td>
+              <td>Format Verification</td>
+              <td><code>dart format --set-exit-if-changed</code> with strict line width 100.</td>
+            </tr>
+            <tr>
+              <td><strong>G02</strong></td>
+              <td>Static Analysis</td>
+              <td><code>flutter analyze --fatal-infos</code>. Zero warnings, zero hints allowed.</td>
+            </tr>
+            <tr>
+              <td><strong>G03</strong></td>
+              <td>Banned API Gate</td>
+              <td><code>scripts/gates/banned_apis_check.py</code> prevents Flutter imports in domain and unclocked <code>DateTime.now</code> in schedulers.</td>
+            </tr>
+            <tr>
+              <td><strong>G05</strong></td>
+              <td>Spec Traceability</td>
+              <td><code>scripts/gates/spec_trace_check.py</code> asserts that active tests cite every <code>INV-xxx</code> ID from <code>SPEC.md</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>G08</strong></td>
+              <td>Anti-Weakening Tripwire</td>
+              <td>Diffs commits against <code>origin/main</code> to detect and block deleted assertions, loosened tolerances, or skipped tests.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tripwire-g08">
+      <h2>2. The G08 Anti-Weakening Tripwire</h2>
+      <p>
+        AI agents and fatigued engineers frequently "fix" failing tests by quietly weakening them: deleting assertions, adding <code>@skip</code> annotations, widening numerical tolerances, or adding blanket lint suppressions.
+      </p>
+      <p>
+        Gate <strong>G08</strong> (<code>scripts/gates/test_weakening_check.py</code>) parses git diffs to detect:
+      </p>
+      <ul>
+        <li>Any deleted <code>expect(...)</code> call without a compensating assertion.</li>
+        <li>Introduction of <code>// ignore:</code> or <code>// ignore_for_file:</code> comments.</li>
+        <li>Modification of benchmark tolerances or ratchet baselines.</li>
+      </ul>
+      <p>If any test weakening is discovered, CI halts immediately.</p>
+    </section>
+
+    <section id="testing-budgets">
+      <h2>3. Local Test Budgets (Preserving Hardware)</h2>
+      <div class="callout warning">
+        <div class="callout-title">The Local Machine is Not a Build Server</div>
+        <p>Running 1,400+ Flutter tests repeatedly saturates laptop CPUs, pins fans at 100%, and throttles battery life. Local development follows strict budget rules:</p>
+      </div>
+      <ul>
+        <li><strong>Inner loop:</strong> Run only the targeted test file using <code>fvm flutter test test/... --plain-name 'test name'</code>.</li>
+        <li><strong>Full test suites:</strong> Delegated to GitHub Actions runners on push.</li>
+        <li><strong>Release builds:</strong> Release compilation (R8, AOT) is never performed on developer machines; artifacts are built on GitHub Actions runners.</li>
+      </ul>
+    </section>
+
+    <section id="escape-flywheel">
+      <h2>4. The Escape-to-Gate Flywheel</h2>
+      <p>
+        When a bug slips past existing checks, ChessSRS follows a mandatory remediation flywheel (<code>docs/ESCAPE_TO_GATE.md</code>):
+      </p>
+      <ol>
+        <li><strong>Failing Regression Test:</strong> Write a targeted test that fails 100% reliably on current code.</li>
+        <li><strong>SPEC Assignment:</strong> Formulate a new invariant in <code>SPEC.md</code> naming the failure condition.</li>
+        <li><strong>Red-Team Corpus Addition:</strong> Add adversarial PGN fixtures or malformed inputs to <code>redteam/</code>.</li>
+        <li><strong>Root Cause Fix:</strong> Apply the minimal architectural fix that resolves the issue cleanly.</li>
+        <li><strong>Escapes Log Update:</strong> Record the incident in <code>docs/escapes-log.md</code>.</li>
+      </ol>
+    </section>
+  
+    
+    <nav class="doc-pagination" aria-label="Document pagination">
+      <a class="doc-page-card prev" href="specifications.html">
+              <span class="doc-page-dir">← Previous</span>
+              <span class="doc-page-label">System Invariants (SPEC)</span>
+            </a>
+      <a class="doc-page-card next" href="fsrs-algorithm.html">
+              <span class="doc-page-dir">Next →</span>
+              <span class="doc-page-label">FSRS Spaced Repetition</span>
+            </a>
+    </nav>
+  </main>
+
+  
+    <aside class="doc-toc-aside" aria-label="Table of contents">
+      <div class="doc-toc-title">On This Page</div>
+      <div class="doc-toc-list">
+        <div class="doc-toc-item"><a href="#gate-hierarchy">Deterministic Quality Gates</a></div>
+<div class="doc-toc-item"><a href="#tripwire-g08">The G08 Anti-Weakening Tripwire</a></div>
+<div class="doc-toc-item"><a href="#testing-budgets">Local Testing Budgets</a></div>
+<div class="doc-toc-item"><a href="#escape-flywheel">The Escape-to-Gate Flywheel</a></div>
+      </div>
+    </aside>
+</div>
+
+<footer class="ft" id="footer"><div class="c fb">
+  <span>© 2026 ChessSRS. Free & open-source under GPL-3.0. Built on the Lichess Mobile foundation.</span>
+  <div style="display:flex;gap:18px">
+    <a href="index.html">Documentation</a>
+    <a href="../credits.html">Credits & Licences</a>
+    <a href="../privacy.html">Privacy Policy</a>
+  </div>
+</div></footer>
+<script>
+(() => {
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("theme");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    });
+  }
+})();
+</script>
+</body>
+</html>

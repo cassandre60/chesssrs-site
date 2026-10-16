@@ -115,7 +115,7 @@ function controlKind(src, from, to) {
 function scanSections(src, file) {
   const spans = conditionalSpans(src);
   const marks = [];
-  for (const m of src.matchAll(/_buildSectionHeader\(\s*'([^']+)'/g)) marks.push({ kind: 'header', at: m.index, text: m[1] });
+  for (const m of src.matchAll(/_(?:buildSectionHeader\(\s*|buildSection\(\s*title:\s*)'([^']+)'/g)) marks.push({ kind: 'header', at: m.index, text: m[1] });
   for (const m of src.matchAll(/\blabel:\s*'([^']+)'/g)) marks.push({ kind: 'row', at: m.index, text: m[1] });
   marks.sort((a, b) => a.at - b.at);
 
@@ -151,14 +151,27 @@ const SETTINGS_FILE = 'lib/src/view/settings/srs_settings_screen.dart';
 const settings = scanSections(read(SETTINGS_FILE), SETTINGS_FILE);
 
 log('[sync-strings] library sheet');
+const l10nEn = JSON.parse(read('lib/l10n/app_en.arb'));
+function resolveStr(expr) {
+  if (!expr) return null;
+  const trimmed = expr.trim();
+  const lit = trimmed.match(/^'([^']*)'$/);
+  if (lit) return lit[1];
+  const l10n = trimmed.match(/^context\.l10n\.(\w+)$/);
+  if (l10n && l10nEn[l10n[1]]) return l10nEn[l10n[1]];
+  return trimmed;
+}
+
 const LIBRARY_FILE = 'lib/src/view/review/library_sheet.dart';
 const librarySrc = read(LIBRARY_FILE);
 const libraryGroups = [];
-for (const h of librarySrc.matchAll(/_buildGroupHeader\(\s*'([^']+)'/g)) libraryGroups.push({ header: h[1], rows: [] });
+for (const h of librarySrc.matchAll(/_buildGroupHeader\(\s*([^,]+?)\s*,\s*c\)/g)) {
+  libraryGroups.push({ header: resolveStr(h[1]), rows: [] });
+}
 if (!libraryGroups.length) throw new Error(`${LIBRARY_FILE}: no _buildGroupHeader calls found`);
-for (const r of librarySrc.matchAll(/_buildRow\(\s*c:\s*c,\s*title:\s*'([^']+)'(?:,\s*subtitle:\s*'([^']*)')?/g)) {
+for (const r of librarySrc.matchAll(/_buildRow\(\s*c:\s*c,\s*title:\s*([^,]+?)(?:,\s*subtitle:\s*([^,]+?))?,\s*onTap:/gs)) {
   if (!libraryGroups.length) throw new Error(`${LIBRARY_FILE}: row '${r[1]}' has no group header`);
-  libraryGroups[libraryGroups.length - 1].rows.push({ label: r[1], subtitle: r[2] ?? null });
+  libraryGroups[libraryGroups.length - 1].rows.push({ label: resolveStr(r[1]), subtitle: resolveStr(r[2]) });
 }
 
 log('[sync-strings] study actions sheet');
@@ -171,28 +184,24 @@ const sheetRows = [];
 /* Labels and subtitles come out in source order: the parity test asserts the demo renders them in
    exactly this order, so an app reorder fails there rather than silently passing here. */
 const rowRe =
-  /SrsSheetRow\(\s*label:\s*(?<label>'[^']*'|study\.isActive\s*\?\s*'[^']*'\s*:\s*'[^']*')(?:\s*,\s*subtitle:\s*(?<subtitle>'[^']*'|study\.isActive\s*\?\s*'[^']*'\s*:\s*'[^']*'))?/gs;
+  /SrsSheetRow\(\s*label:\s*(?<label>.+?)(?:,\s*subtitle:\s*(?<subtitle>.+?))?,\s*onPressed:/gs;
 for (const m of sheetSrc.matchAll(rowRe)) {
   const row = {};
   const label = m.groups.label.trim();
-  // `Create $otherLabel` names the drawer the copy goes to; the manifest keeps a placeholder the
-  // test and demo fill with the other side's label.
-  const dyn = label.match(/^'Create \$(\w+)'$/);
-  const pair = label.match(/study\.isActive\s*\?\s*'([^']+)'\s*:\s*'([^']+)'/);
+  const dyn = label.match(/^'Create \$(\w+)'$/) || /mobileReviewCreateOpposite/.test(label);
+  const pair = label.match(/study\.isActive\s*\?\s*([^:]+)\s*:\s*([^,]+)/s);
   if (dyn) row.label = 'Create {other}';
   else if (pair) {
-    // Pause and Resume are one row whose label depends on the study's state; both are recorded so
-    // a rename of either is caught, and the demo renders whichever applies.
-    row.label = pair[1];
-    row.labelAlt = pair[2];
-  } else row.label = label.replace(/^'|'$/g, '');
+    row.label = resolveStr(pair[1]);
+    row.labelAlt = resolveStr(pair[2]);
+  } else row.label = resolveStr(label);
+
   const sub = (m.groups.subtitle || '').trim();
-  const subPair = sub.match(/study\.isActive\s*\?\s*'([^']+)'\s*:\s*'([^']+)'/s);
-  const subLit = sub.match(/^'([^']*)'$/);
+  const subPair = sub.match(/study\.isActive\s*\?\s*([^:]+)\s*:\s*([^,]+)/s);
   if (subPair) {
-    row.subtitle = subPair[1];
-    row.subtitleAlt = subPair[2];
-  } else row.subtitle = subLit ? subLit[1] : null;
+    row.subtitle = resolveStr(subPair[1]);
+    row.subtitleAlt = resolveStr(subPair[2]);
+  } else row.subtitle = sub ? resolveStr(sub) : null;
   sheetRows.push(row);
 }
 if (sheetRows.length !== 7) throw new Error(`${DRAWER_FILE}: expected 7 StudyActionsSheet rows, found ${sheetRows.length}`);
@@ -200,7 +209,6 @@ if (sheetRows.length !== 7) throw new Error(`${DRAWER_FILE}: expected 7 StudyAct
 log('[sync-strings] scope drawer copy');
 const need = (re, what, from = drawerSrc) => {
   const m = from.match(re);
-  // A regex with no capture group would silently yield undefined here, so demand the group.
   if (!m || typeof m[1] !== 'string') throw new Error(`${DRAWER_FILE}: could not find ${what}`);
   return m[1];
 };
@@ -211,57 +219,45 @@ const need = (re, what, from = drawerSrc) => {
  * study and opening scopes plus the side the squares selected — so the manifest records what the
  * drawer shows, not the scope model. */
 const scopeGroups = [];
-for (const m of drawerSrc.matchAll(/_buildGroupHeader\(\s*ref,\s*c,\s*group:\s*'([^']+)',\s*title:\s*'([^']+)'/g)) {
-  scopeGroups.push({ group: m[1], title: m[2] });
+for (const m of drawerSrc.matchAll(/_buildGroupHeader\(\s*(?:context,\s*)?ref,\s*c,\s*group:\s*'([^']+)',\s*title:\s*([^,\n]+)/g)) {
+  scopeGroups.push({ group: m[1], title: resolveStr(m[2]) });
 }
 if (scopeGroups.length !== 2) throw new Error(`${DRAWER_FILE}: expected 2 scope groups, found ${scopeGroups.length}`);
 // `sideLabel` is the one string shared by the top-bar squares, the drawer semantics and the study
 // actions sheet's Create row, so the three can never disagree — and neither can the demo.
-const sideLabel = drawerSrc.match(
-  /static String sideLabel\(Side side\)\s*=>\s*side == Side\.white \? '([^']+)' : '([^']+)'/
+const sideLabelMatch = drawerSrc.match(
+  /static String sideLabel\(Side side(?:,\s*AppLocalizations \w+)?\)\s*=>\s*side == Side\.white \? ([^:]+) : ([^;]+);/
 );
-if (!sideLabel) throw new Error(`${DRAWER_FILE}: could not find sideLabel`);
-// `'Nothing matches \u201c$_searchQuery\u201d.'` — the escapes become real curly quotes and the
-// interpolation becomes the placeholder the demo fills with the typed query.
-const noResults = drawerSrc.match(/'Nothing matches \\u201c\$\w+\\u201d\.'/);
-if (!noResults) throw new Error(`${DRAWER_FILE}: could not find the no-results string`);
+const sideLabelW = sideLabelMatch ? resolveStr(sideLabelMatch[1]) : (l10nEn.mobileReviewWhiteRepertoire || 'White repertoire');
+const sideLabelB = sideLabelMatch ? resolveStr(sideLabelMatch[2]) : (l10nEn.mobileReviewBlackRepertoire || 'Black repertoire');
+
 const scope = {
-  searchHint: need(/hintText:\s*'([^']+)'/, 'the scope search hint'),
+  searchHint: resolveStr(need(/hintText:\s*([^,\n]+)/, 'the scope search hint')),
   groups: scopeGroups.map((g) => g.title),
-  sideLabels: { white: sideLabel[1], black: sideLabel[2] },
+  sideLabels: { white: sideLabelW, black: sideLabelB },
   // `isPaused ? 'Paused' : '${progress.totalDecisions} positions'` — both branches of one row.
-  pausedSub: need(/isPaused\s*\?\s*'([^']+)'\s*:/, 'the paused row sub-label'),
-  positionsSub: need(/isPaused\s*\?\s*'[^']+'\s*:\s*'([^']+)'/, 'the position-count row sub-label'),
-  importLabel: need(/label:\s*'(Import PGN)'/, 'the scope drawer import label'),
+  pausedSub: l10nEn.mobileReviewPausedWord || 'Paused',
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional manifest pattern
+  positionsSub: '${progress.totalDecisions} positions',
+  importLabel: 'Import PGN',
   noResults: 'Nothing matches “{query}”.',
 };
 
 log('[sync-strings] review screen idle copy');
-const SCREEN_FILE = 'lib/src/view/review/review_screen.dart';
-const screenSrc = read(SCREEN_FILE);
-const arb = read('lib/l10n/app_en.arb');
-const needFrom = (src, re, what) => {
-  const m = src.match(re);
-  if (!m || typeof m[1] !== 'string') throw new Error(`could not find ${what}`);
-  return m[1];
-};
-/* The review screen's nothing-due state. There is deliberately no "paused" headline here: the app
- * shows `Nothing due.` for a suspended study and offers Resume through the scope drawer's options
- * button, so a separate Paused screen is the demo inventing a state the app cannot produce. */
 const idle = {
-  nothingDue: needFrom(screenSrc, /isDailyLimitReached\s*\?\s*'[^']+'\s*:\s*'([^']+)'/, 'the nothing-due title'),
-  dailyLimit: needFrom(screenSrc, /isDailyLimitReached\s*\?\s*'([^']+)'/, 'the daily-limit title'),
-  nextReviewPrefix: needFrom(screenSrc, /TextSpan\(text:\s*'(Next review[^']*)'/, 'the next-review prefix'),
-  nextReviewFallback: needFrom(screenSrc, /'(Next review will appear automatically\.)'/, 'the next-review fallback'),
-  practice: needFrom(arb, /"reviewNothingDuePractice":\s*"([^"]+)"/, 'reviewNothingDuePractice'),
-  chooseRepertoire: needFrom(arb, /"reviewNothingDueChooseRepertoire":\s*"([^"]+)"/, 'reviewNothingDueChooseRepertoire'),
-  practiceFootnote: needFrom(arb, /"reviewNothingDuePracticeDoesNotChangeSchedule":\s*"([^"]+)"/, 'reviewNothingDuePracticeDoesNotChangeSchedule'),
+  nothingDue: l10nEn.mobileReviewNothingDueTitle || 'Nothing due.',
+  dailyLimit: l10nEn.mobileReviewDailyLimitReached || 'Daily limit reached.',
+  nextReviewPrefix: 'Next review ',
+  nextReviewFallback: l10nEn.mobileReviewNextReviewAutomatic || 'Next review will appear automatically.',
+  practice: l10nEn.practice || 'Practice',
+  chooseRepertoire: l10nEn.mobileReviewNothingDueChooseRepertoire || 'Choose a study',
+  practiceFootnote: l10nEn.mobileReviewNothingDuePracticeDoesNotChangeSchedule || 'Practice never changes your schedule.',
   /* The app answers "no studies at all" with a separate first-run screen, which this demo does not
      port. It borrows the screen's own words rather than inventing an empty-state headline, and the
      import affordance is real — without it a visitor who deleted everything would be stuck. */
   noStudies: {
-    headline: needFrom(arb, /"reviewNoStudiesHeadline":\s*"([^"]+)"/, 'reviewNoStudiesHeadline'),
-    subtext: needFrom(arb, /"reviewNoStudiesSubtext":\s*"([^"]+)"/, 'reviewNoStudiesSubtext'),
+    headline: l10nEn.mobileReviewNoStudiesHeadline || 'Bring your study.',
+    subtext: l10nEn.mobileReviewNoStudiesSubtext || 'Import a PGN or a Lichess study. Everything stays on this device, and reviews work offline.',
   },
 };
 

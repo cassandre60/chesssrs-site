@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="assets/demo-reference.css">
   <link rel="stylesheet" href="styles.css">
 <script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
-<script type="application/ld+json" id="app-ld">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ChessSRS","url":"https://cassandre60.github.io/chesssrs-site/","applicationCategory":"EducationalApplication","operatingSystem":["Android","Linux"],"softwareVersion":"1.1.0","license":"https://www.gnu.org/licenses/gpl-3.0.html","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<script type="application/ld+json" id="app-ld">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ChessSRS","url":"https://cassandre60.github.io/chesssrs-site/","applicationCategory":"EducationalApplication","operatingSystem":["Android","Linux"],"softwareVersion":"1.4.0","license":"https://www.gnu.org/licenses/gpl-3.0.html","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -41,12 +41,12 @@
 <header class="hd" id="top"><div class="c">
   <a class="logo" href="#top" aria-label="ChessSRS home"><svg class="ic" aria-hidden="true" style="width:22px;height:22px"><use href="#i-lg"/></svg>ChessSRS</a>
   <nav class="nv" aria-label="Primary">
-    <a href="#how">How it works</a><a href="#principles">Principles</a><a href="#faq">FAQ</a>
+    <a href="#how">How it works</a><a href="docs/index.html">Docs</a><a href="#principles">Principles</a><a href="#faq">FAQ</a>
     <a href="https://github.com/cassandre60/ChessSRS">Source</a><a href="#support">Support</a>
     <button class="ib" id="theme" type="button" aria-label="Switch colour theme"><svg class="ic" aria-hidden="true"><use href="#i-th"/></svg></button>
     <a class="btn p sm" href="#download" data-dlmenu>Download</a>
     <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
-      <a href="#how">How it works</a><a href="#principles">Principles</a><a href="#faq">FAQ</a><a href="https://github.com/cassandre60/ChessSRS">Source</a><a href="#support">Support</a></div></details>
+      <a href="#how">How it works</a><a href="docs/index.html">Documentation</a><a href="#principles">Principles</a><a href="#faq">FAQ</a><a href="https://github.com/cassandre60/ChessSRS">Source</a><a href="#support">Support</a></div></details>
   </nav>
 </div></header>
 
@@ -105,6 +105,30 @@
   </div>
 </section>
 
+<section class="c sec" id="docs-preview">
+  <span class="kick mono">Deep Architecture</span>
+  <h2>Engineered for mathematical rigor.</h2>
+  <div class="grid" style="margin-top:28px">
+    <div>
+      <h3><a href="docs/fsrs-algorithm.html" style="text-decoration:none">FSRS Memory Model →</a></h3>
+      <p>Continuous power-law forgetting curves tailored to chess trees. Target retention is analytically bounded between 70% and 97%.</p>
+    </div>
+    <div>
+      <h3><a href="docs/graph-coordinator.html" style="text-decoration:none">Graph-Aware Traversal →</a></h3>
+      <p>Repertoires modeled as DAGs. Transpositions share review states across chapters, with soft lapse contagion decay.</p>
+    </div>
+    <div>
+      <h3><a href="docs/architecture.html" style="text-decoration:none">Pure Domain Architecture →</a></h3>
+      <p>Strict layer isolation. The domain layer is pure Dart, free of Flutter widgets and SQLite, built on Lichess Mobile.</p>
+    </div>
+    <div>
+      <h3><a href="docs/specifications.html" style="text-decoration:none">30+ System Invariants →</a></h3>
+      <p>Formal system contracts verified by mechanical gates: zero-data-loss imports, immutable coordinates, and atomic persistence.</p>
+    </div>
+  </div>
+  <p style="margin-top:28px"><a class="btn s" href="docs/index.html">Explore Documentation Hub →</a></p>
+</section>
+
 <section class="c sec" id="download"><div class="dl split">
   <div><span class="kick mono">Download</span><h2 id="dl-title">Get ChessSRS.</h2><p class="mu" id="dl-sub" style="margin-top:18px;max-width:34ch" aria-live="polite">Free and open source — Linux and Android.</p>
     <div class="cta dl-cta"><button class="btn p" id="dl-primary" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="dl-menu" disabled><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg><span id="dl-primary-tx">Download ChessSRS</span></button></div></div>
@@ -139,11 +163,11 @@
 <footer class="ft" id="footer"><div class="c">
   <div class="fc">
     <div><a class="logo" href="#top"><svg class="ic" aria-hidden="true" style="width:22px;height:22px"><use href="#i-lg"/></svg>ChessSRS</a><p class="mu" style="margin-top:14px;max-width:30ch">A quiet spaced-repetition trainer for your chess openings.</p></div>
-    <div><h3>Product</h3><ul><li><a href="#how">How it works</a></li><li><a href="#principles">Principles</a></li><li><a href="#download">Download</a></li><li><a href="#faq">FAQ</a></li></ul></div>
-    <div><h3>Project</h3><ul><li><a href="https://github.com/cassandre60/ChessSRS">GitHub</a></li><li><a href="https://github.com/cassandre60/ChessSRS/releases">Releases</a></li><li><a href="credits.html">Credits & Licences</a></li><li><a href="privacy.html">Privacy Policy</a></li></ul></div>
+    <div><h3>Product</h3><ul><li><a href="#how">How it works</a></li><li><a href="docs/index.html">Documentation</a></li><li><a href="#principles">Principles</a></li><li><a href="#download">Download</a></li><li><a href="#faq">FAQ</a></li></ul></div>
+    <div><h3>Project</h3><ul><li><a href="docs/architecture.html">Architecture</a></li><li><a href="docs/fsrs-algorithm.html">FSRS Math</a></li><li><a href="https://github.com/cassandre60/ChessSRS">GitHub</a></li><li><a href="credits.html">Credits & Licences</a></li><li><a href="privacy.html">Privacy Policy</a></li></ul></div>
     <div><h3>Support</h3><ul><li><a href="https://github.com/cassandre60/ChessSRS/issues">Report an issue</a></li><li><a href="https://buymeacoffee.com/cassandre60" target="_blank" rel="noopener">Buy me a coffee</a></li><li><a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0 licence</a></li></ul></div>
   </div>
-  <div class="fb"><span>© 2026 ChessSRS. Not affiliated with Lichess. This site sets no cookies and uses no analytics.</span><span>Version <span data-app-version>1.1.0</span></span></div>
+  <div class="fb"><span>© 2026 ChessSRS. Not affiliated with Lichess. This site sets no cookies and uses no analytics.</span><span>Version <span data-app-version>1.4.0</span></span></div>
 </div></footer>
 <script src="assets/app-meta.js" defer></script>
 <script src="main.js" defer></script>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Domain Model & Schemas — ChessSRS Documentation</title>
+<meta name="description" content="The domain vocabulary, entity hierarchy, position identity keys, and SQLite database schema.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F5F3EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F0D0B" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://cassandre60.github.io/chesssrs-site/docs/domain-model.html">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Domain Model & Schemas — ChessSRS Documentation">
+<meta property="og:description" content="The domain vocabulary, entity hierarchy, position identity keys, and SQLite database schema.">
+<meta property="og:url" content="https://cassandre60.github.io/chesssrs-site/docs/domain-model.html">
+<meta property="og:image" content="https://cassandre60.github.io/chesssrs-site/assets/og.jpg">
+<link rel="stylesheet" href="../assets/demo-tokens.css">
+<link rel="stylesheet" href="../assets/demo-reference.css">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="docs.css">
+<script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="doc-page">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></symbol>
+<symbol id="i-th" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.900 4.900l1.400 1.400m11.400 11.400 1.400 1.400M2 12h2m16 0h2M4.900 19.100l1.400-1.400M17.700 6.300l1.400-1.400"/></symbol>
+<symbol id="i-mn" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-lg" viewBox="0 0 22 22">
+  <defs><pattern id="h-brand-doc" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".9" height="2.4" fill="currentColor"/></pattern></defs>
+  <rect x=".75" y=".75" width="20.5" height="20.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <rect x="11" y="1.5" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+  <rect x="1.5" y="11" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+</symbol>
+</defs></svg>
+<a class="mk-sr" href="#main">Skip to main content</a>
+
+<header class="hd" id="top"><div class="c">
+  <a class="logo" href="../index.html" aria-label="ChessSRS home"><svg class="ic" aria-hidden="true" style="width:22px;height:22px"><use href="#i-lg"/></svg>ChessSRS</a>
+  <nav class="nv" aria-label="Primary">
+    <a href="../index.html">Home</a>
+    <a href="index.html" style="font-weight:600;color:var(--ac)">Docs</a>
+    <a href="../index.html#demo">Live Demo</a>
+    <a href="../index.html#how">How it works</a>
+    <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">GitHub</a>
+    <button class="ib" id="theme" type="button" aria-label="Switch colour theme"><svg class="ic" aria-hidden="true"><use href="#i-th"/></svg></button>
+    <a class="btn p sm" href="../index.html#download">Download</a>
+    <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Documentation Hub</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="fsrs-algorithm.html">FSRS Algorithm</a>
+      <a href="graph-coordinator.html">Graph Coordinator</a>
+      <a href="specifications.html">Specifications & Invariants</a>
+      <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">Source Code</a>
+      <a href="../index.html#download">Download</a>
+    </div></details>
+  </nav>
+</div></header>
+
+<div class="doc-wrap">
+  <nav class="doc-sidebar" aria-label="Documentation navigation">
+    <div class="doc-sidebar-nav">
+      
+    <div>
+      <div class="doc-nav-group-title">Getting Started</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="index.html">
+            <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link active" href="domain-model.html">
+            <span>Domain Model & Schemas</span>
+            <span class="doc-nav-badge">Current</span>
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Architecture & Engineering</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="architecture.html">
+            <span>System Architecture</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="specifications.html">
+            <span>System Invariants (SPEC)</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="testing-strategy.html">
+            <span>Testing & Quality Gates</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Algorithms & Training Engine</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="fsrs-algorithm.html">
+            <span>FSRS Spaced Repetition</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="graph-coordinator.html">
+            <span>Graph-Aware Coordinator</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="pgn-pipeline.html">
+            <span>PGN & Study Ingestion</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Development & Operations</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="developer-guide.html">
+            <span>Developer Guide</span>
+            
+          </a>
+      </div>
+    </div>
+  
+    </div>
+  </nav>
+
+  <main class="doc-article" id="main">
+    <div class="doc-breadcrumb">
+      <a href="../index.html">Home</a> / <a href="index.html">Documentation</a> / <span>Domain Model & Schemas</span>
+    </div>
+    <span class="doc-kicker">Data Architecture</span>
+    <h1 class="doc-title">Domain Model & Schemas</h1>
+    <p class="doc-lede">The domain vocabulary, entity hierarchy, position identity keys, and SQLite database schema.</p>
+    
+    <div class="doc-meta-bar">
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/docs/domain-model.md" target="_blank" rel="noopener"><code>docs/domain-model.md</code></a>
+      </div>
+      <div class="doc-meta-item">
+        <strong>App version:</strong> <code>v1.4.0</code>
+      </div>
+      <div class="doc-meta-item">
+        <strong>Licence:</strong> <code>GPL-3.0</code>
+      </div>
+    </div>
+    
+    <section id="entities">
+      <h2>1. Core Domain Entities</h2>
+      <p>The domain model resides strictly in <code>lib/src/domain/</code>, modeled as immutable data classes:</p>
+      <ul>
+        <li><strong>Study:</strong> The top-level repertoire collection imported from a single source (PGN file or Lichess study URL). Contains metadata and one or more Chapters.</li>
+        <li><strong>Chapter:</strong> A named logical unit from the PGN, corresponding to a single game header or study chapter. Contains root move node and orientation.</li>
+        <li><strong>PositionNode / Variation:</strong> A node in the branching chess tree. Tracks FEN state, parent pointer, incoming move, and child moves (variations).</li>
+        <li><strong>RepertoireDecision:</strong> The atomic scheduled unit of spaced repetition. Links a specific position with the expected repertoire move.</li>
+        <li><strong>ReviewState:</strong> Spaced repetition tracking data (current stability, difficulty, repetitions, lapse count, next due timestamp).</li>
+        <li><strong>ReviewEvent:</strong> Immutable log record of an active recall attempt (rating, timestamp, review duration, stability change).</li>
+      </ul>
+    </section>
+
+    <section id="decision-model">
+      <h2>2. The RepertoireDecision Unit</h2>
+      <p>
+        In an opening repertoire, you do not review opponent moves—you only review <strong>your own planned replies</strong>!
+      </p>
+      <div class="code-block">
+        <div class="code-header"><span>RepertoireDecision Structure</span><span>Concept</span></div>
+        <pre tabindex="0"><code>RepertoireDecision {
+  String id;                 // Unique decision identifier
+  String studyId;            // Parent study
+  String chapterId;          // Parent chapter
+  String fen;                // Board position (FEN4)
+  Move expectedMove;         // The user-prepared move (UCI)
+  String canonicalStateId;   // Pointer to shared ReviewState (for transpositions)
+}</code></pre>
+      </div>
+      <p>
+        Opponent choices represent branch forks. Each of your planned responses constitutes a <code>RepertoireDecision</code>.
+      </p>
+    </section>
+
+    <section id="lifecycle">
+      <h2>3. Review State Lifecycle</h2>
+      <p>A position transitions across distinct memory stages:</p>
+      <ol>
+        <li><strong>Fresh / Unseen:</strong> Position has been imported but never reviewed. Positioned in the "Fresh" pool, introduced gradually according to the "New positions per day" limit.</li>
+        <li><strong>Learning:</strong> Undergoing initial acquisition. Intervals are measured in hours or single days until basic retention is proven.</li>
+        <li><strong>Retained / Active Review:</strong> Governed by continuous FSRS power-law scheduling. Intervals expand geometrically as stability increases.</li>
+        <li><strong>Lapsed:</strong> Move was missed during review. Moves into intra-session buffer, receives stability reduction, and resets to short intervals until regained.</li>
+      </ol>
+    </section>
+
+    <section id="database-schema">
+      <h2>4. SQLite Database Schema</h2>
+      <p>Persistence uses SQLite tables with indexed keys for fast query execution on mobile devices:</p>
+      <div class="code-block">
+        <div class="code-header"><span>Core Database Tables</span><span>SQL DDL</span></div>
+        <pre tabindex="0"><code>-- Studies table
+CREATE TABLE studies (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  pgn_hash TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+-- Repertoire chapters
+CREATE TABLE chapters (
+  id TEXT PRIMARY KEY,
+  study_id TEXT NOT NULL REFERENCES studies(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  side TEXT NOT NULL, -- 'white' or 'black'
+  sort_order INTEGER NOT NULL
+);
+
+-- Decisions & review states
+CREATE TABLE review_states (
+  canonical_id TEXT PRIMARY KEY, -- sha1(fen4 + uci)
+  stability REAL NOT NULL,
+  difficulty REAL NOT NULL,
+  repetitions INTEGER NOT NULL,
+  lapses INTEGER NOT NULL,
+  last_reviewed_at INTEGER,
+  next_due_at INTEGER NOT NULL
+);
+
+CREATE INDEX idx_review_states_due ON review_states(next_due_at);</code></pre>
+      </div>
+    </section>
+  
+    
+    <nav class="doc-pagination" aria-label="Document pagination">
+      <a class="doc-page-card prev" href="index.html">
+              <span class="doc-page-dir">← Previous</span>
+              <span class="doc-page-label">Documentation Hub</span>
+            </a>
+      <a class="doc-page-card next" href="architecture.html">
+              <span class="doc-page-dir">Next →</span>
+              <span class="doc-page-label">System Architecture</span>
+            </a>
+    </nav>
+  </main>
+
+  
+    <aside class="doc-toc-aside" aria-label="Table of contents">
+      <div class="doc-toc-title">On This Page</div>
+      <div class="doc-toc-list">
+        <div class="doc-toc-item"><a href="#entities">Core Domain Entities</a></div>
+<div class="doc-toc-item"><a href="#decision-model">The RepertoireDecision Unit</a></div>
+<div class="doc-toc-item"><a href="#lifecycle">Review State Lifecycle</a></div>
+<div class="doc-toc-item"><a href="#database-schema">SQLite Schema & Tables</a></div>
+      </div>
+    </aside>
+</div>
+
+<footer class="ft" id="footer"><div class="c fb">
+  <span>© 2026 ChessSRS. Free & open-source under GPL-3.0. Built on the Lichess Mobile foundation.</span>
+  <div style="display:flex;gap:18px">
+    <a href="index.html">Documentation</a>
+    <a href="../credits.html">Credits & Licences</a>
+    <a href="../privacy.html">Privacy Policy</a>
+  </div>
+</div></footer>
+<script>
+(() => {
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("theme");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    });
+  }
+})();
+</script>
+</body>
+</html>

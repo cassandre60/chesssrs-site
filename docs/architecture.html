@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>System Architecture & Foundation — ChessSRS Documentation</title>
+<meta name="description" content="The technical design of ChessSRS: Lichess Mobile GPL-3.0 base, pure domain boundaries, Riverpod 3.x, and local persistence.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F5F3EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F0D0B" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://cassandre60.github.io/chesssrs-site/docs/architecture.html">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<meta property="og:type" content="article">
+<meta property="og:title" content="System Architecture & Foundation — ChessSRS Documentation">
+<meta property="og:description" content="The technical design of ChessSRS: Lichess Mobile GPL-3.0 base, pure domain boundaries, Riverpod 3.x, and local persistence.">
+<meta property="og:url" content="https://cassandre60.github.io/chesssrs-site/docs/architecture.html">
+<meta property="og:image" content="https://cassandre60.github.io/chesssrs-site/assets/og.jpg">
+<link rel="stylesheet" href="../assets/demo-tokens.css">
+<link rel="stylesheet" href="../assets/demo-reference.css">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="docs.css">
+<script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="doc-page">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></symbol>
+<symbol id="i-th" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.900 4.900l1.400 1.400m11.400 11.400 1.400 1.400M2 12h2m16 0h2M4.900 19.100l1.400-1.400M17.700 6.300l1.400-1.400"/></symbol>
+<symbol id="i-mn" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-lg" viewBox="0 0 22 22">
+  <defs><pattern id="h-brand-doc" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".9" height="2.4" fill="currentColor"/></pattern></defs>
+  <rect x=".75" y=".75" width="20.5" height="20.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <rect x="11" y="1.5" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+  <rect x="1.5" y="11" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+</symbol>
+</defs></svg>
+<a class="mk-sr" href="#main">Skip to main content</a>
+
+<header class="hd" id="top"><div class="c">
+  <a class="logo" href="../index.html" aria-label="ChessSRS home"><svg class="ic" aria-hidden="true" style="width:22px;height:22px"><use href="#i-lg"/></svg>ChessSRS</a>
+  <nav class="nv" aria-label="Primary">
+    <a href="../index.html">Home</a>
+    <a href="index.html" style="font-weight:600;color:var(--ac)">Docs</a>
+    <a href="../index.html#demo">Live Demo</a>
+    <a href="../index.html#how">How it works</a>
+    <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">GitHub</a>
+    <button class="ib" id="theme" type="button" aria-label="Switch colour theme"><svg class="ic" aria-hidden="true"><use href="#i-th"/></svg></button>
+    <a class="btn p sm" href="../index.html#download">Download</a>
+    <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Documentation Hub</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="fsrs-algorithm.html">FSRS Algorithm</a>
+      <a href="graph-coordinator.html">Graph Coordinator</a>
+      <a href="specifications.html">Specifications & Invariants</a>
+      <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">Source Code</a>
+      <a href="../index.html#download">Download</a>
+    </div></details>
+  </nav>
+</div></header>
+
+<div class="doc-wrap">
+  <nav class="doc-sidebar" aria-label="Documentation navigation">
+    <div class="doc-sidebar-nav">
+      
+    <div>
+      <div class="doc-nav-group-title">Getting Started</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="index.html">
+            <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="domain-model.html">
+            <span>Domain Model & Schemas</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Architecture & Engineering</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link active" href="architecture.html">
+            <span>System Architecture</span>
+            <span class="doc-nav-badge">Current</span>
+          </a>
+
+          <a class="doc-nav-link " href="specifications.html">
+            <span>System Invariants (SPEC)</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="testing-strategy.html">
+            <span>Testing & Quality Gates</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Algorithms & Training Engine</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="fsrs-algorithm.html">
+            <span>FSRS Spaced Repetition</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="graph-coordinator.html">
+            <span>Graph-Aware Coordinator</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="pgn-pipeline.html">
+            <span>PGN & Study Ingestion</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Development & Operations</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="developer-guide.html">
+            <span>Developer Guide</span>
+            
+          </a>
+      </div>
+    </div>
+  
+    </div>
+  </nav>
+
+  <main class="doc-article" id="main">
+    <div class="doc-breadcrumb">
+      <a href="../index.html">Home</a> / <a href="index.html">Documentation</a> / <span>System Architecture & Foundation</span>
+    </div>
+    <span class="doc-kicker">Architecture</span>
+    <h1 class="doc-title">System Architecture & Foundation</h1>
+    <p class="doc-lede">The technical design of ChessSRS: Lichess Mobile GPL-3.0 base, pure domain boundaries, Riverpod 3.x, and local persistence.</p>
+    
+    <div class="doc-meta-bar">
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener"><code>ARCHITECTURE.md</code></a>
+      </div>
+      <div class="doc-meta-item">
+        <strong>App version:</strong> <code>v1.4.0</code>
+      </div>
+      <div class="doc-meta-item">
+        <strong>Licence:</strong> <code>GPL-3.0</code>
+      </div>
+    </div>
+    
+    <section id="foundation">
+      <h2>1. The Foundation Reset</h2>
+      <p>
+        ChessSRS is built on a direct fork of <strong>Lichess Mobile</strong> (<a href="https://github.com/lichess-org/mobile" target="_blank" rel="noopener">lichess-org/mobile</a>), licensed under <strong>GNU General Public License v3.0 (GPL-3.0)</strong>.
+      </p>
+      <p>
+        The previous standalone Flutter prototype was permanently archived at git tag <code>legacy/pre-reset</code>. It serves as reference material only: the product contracts and domain behavior are implemented cleanly within the Lichess Mobile architectural patterns.
+      </p>
+      <p>
+        Lichess Mobile provides a battle-tested foundation: high-performance <code>chessground</code> board rendering with 60fps animations, rock-solid move legality validation via <code>dartchess</code>, native audio synthesis, and proven Riverpod state-management patterns. On top of this foundation, ChessSRS replaces online multiplayer with a local-first spaced repetition repertoire engine.
+      </p>
+    </section>
+
+    <section id="layer-boundaries">
+      <h2>2. Layer Boundaries & Component Responsibilities</h2>
+      <p>The codebase is structured into four strict architectural tiers:</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>Architectural Layer Dependency Flow</span><span>ASCII Diagram</span></div>
+        <pre tabindex="0"><code>┌────────────────────────────────────────────────────────────┐
+│ Presentation — Lichess Mobile shell (Flutter + Riverpod)    │
+│   Review screen · Scope drawer · Library sheet · Settings  │
+└──────────────────────────┬─────────────────────────────────┘
+                           │ talks only to application providers
+┌──────────────────────────▼─────────────────────────────────┐
+│ Application — Riverpod providers/services orchestrating    │
+│   use-cases (import study, start review, submit move)      │
+└──────────────────────────┬─────────────────────────────────┘
+                           │ repository interfaces only
+┌──────────────────────────▼─────────────────────────────────┐
+│ DOMAIN (pure Dart, zero Flutter/chessground imports)        │
+│   Study · Chapter · RepertoireDecision · ReviewState       │
+│   ReviewSession engine · FSRS Scheduler contract           │
+└──────────────────────────┬─────────────────────────────────┘
+                           │ adapters only
+┌──────────────────────────▼─────────────────────────────────┐
+│ Infrastructure — Lichess-derived:                          │
+│   dartchess (rules, FEN, SAN, PGN) · chessground widgets   │
+│   sqflite local DB · settings/preferences · file import   │
+│   (no network on any critical path)                        │
+└────────────────────────────────────────────────────────────┘</code></pre>
+      </div>
+
+      <h3>Detailed Responsibilities</h3>
+      <ul>
+        <li><strong>Domain Layer (Pure Dart):</strong> Resides in <code>lib/src/domain/</code>. Encapsulates all chess repertoire tree logic, decision scheduling, memory models, and state transitions. Absolutely zero imports of Flutter UI widgets, Riverpod, or SQLite. Testable without starting a Flutter widget engine.</li>
+        <li><strong>Application Layer:</strong> Riverpod controllers and services (such as <code>ReviewController</code>, <code>StudyController</code>). Orchestrates user actions, translates domain states into view-ready models, and coordinates local storage writes.</li>
+        <li><strong>Presentation Layer:</strong> Flutter widgets implementing the custom "Diagram" aesthetic. Clean typographic hierarchy, zero distraction, responsive layouts adapting seamlessly from mobile phones to tablets and desktops.</li>
+        <li><strong>Infrastructure Layer:</strong> Platform adapters, SQLite database drivers via <code>sqflite</code>, file system I/O, and the Stockfish UCI engine integration.</li>
+      </ul>
+    </section>
+
+    <section id="boundary-invariants">
+      <h2>3. Non-Negotiable Boundary Invariants</h2>
+      <div class="callout spec">
+        <div class="callout-title">INV-PURE-DOMAIN</div>
+        <p>Our domain code contains pure Dart entities and business algorithms. Zero imports of <code>package:flutter/...</code>, <code>chessground</code>, or <code>sqflite</code>. Mechanically enforced by automated static analysis in gate G03 (<code>scripts/gates/banned_apis_check.py</code>).</p>
+      </div>
+
+      <div class="callout spec">
+        <div class="callout-title">INV-SINGLE-CHESS-REP</div>
+        <p><code>dartchess</code> is the sole chess rules and position engine. Do not introduce competing chess libraries or re-implement move generation. The domain consumes dartchess core types (<code>Position</code>, <code>Move</code>, <code>San</code>) through thin adapters; presentation consumes <code>chessground</code>.</p>
+      </div>
+
+      <div class="callout spec">
+        <div class="callout-title">INV-LOCAL-FIRST</div>
+        <p>The entire critical user loop—making a move, validating legality, checking repertoire expectations, updating FSRS memory states, and updating the board—executes in memory and local SQLite. Network access is completely absent from this path.</p>
+      </div>
+    </section>
+
+    <section id="subsystem-cuts">
+      <h2>4. Subsystem Cuts & Retentions</h2>
+      <p>
+        To transform Lichess Mobile into a quiet, focused training sanctuary, non-repertoire systems were cleanly removed per <code>CUT_PROPOSALS.md</code>:
+      </p>
+      <div class="doc-table-wrap">
+        <table class="doc-table">
+          <thead>
+            <tr>
+              <th>Subsystem</th>
+              <th>Status</th>
+              <th>Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Online multiplayer / matchmaking / lobby</td>
+              <td><strong>Removed</strong></td>
+              <td>Offline repertoire recall does not require real-time games.</td>
+            </tr>
+            <tr>
+              <td>TV, streaming, chat & social feed</td>
+              <td><strong>Removed</strong></td>
+              <td>Eliminates distraction and social anxiety; reinforces calm training.</td>
+            </tr>
+            <tr>
+              <td>Leaderboards, badges & XP gamification</td>
+              <td><strong>Removed</strong></td>
+              <td>Promotes intrinsic recall habit over artificial streak inflation.</td>
+            </tr>
+            <tr>
+              <td>Lichess Puzzles & Puzzle Storm</td>
+              <td><strong>Removed</strong></td>
+              <td>App focuses exclusively on user-curated opening repertoires.</td>
+            </tr>
+            <tr>
+              <td>Chessground board renderer & animations</td>
+              <td><strong>Retained & Adapted</strong></td>
+              <td>World-class touch responsiveness, piece gestures, and board visuals.</td>
+            </tr>
+            <tr>
+              <td>dartchess rules & move validator</td>
+              <td><strong>Retained</strong></td>
+              <td>High-performance, memory-safe chess representation.</td>
+            </tr>
+            <tr>
+              <td>Audio synthesizer & piece sound effects</td>
+              <td><strong>Retained</strong></td>
+              <td>Provides immediate tactile feedback on move recall.</td>
+            </tr>
+            <tr>
+              <td>Stockfish engine integration</td>
+              <td><strong>Retained (Local Analysis)</strong></td>
+              <td>Enables on-device deep exploration without network dependency.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="persistence">
+      <h2>5. Local Persistence (SQLite / Drift)</h2>
+      <p>
+        Repertoire content and review histories are persisted in a local SQLite database (managed via <code>sqflite</code> and drift schema migrations):
+      </p>
+      <ul>
+        <li><strong>Incremental writes (INV-002):</strong> Answering a move writes the updated <code>ReviewState</code> and records a <code>ReviewEvent</code> row only. The repertoire move tree is never serialized or rewritten on every move.</li>
+        <li><strong>Crash consistency (INV-001):</strong> A graded review answer is committed within an atomic database transaction. Closing or killing the process immediately after a move preserves the exact review state.</li>
+        <li><strong>Deduplication on import (INV-003):</strong> PGN trees are hashed canonically. Re-importing the same study updates metadata without duplicating decisions or corrupting existing intervals.</li>
+      </ul>
+    </section>
+  
+    
+    <nav class="doc-pagination" aria-label="Document pagination">
+      <a class="doc-page-card prev" href="domain-model.html">
+              <span class="doc-page-dir">← Previous</span>
+              <span class="doc-page-label">Domain Model & Schemas</span>
+            </a>
+      <a class="doc-page-card next" href="specifications.html">
+              <span class="doc-page-dir">Next →</span>
+              <span class="doc-page-label">System Invariants (SPEC)</span>
+            </a>
+    </nav>
+  </main>
+
+  
+    <aside class="doc-toc-aside" aria-label="Table of contents">
+      <div class="doc-toc-title">On This Page</div>
+      <div class="doc-toc-list">
+        <div class="doc-toc-item"><a href="#foundation">The Foundation Reset</a></div>
+<div class="doc-toc-item"><a href="#layer-boundaries">Layer Boundaries</a></div>
+<div class="doc-toc-item"><a href="#boundary-invariants">Boundary Invariants</a></div>
+<div class="doc-toc-item"><a href="#subsystem-cuts">Subsystem Cuts & Retentions</a></div>
+<div class="doc-toc-item"><a href="#persistence">Local Persistence (SQLite)</a></div>
+      </div>
+    </aside>
+</div>
+
+<footer class="ft" id="footer"><div class="c fb">
+  <span>© 2026 ChessSRS. Free & open-source under GPL-3.0. Built on the Lichess Mobile foundation.</span>
+  <div style="display:flex;gap:18px">
+    <a href="index.html">Documentation</a>
+    <a href="../credits.html">Credits & Licences</a>
+    <a href="../privacy.html">Privacy Policy</a>
+  </div>
+</div></footer>
+<script>
+(() => {
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("theme");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    });
+  }
+})();
+</script>
+</body>
+</html>

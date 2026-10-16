@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FSRS Spaced Repetition for Chess — ChessSRS Documentation</title>
+<meta name="description" content="The mathematical formulation of FSRS-4.5/5 DSR power-law forgetting curves adapted for chess opening recall.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F5F3EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F0D0B" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://cassandre60.github.io/chesssrs-site/docs/fsrs-algorithm.html">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<meta property="og:type" content="article">
+<meta property="og:title" content="FSRS Spaced Repetition for Chess — ChessSRS Documentation">
+<meta property="og:description" content="The mathematical formulation of FSRS-4.5/5 DSR power-law forgetting curves adapted for chess opening recall.">
+<meta property="og:url" content="https://cassandre60.github.io/chesssrs-site/docs/fsrs-algorithm.html">
+<meta property="og:image" content="https://cassandre60.github.io/chesssrs-site/assets/og.jpg">
+<link rel="stylesheet" href="../assets/demo-tokens.css">
+<link rel="stylesheet" href="../assets/demo-reference.css">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="docs.css">
+<script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="doc-page">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></symbol>
+<symbol id="i-th" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.900 4.900l1.400 1.400m11.400 11.400 1.400 1.400M2 12h2m16 0h2M4.900 19.100l1.400-1.400M17.700 6.300l1.400-1.400"/></symbol>
+<symbol id="i-mn" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-lg" viewBox="0 0 22 22">
+  <defs><pattern id="h-brand-doc" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".9" height="2.4" fill="currentColor"/></pattern></defs>
+  <rect x=".75" y=".75" width="20.5" height="20.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <rect x="11" y="1.5" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+  <rect x="1.5" y="11" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+</symbol>
+</defs></svg>
+<a class="mk-sr" href="#main">Skip to main content</a>
+
+<header class="hd" id="top"><div class="c">
+  <a class="logo" href="../index.html" aria-label="ChessSRS home"><svg class="ic" aria-hidden="true" style="width:22px;height:22px"><use href="#i-lg"/></svg>ChessSRS</a>
+  <nav class="nv" aria-label="Primary">
+    <a href="../index.html">Home</a>
+    <a href="index.html" style="font-weight:600;color:var(--ac)">Docs</a>
+    <a href="../index.html#demo">Live Demo</a>
+    <a href="../index.html#how">How it works</a>
+    <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">GitHub</a>
+    <button class="ib" id="theme" type="button" aria-label="Switch colour theme"><svg class="ic" aria-hidden="true"><use href="#i-th"/></svg></button>
+    <a class="btn p sm" href="../index.html#download">Download</a>
+    <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Documentation Hub</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="fsrs-algorithm.html">FSRS Algorithm</a>
+      <a href="graph-coordinator.html">Graph Coordinator</a>
+      <a href="specifications.html">Specifications & Invariants</a>
+      <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">Source Code</a>
+      <a href="../index.html#download">Download</a>
+    </div></details>
+  </nav>
+</div></header>
+
+<div class="doc-wrap">
+  <nav class="doc-sidebar" aria-label="Documentation navigation">
+    <div class="doc-sidebar-nav">
+      
+    <div>
+      <div class="doc-nav-group-title">Getting Started</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="index.html">
+            <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="domain-model.html">
+            <span>Domain Model & Schemas</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Architecture & Engineering</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="architecture.html">
+            <span>System Architecture</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="specifications.html">
+            <span>System Invariants (SPEC)</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="testing-strategy.html">
+            <span>Testing & Quality Gates</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Algorithms & Training Engine</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link active" href="fsrs-algorithm.html">
+            <span>FSRS Spaced Repetition</span>
+            <span class="doc-nav-badge">Current</span>
+          </a>
+
+          <a class="doc-nav-link " href="graph-coordinator.html">
+            <span>Graph-Aware Coordinator</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="pgn-pipeline.html">
+            <span>PGN & Study Ingestion</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Development & Operations</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="developer-guide.html">
+            <span>Developer Guide</span>
+            
+          </a>
+      </div>
+    </div>
+  
+    </div>
+  </nav>
+
+  <main class="doc-article" id="main">
+    <div class="doc-breadcrumb">
+      <a href="../index.html">Home</a> / <a href="index.html">Documentation</a> / <span>FSRS Spaced Repetition for Chess</span>
+    </div>
+    <span class="doc-kicker">Memory Model</span>
+    <h1 class="doc-title">FSRS Spaced Repetition for Chess</h1>
+    <p class="doc-lede">The mathematical formulation of FSRS-4.5/5 DSR power-law forgetting curves adapted for chess opening recall.</p>
+    
+    <div class="doc-meta-bar">
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/ChessSRS Scheduling Architecture.md" target="_blank" rel="noopener"><code>ChessSRS Scheduling Architecture.md</code></a>
+      </div>
+      <div class="doc-meta-item">
+        <strong>App version:</strong> <code>v1.4.0</code>
+      </div>
+      <div class="doc-meta-item">
+        <strong>Licence:</strong> <code>GPL-3.0</code>
+      </div>
+    </div>
+    
+    <section id="why-fsrs">
+      <h2>1. Why FSRS for Chess Openings?</h2>
+      <p>
+        Traditional spaced repetition software relies on <strong>SM-2</strong> (developed by SuperMemo in 1987) or basic exponential ladders. In flashcard vocabulary learning, SM-2 treats each word as an independent card with a single "ease factor".
+      </p>
+      <p>
+        In chess openings, SM-2 fails due to three fundamental flaws:
+      </p>
+      <ol>
+        <li><strong>Conflation of Difficulty and Stability:</strong> A move can be intrinsically difficult (counter-intuitive quiet move) while currently being very stable in your memory. SM-2's single scalar collapses these dimensions.</li>
+        <li><strong>Catastrophic Lapse Resets:</strong> If you forget move 8 of a sharp Sicilian line, SM-2 resets the interval to 1 day. In reality, your brain does not suffer total amnesia; with modern memory models, previous exposures provide residual stability.</li>
+        <li><strong>Arbitrary Target Retention:</strong> SM-2 cannot answer: <em>"How frequently must I review this line so that I have a 95% probability of remembering it in tomorrow's tournament game?"</em></li>
+      </ol>
+      <p>
+        ChessSRS solves this by adopting the <strong>Free Spaced Repetition Scheduler (FSRS-4.5 / FSRS-5)</strong> continuous power-law model.
+      </p>
+    </section>
+
+    <section id="dsr-model">
+      <h2>2. The DSR (Difficulty, Stability, Retrievability) Model</h2>
+      <p>
+        FSRS models human memory using three continuous variables:
+      </p>
+      <ul>
+        <li><strong>Retrievability ($R \in [0, 1]$):</strong> The probability that you will successfully recall the correct repertoire move right now. Immediately after reviewing a move, $R = 1.0$. Over time $t$ (days), $R$ decays following a power-law curve.</li>
+        <li><strong>Stability ($S \ge 0.1$):</strong> The durability of memory, defined as the time in days required for Retrievability to decay from 100% to 90% ($R(S) = 0.90$). Higher stability means slower memory decay.</li>
+        <li><strong>Difficulty ($D \in [1, 10]$):</strong> The intrinsic complexity of the chess decision. Tactically natural moves have lower difficulty ($D \approx 2$); subtle positional moves or pawn breaks have higher difficulty ($D \approx 8$).</li>
+      </ul>
+    </section>
+
+    <section id="equations">
+      <h2>3. Mathematical Formulation</h2>
+      <p>
+        FSRS uses a continuous power-law forgetting curve derived from empirical cognitive memory datasets (>700M reviews):
+      </p>
+
+      <div class="math-card">
+        <div class="callout-title" style="color:var(--ac)">Power-Law Retrievability Equation</div>
+        <div class="math-display" tabindex="0">
+          R(t, S) = (1 + FACTOR · (t / S))^(-w)
+        </div>
+        <div class="math-legend">
+          Where:
+          <br>• <strong>t</strong> = elapsed time in days since last active recall review
+          <br>• <strong>S</strong> = memory stability in days
+          <br>• <strong>FACTOR</strong> = (0.9^(-1/w) - 1), ensuring that R(S, S) ≡ 0.90
+          <br>• <strong>w</strong> = power-law decay parameter (canonical default = 0.5)
+        </div>
+      </div>
+
+      <h3>Dynamic Interval Calculation for Target Retention</h3>
+      <p>
+        Given a player's desired retention $r_{	ext{target}}$ (configured in Settings, bounded between 0.70 and 0.97 per <code>INV-RETENTION-BOUNDS</code>), the exact due interval $I$ in days is solved analytically:
+      </p>
+
+      <div class="math-card">
+        <div class="callout-title" style="color:var(--ac)">Optimal Review Interval Equation</div>
+        <div class="math-display" tabindex="0">
+          I(r, S) = (S / FACTOR) · (r^(-1/w) - 1)
+        </div>
+        <div class="math-legend">
+          For target retention <strong>r = 0.90</strong>, the interval is exactly equal to stability: <strong>I(0.90, S) = S</strong>.
+          <br>For target retention <strong>r = 0.95</strong>, reviews occur earlier: <strong>I(0.95, S) ≈ 0.47 · S</strong>.
+        </div>
+      </div>
+    </section>
+
+    <section id="binary-grading">
+      <h2>4. Pure Binary Rating (Decision D015)</h2>
+      <p>
+        Canonical FSRS uses four buttons: <code>Again (1)</code>, <code>Hard (2)</code>, <code>Good (3)</code>, <code>Easy (4)</code>. In vocabulary flashcards, answer latency is often used to approximate ease.
+      </p>
+      <div class="callout warning">
+        <div class="callout-title">The Chess Latency Fallacy</div>
+        <p>In chess, long think times represent <strong>disciplined tournament verification</strong>, double-checking tactical lines and avoiding blunders. Penalizing think time creates timer anxiety and trains reckless blitzing habits!</p>
+      </div>
+      <p>
+        Therefore, ChessSRS strictly uses <strong>Pure Binary FSRS</strong>:
+      </p>
+      <ul>
+        <li><strong>Again (Rating 1):</strong> Incorrect move played, hint requested, or pass. The position is registered as a lapse, stability undergoes a controlled haircut, and the card is re-queued in the intra-session buffer.</li>
+        <li><strong>Good (Rating 3):</strong> Correct move played on first commit, regardless of whether it took 2 seconds or 60 seconds of calculation.</li>
+      </ul>
+      <p>
+        Think latency (<code>latencyEmaMs</code>) is tracked strictly for retrospective analytics and is completely firewalled from scheduling math.
+      </p>
+    </section>
+
+    <section id="stability-transitions">
+      <h2>5. Stability & Difficulty Updates</h2>
+      <h3>On Successful Recall (Good, G = 3)</h3>
+      <p>Stability grows proportionally to difficulty, current stability, and retrieval effort:</p>
+      <div class="math-card">
+        <div class="math-display" tabindex="0">
+          S'(D, S, R) = S · (1 + e^(w8) · (11 - D) · S^(-w9) · (e^(w10 · (1 - R)) - 1))
+        </div>
+        <div class="math-legend">
+          Notice the term <strong>(1 - R)</strong>: retrieving a move when Retrievability is low (high retrieval effort) yields a substantially larger stability increase than reviewing a move you just saw a few hours ago!
+        </div>
+      </div>
+
+      <h3>On Recall Lapse (Again, G = 1)</h3>
+      <p>When a move is forgotten, stability does not collapse to zero; it resets to a controlled lower baseline:</p>
+      <div class="math-card">
+        <div class="math-display" tabindex="0">
+          S'(D, S, R) = w11 · D^(-w12) · ((S + 1)^w13 - 1) · e^(w14 · (1 - R))
+        </div>
+      </div>
+
+      <h3>Difficulty Mean Reversion</h3>
+      <p>Difficulty adjusts smoothly with mean reversion to prevent extreme outliers:</p>
+      <div class="math-card">
+        <div class="math-display" tabindex="0">
+          D' = clip(w7 · D0(3) + (1 - w7) · (D - w6 · (G - 3)), 1.0, 10.0)
+        </div>
+      </div>
+    </section>
+  
+    
+    <nav class="doc-pagination" aria-label="Document pagination">
+      <a class="doc-page-card prev" href="testing-strategy.html">
+              <span class="doc-page-dir">← Previous</span>
+              <span class="doc-page-label">Testing & Quality Gates</span>
+            </a>
+      <a class="doc-page-card next" href="graph-coordinator.html">
+              <span class="doc-page-dir">Next →</span>
+              <span class="doc-page-label">Graph-Aware Coordinator</span>
+            </a>
+    </nav>
+  </main>
+
+  
+    <aside class="doc-toc-aside" aria-label="Table of contents">
+      <div class="doc-toc-title">On This Page</div>
+      <div class="doc-toc-list">
+        <div class="doc-toc-item"><a href="#why-fsrs">Why FSRS for Chess</a></div>
+<div class="doc-toc-item"><a href="#dsr-model">The DSR Memory Model</a></div>
+<div class="doc-toc-item"><a href="#equations">Mathematical Formulation</a></div>
+<div class="doc-toc-item"><a href="#binary-grading">Pure Binary Rating (D015)</a></div>
+<div class="doc-toc-item"><a href="#stability-transitions">Stability & Difficulty Updates</a></div>
+      </div>
+    </aside>
+</div>
+
+<footer class="ft" id="footer"><div class="c fb">
+  <span>© 2026 ChessSRS. Free & open-source under GPL-3.0. Built on the Lichess Mobile foundation.</span>
+  <div style="display:flex;gap:18px">
+    <a href="index.html">Documentation</a>
+    <a href="../credits.html">Credits & Licences</a>
+    <a href="../privacy.html">Privacy Policy</a>
+  </div>
+</div></footer>
+<script>
+(() => {
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("theme");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    });
+  }
+})();
+</script>
+</body>
+</html>

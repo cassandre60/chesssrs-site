@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PGN & Study Ingestion Pipeline — ChessSRS Documentation</title>
+<meta name="description" content="Multi-chapter PGN parsing, recursive annotation variation (RAV) preservation, move canonicalization, and quality quarantine.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F5F3EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F0D0B" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://cassandre60.github.io/chesssrs-site/docs/pgn-pipeline.html">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PGN & Study Ingestion Pipeline — ChessSRS Documentation">
+<meta property="og:description" content="Multi-chapter PGN parsing, recursive annotation variation (RAV) preservation, move canonicalization, and quality quarantine.">
+<meta property="og:url" content="https://cassandre60.github.io/chesssrs-site/docs/pgn-pipeline.html">
+<meta property="og:image" content="https://cassandre60.github.io/chesssrs-site/assets/og.jpg">
+<link rel="stylesheet" href="../assets/demo-tokens.css">
+<link rel="stylesheet" href="../assets/demo-reference.css">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="docs.css">
+<script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="doc-page">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></symbol>
+<symbol id="i-th" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.900 4.900l1.400 1.400m11.400 11.400 1.400 1.400M2 12h2m16 0h2M4.900 19.100l1.400-1.400M17.700 6.300l1.400-1.400"/></symbol>
+<symbol id="i-mn" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-lg" viewBox="0 0 22 22">
+  <defs><pattern id="h-brand-doc" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".9" height="2.4" fill="currentColor"/></pattern></defs>
+  <rect x=".75" y=".75" width="20.5" height="20.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <rect x="11" y="1.5" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+  <rect x="1.5" y="11" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+</symbol>
+</defs></svg>
+<a class="mk-sr" href="#main">Skip to main content</a>
+
+<header class="hd" id="top"><div class="c">
+  <a class="logo" href="../index.html" aria-label="ChessSRS home"><svg class="ic" aria-hidden="true" style="width:22px;height:22px"><use href="#i-lg"/></svg>ChessSRS</a>
+  <nav class="nv" aria-label="Primary">
+    <a href="../index.html">Home</a>
+    <a href="index.html" style="font-weight:600;color:var(--ac)">Docs</a>
+    <a href="../index.html#demo">Live Demo</a>
+    <a href="../index.html#how">How it works</a>
+    <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">GitHub</a>
+    <button class="ib" id="theme" type="button" aria-label="Switch colour theme"><svg class="ic" aria-hidden="true"><use href="#i-th"/></svg></button>
+    <a class="btn p sm" href="../index.html#download">Download</a>
+    <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Documentation Hub</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="fsrs-algorithm.html">FSRS Algorithm</a>
+      <a href="graph-coordinator.html">Graph Coordinator</a>
+      <a href="specifications.html">Specifications & Invariants</a>
+      <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">Source Code</a>
+      <a href="../index.html#download">Download</a>
+    </div></details>
+  </nav>
+</div></header>
+
+<div class="doc-wrap">
+  <nav class="doc-sidebar" aria-label="Documentation navigation">
+    <div class="doc-sidebar-nav">
+      
+    <div>
+      <div class="doc-nav-group-title">Getting Started</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="index.html">
+            <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="domain-model.html">
+            <span>Domain Model & Schemas</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Architecture & Engineering</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="architecture.html">
+            <span>System Architecture</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="specifications.html">
+            <span>System Invariants (SPEC)</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="testing-strategy.html">
+            <span>Testing & Quality Gates</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Algorithms & Training Engine</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="fsrs-algorithm.html">
+            <span>FSRS Spaced Repetition</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="graph-coordinator.html">
+            <span>Graph-Aware Coordinator</span>
+            
+          </a>
+
+          <a class="doc-nav-link active" href="pgn-pipeline.html">
+            <span>PGN & Study Ingestion</span>
+            <span class="doc-nav-badge">Current</span>
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Development & Operations</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="developer-guide.html">
+            <span>Developer Guide</span>
+            
+          </a>
+      </div>
+    </div>
+  
+    </div>
+  </nav>
+
+  <main class="doc-article" id="main">
+    <div class="doc-breadcrumb">
+      <a href="../index.html">Home</a> / <a href="index.html">Documentation</a> / <span>PGN & Study Ingestion Pipeline</span>
+    </div>
+    <span class="doc-kicker">Data Pipeline</span>
+    <h1 class="doc-title">PGN & Study Ingestion Pipeline</h1>
+    <p class="doc-lede">Multi-chapter PGN parsing, recursive annotation variation (RAV) preservation, move canonicalization, and quality quarantine.</p>
+    
+    <div class="doc-meta-bar">
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/docs/pgn-import.md" target="_blank" rel="noopener"><code>docs/pgn-import.md</code></a>
+      </div>
+      <div class="doc-meta-item">
+        <strong>App version:</strong> <code>v1.4.0</code>
+      </div>
+      <div class="doc-meta-item">
+        <strong>Licence:</strong> <code>GPL-3.0</code>
+      </div>
+    </div>
+    
+    <section id="sources">
+      <h2>1. Input Sources & Ingestion</h2>
+      <p>
+        ChessSRS accepts opening material through two primary avenues:
+      </p>
+      <ul>
+        <li><strong>Standard PGN Files & Text:</strong> Direct file picker (<code>.pgn</code>) or clipboard paste supporting multi-game collections, extensive comments, and deeply nested sub-variations.</li>
+        <li><strong>Lichess Study Import:</strong> Enter any public Lichess study URL or 8-character study ID (e.g. <code>https://lichess.org/study/Gg4E2sIS</code>). For private or unlisted studies, users can sign in with their Lichess account via OAuth Bearer token to import their private repertoires.</li>
+      </ul>
+    </section>
+
+    <section id="ast-parsing">
+      <h2>2. AST & Recursive Variation Tree Parsing</h2>
+      <p>
+        A PGN study is parsed into an Abstract Syntax Tree (AST) using <code>dartchess</code>'s streaming parser:
+      </p>
+      <ul>
+        <li><strong>Multi-Game Streams:</strong> Each PGN game block (separated by standard PGN header tags) is mapped to an independent <code>Chapter</code> within the parent <code>Study</code>.</li>
+        <li><strong>Recursive Annotation Variations (RAV - INV-010):</strong> Sibling variations wrapped in parentheses <code>( ... )</code> are preserved down to arbitrary depth. Branches are never flattened or pruned.</li>
+        <li><strong>Numeric Annotation Glyphs (NAGs):</strong> Evaluative symbols ($1 = !, $2 = ?, $3 = !!, $4 = ??, etc.) are parsed into node metadata.</li>
+        <li><strong>Author Annotations:</strong> Explanatory text comments embedded in curly braces <code>{ ... }</code> are stored with the position node and displayed to the user after recall attempts (configurable in Settings).</li>
+      </ul>
+    </section>
+
+    <section id="canonicalization">
+      <h2>3. Move Validation & FEN Normalization</h2>
+      <p>
+        Imported moves must undergo rigorous geometric validation:
+      </p>
+      <ol>
+        <li><strong>Legality Verification:</strong> Every move is executed on an internal <code>dartchess.Position</code> instance. Illegal moves, ambiguous algebraic notation, or invalid castling rights trigger immediate quarantine.</li>
+        <li><strong>Coordinate Conversion:</strong> Standard Algebraic Notation (SAN: e.g. <code>Nf3</code>, <code>O-O</code>) is resolved into canonical UCI coordinates (e.g. <code>g1f3</code>, <code>e1g1</code>).</li>
+        <li><strong>Side Determination:</strong> The parser analyzes branch structures to automatically detect whether the chapter trains White or Black lines.</li>
+      </ol>
+    </section>
+
+    <section id="quarantine">
+      <h2>4. Quality Gates & Error Quarantine</h2>
+      <div class="callout spec">
+        <div class="callout-title">INV-011 Malformed Input Quarantine</div>
+        <p>If a PGN file contains syntax corruption, illegal moves, or truncated bodies, the invalid chapters are quarantined with specific line and character error diagnostics. Valid chapters are cleanly imported; an import is never left in a corrupt, half-applied state.</p>
+      </div>
+
+      <div class="callout spec">
+        <div class="callout-title">INV-003 Duplicate Import Rejection</div>
+        <p>Importing a PGN whose canonical tree hash matches an already imported study switches directly to that study. It never inserts duplicate studies, chapters, or duplicate decision cards in SQLite.</p>
+      </div>
+    </section>
+  
+    
+    <nav class="doc-pagination" aria-label="Document pagination">
+      <a class="doc-page-card prev" href="graph-coordinator.html">
+              <span class="doc-page-dir">← Previous</span>
+              <span class="doc-page-label">Graph-Aware Coordinator</span>
+            </a>
+      <a class="doc-page-card next" href="developer-guide.html">
+              <span class="doc-page-dir">Next →</span>
+              <span class="doc-page-label">Developer Guide</span>
+            </a>
+    </nav>
+  </main>
+
+  
+    <aside class="doc-toc-aside" aria-label="Table of contents">
+      <div class="doc-toc-title">On This Page</div>
+      <div class="doc-toc-list">
+        <div class="doc-toc-item"><a href="#sources">Input Sources</a></div>
+<div class="doc-toc-item"><a href="#ast-parsing">AST & Variation Tree Parsing</a></div>
+<div class="doc-toc-item"><a href="#canonicalization">Move Validation & FEN Normalization</a></div>
+<div class="doc-toc-item"><a href="#quarantine">Quality Gates & Error Quarantine</a></div>
+      </div>
+    </aside>
+</div>
+
+<footer class="ft" id="footer"><div class="c fb">
+  <span>© 2026 ChessSRS. Free & open-source under GPL-3.0. Built on the Lichess Mobile foundation.</span>
+  <div style="display:flex;gap:18px">
+    <a href="index.html">Documentation</a>
+    <a href="../credits.html">Credits & Licences</a>
+    <a href="../privacy.html">Privacy Policy</a>
+  </div>
+</div></footer>
+<script>
+(() => {
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("theme");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    });
+  }
+})();
+</script>
+</body>
+</html>

@@ -20,6 +20,11 @@
           "conditional": false
         },
         {
+          "label": "New positions per day",
+          "kind": "segmented",
+          "conditional": false
+        },
+        {
           "label": "Target retention",
           "kind": "segmented",
           "conditional": false
@@ -35,8 +40,18 @@
           "conditional": false
         },
         {
+          "label": "Line continuity",
+          "kind": "segmented",
+          "conditional": false
+        },
+        {
           "label": "Transposed moves",
           "kind": "segmented",
+          "conditional": false
+        },
+        {
+          "label": "Dynamic repertoire mode",
+          "kind": "switch",
           "conditional": false
         },
         {
@@ -197,10 +212,10 @@
         {
           "label": "Rate this app",
           "kind": "nav",
-          "conditional": false
+          "conditional": true
         },
         {
-          "label": "Licences & open source",
+          "label": "About and licences",
           "kind": "nav",
           "conditional": false
         }

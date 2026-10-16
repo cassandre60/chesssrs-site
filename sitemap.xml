@@ -1,2 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://cassandre60.github.io/chesssrs-site/</loc></url></urlset>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://cassandre60.github.io/chesssrs-site/</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/docs/</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/docs/architecture.html</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/docs/fsrs-algorithm.html</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/docs/graph-coordinator.html</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/docs/pgn-pipeline.html</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/docs/specifications.html</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/docs/domain-model.html</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/docs/testing-strategy.html</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/docs/developer-guide.html</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/credits.html</loc></url>
+  <url><loc>https://cassandre60.github.io/chesssrs-site/privacy.html</loc></url>
+</urlset>

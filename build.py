@@ -33,7 +33,7 @@ sha = base64.b64encode(hashlib.sha256(inline.encode()).digest()).decode()
   Cache-Control: public, max-age=31536000, immutable
 """)
 (r/"dist").mkdir(exist_ok=True); (r/"dist/index.single.html").write_text(h)
-files = ["index.html", "privacy.html", "credits.html", "styles.css", "main.js", "chess.bundle.js", "engine.js", "pieces.js", "demo.js", "build.py", "package.json", "robots.txt", "sitemap.xml", "_headers", "tests/demo.test.js", "README.md"] + [str(p.relative_to(r)) for p in sorted((r/"assets").glob("*"))]
+files = ["index.html", "privacy.html", "credits.html", "styles.css", "main.js", "chess.bundle.js", "engine.js", "pieces.js", "demo.js", "build.py", "package.json", "robots.txt", "sitemap.xml", "_headers", "tests/demo.test.js", "README.md"] + [str(p.relative_to(r)) for p in sorted((r/"assets").glob("*"))] + [str(p.relative_to(r)) for p in sorted((r/"docs").glob("*.html"))] + ["docs/docs.css"]
 with zipfile.ZipFile(r/"dist/chesssrs-site.zip", "w", zipfile.ZIP_DEFLATED) as z:
     for f in files: z.write(r/f, "chesssrs-site/"+f)
 print(len(h))
