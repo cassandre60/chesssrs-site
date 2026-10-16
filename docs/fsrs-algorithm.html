@@ -49,6 +49,7 @@
     <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
       <a href="../index.html">Home</a>
       <a href="index.html">Documentation Hub</a>
+      <a href="product.html">Product Vision</a>
       <a href="architecture.html">Architecture</a>
       <a href="fsrs-algorithm.html">FSRS Algorithm</a>
       <a href="graph-coordinator.html">Graph Coordinator</a>
@@ -69,6 +70,11 @@
         
           <a class="doc-nav-link " href="index.html">
             <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="product.html">
+            <span>Product Definition & Journeys</span>
             
           </a>
 
@@ -147,9 +153,15 @@
     <p class="doc-lede">The mathematical formulation of FSRS-4.5/5 DSR power-law forgetting curves adapted for chess opening recall.</p>
     
     <div class="doc-meta-bar">
+      
       <div class="doc-meta-item">
         <strong>Source in app repo:</strong>
         <a href="https://github.com/cassandre60/ChessSRS/blob/main/ChessSRS Scheduling Architecture.md" target="_blank" rel="noopener"><code>ChessSRS Scheduling Architecture.md</code></a>
+      </div>
+
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/docs/review-1-chessfsrs-scheduler.md" target="_blank" rel="noopener"><code>docs/review-1-chessfsrs-scheduler.md</code></a>
       </div>
       <div class="doc-meta-item">
         <strong>App version:</strong> <code>v1.4.0</code>
@@ -158,125 +170,1334 @@
         <strong>Licence:</strong> <code>GPL-3.0</code>
       </div>
     </div>
-    
-    <section id="why-fsrs">
-      <h2>1. Why FSRS for Chess Openings?</h2>
-      <p>
-        Traditional spaced repetition software relies on <strong>SM-2</strong> (developed by SuperMemo in 1987) or basic exponential ladders. In flashcard vocabulary learning, SM-2 treats each word as an independent card with a single "ease factor".
-      </p>
-      <p>
-        In chess openings, SM-2 fails due to three fundamental flaws:
-      </p>
-      <ol>
-        <li><strong>Conflation of Difficulty and Stability:</strong> A move can be intrinsically difficult (counter-intuitive quiet move) while currently being very stable in your memory. SM-2's single scalar collapses these dimensions.</li>
-        <li><strong>Catastrophic Lapse Resets:</strong> If you forget move 8 of a sharp Sicilian line, SM-2 resets the interval to 1 day. In reality, your brain does not suffer total amnesia; with modern memory models, previous exposures provide residual stability.</li>
-        <li><strong>Arbitrary Target Retention:</strong> SM-2 cannot answer: <em>"How frequently must I review this line so that I have a 95% probability of remembering it in tomorrow's tournament game?"</em></li>
-      </ol>
-      <p>
-        ChessSRS solves this by adopting the <strong>Free Spaced Repetition Scheduler (FSRS-4.5 / FSRS-5)</strong> continuous power-law model.
-      </p>
-    </section>
+    <h2 id="chesssrs-scheduling-architecture-a-graph-aware-dsr-model">ChessSRS Scheduling Architecture: A Graph-Aware DSR Model</h2>
+<p>by claude-sonnet-5-high</p>
+<h2 id="executive-summary">Executive Summary</h2>
+<p><strong>Recommendation:</strong> Adopt the <strong>FSRS-4.5/5 (Difficulty-Stability-Retrievability) power-law forgetting model as the per-node memory kernel</strong>, wrapped in a <strong>chess-specific graph propagation layer</strong> (<code>GraphAwareReviewCoordinator</code>) that is <em>not</em> part of generic Anki/FSRS and cannot be bolted on later without a redesign. The kernel handles &quot;how does one memory item decay and strengthen.&quot; The wrapper handles &quot;how do memory items influence each other because they live on a tree of forced move-order dependencies, share transposed positions, and compete for the same pattern-recognition slot.&quot;</p>
+<p>This separation is deliberate: the DSR core is empirically the strongest general memory model available (outperforms SM-2/HLR in every published Anki-scale benchmark), so we should not re-derive it from scratch with no chess review data to fit it on. The genuinely novel, chess-specific engineering is entirely in the graph layer — that&#39;s where this report concentrates its original contribution.</p>
+<hr>
+<h2 id="a-algorithmic-candidates-comparison">A. Algorithmic Candidates Comparison</h2>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Mechanism</th>
+<th>Fit for chess trees</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SM-2 / Leitner (Chessable-style)</strong></td>
+<td>Discrete ease-factor ladder, deterministic multiplier on correct, hard reset on lapse</td>
+<td>Zero graph awareness, ease factor is a crude scalar that conflates &quot;how hard is this move&quot; with &quot;how forgettable is this move,&quot; reset-on-lapse is catastrophic for an 8-ply variation (see §B.1)</td>
+<td><strong>Reject as primary model.</strong> Useful only as the <code>SimpleScheduler</code> fallback for cold-start/offline-degraded mode.</td>
+</tr>
+<tr>
+<td><strong>EaseScalingScheduler (current)</strong></td>
+<td><code class="inline-code inline-math">I = \text{ease}\times\text{scaling}^{\text{reps}}</code>, geometric, no decay-based retrievability target</td>
+<td>No retention target, no difficulty separate from stability, cannot answer &quot;when will <code class="inline-code inline-math">R</code> drop below 90%&quot; — it&#39;s a schedule, not a memory model</td>
+<td><strong>Deprecate.</strong> Keep only as legacy import path for existing users migrating data.</td>
+</tr>
+<tr>
+<td><strong>FSRS v4.5 / v5 (DSR)</strong></td>
+<td>Continuous power-law retrievability <code class="inline-code inline-math">R(t,S)</code>, difficulty <code class="inline-code inline-math">D\in[1,10]</code> decoupled from stability <code class="inline-code inline-math">S</code>, explicit <code class="inline-code inline-math">R_{\text{target}}</code>-driven interval solve</td>
+<td>Excellent: separates &quot;intrinsically hard move&quot; (D) from &quot;currently well/poorly memorized&quot; (S); directly answers the tournament &quot;R≥95% by Saturday&quot; question by solving for <code class="inline-code inline-math">t</code> at fixed <code class="inline-code inline-math">S</code>; validated on &gt;700M real reviews</td>
+<td><strong>Adopt as kernel.</strong></td>
+</tr>
+<tr>
+<td><strong>Half-Life Regression (HLR/Duolingo)</strong></td>
+<td><code class="inline-code inline-math">p = 2^{-\Delta/h}</code>, <code class="inline-code inline-math">h = 2^{\theta\cdot x}</code>, features regressed via logistic/linear regression over large corpora</td>
+<td>Needs a trained feature vector (lexeme features in Duolingo); we have no chess-specific corpus yet, and it doesn&#39;t model difficulty separately from stability — architecturally it <em>is</em> FSRS&#39;s ancestor with a weaker (exponential, not power-law) decay</td>
+<td><strong>Reject as core model</strong>, but its <em>methodology</em> (log-loss regression to fit decay-rate weights against real review outcomes) is exactly how we should later refit FSRS&#39;s <code class="inline-code inline-math">w_i</code> chess-specific weights once ChessSRS accumulates review logs.</td>
+</tr>
+<tr>
+<td><strong>Hierarchical / Graph-aware (tree credit assignment, Bayesian Knowledge Tracing)</strong></td>
+<td>BKT: latent binary &quot;known&quot; state per skill, HMM transition (learn/forget/guess/slip probabilities), naturally supports prerequisite graphs</td>
+<td>Correctly models &quot;prerequisite&quot; structure but BKT is <em>trial-indexed</em>, not <em>time-indexed</em> — it has no native concept of &quot;14 real days elapsed,&quot; which is the entire point of SRS. Also binary latent state loses the difficulty/stability separation.</td>
+<td><strong>Do not replace FSRS with BKT.</strong> Instead, borrow BKT&#39;s prerequisite-propagation idea (§B.1, §B.4) purely for <strong>cold-start priors</strong> (new/child-node difficulty seeded from ancestor mastery) — a genuine hybrid, not a swap.</td>
+</tr>
+</tbody></table></div>
+<h3 id="on-binary-ratings-vs-fsrs39s-4-button-model-decision-d015-pure-binary-fsrs">On binary ratings vs. FSRS&#39;s 4-button model (Decision D015: Pure Binary FSRS)</h3>
+<p>FSRS&#39;s canonical equations are parameterized on <code class="inline-code inline-math">g \in {1{=}\text{Again},2{=}\text{Hard},3{=}\text{Good},4{=}\text{Easy}}</code>. In vocabulary flashcards, latency approximates confidence. In chess, however, <strong>latency is dominated by calculation and verification overhead</strong>, which is disciplined tournament play, not weak memory. </p>
+<p>Penalizing think time creates timer anxiety and trains reflexive blitzing. Furthermore, FSRS maintains full mathematical predictive accuracy in binary mode (<code class="inline-code inline-math">g \in {1{=}\text{Again}, 3{=}\text{Good}}</code>).</p>
+<p>Therefore, ChessSRS strictly uses <strong>Pure Binary FSRS</strong>:</p>
+<div class="math-card"><div class="math-display" tabindex="0">g =
+\begin{cases}
+\text{Again (1)} & \text{incorrect move, hint used, or corrected false start}\\
+\text{Good (3)} & \text{first committed move is correct (unlimited think time)}
+\end{cases}</div></div><p>Latency (<code>latencyEmaMs</code>) is preserved as optional post-hoc telemetry only, strictly firewalled from interval grading. Dead parameters (<code>w1</code>, <code>w3</code>, <code>w15</code>, <code>w16</code>) are eliminated from the kernel.</p>
+<hr>
+<h2 id="b-graph-aware-adaptation-amp-invariants">B. Graph-Aware Adaptation &amp; Invariants</h2>
+<h3 id="b1-upstream-lapse-handling">B.1 Upstream Lapse Handling</h3>
+<p><strong>Principle:</strong> A lapse at ply <code class="inline-code inline-math">N</code> is evidence about the <em>specific pattern-recognition trigger at that node</em>, not proof of amnesia for ply <code class="inline-code inline-math">N{+}1, N{+}2,\dots</code>. Full subtree reset (what naive SM-2 usage would imply) is both empirically wrong (descendants are frequently still fine) and pedagogically harmful (it manufactures enormous, demotivating review backlogs from a single misclick).</p>
+<p>We apply <strong>exponentially-decaying lapse contagion</strong>, scoped to <em>direct descendants in the same chosen branch only</em> (not siblings — see B.4 for sibling handling):</p>
+<div class="math-card"><div class="math-display" tabindex="0">S_{\text{child}}' = S_{\text{child}} \times \bigl(1 - \lambda_0 \cdot e^{-(\text{depth}-1)/\tau}\bigr)</div></div><div class="math-card"><div class="math-display" tabindex="0">D_{\text{child}}' = \operatorname{clip}\bigl(D_{\text{child}} + \beta \cdot \lambda_0 \cdot e^{-(\text{depth}-1)/\tau},\ 1,\ 10\bigr)</div></div><p>with defaults <code class="inline-code inline-math">\lambda_0 = 0.18</code> (max 18% stability haircut, applied only to the immediate child), <code class="inline-code inline-math">\tau = 1.5</code> plies (contagion is essentially gone by depth 4), <code class="inline-code inline-math">\beta = 0.6</code> (a smaller permanent difficulty nudge, since &quot;the line as a whole is trickier&quot; is durable signal even after the transient stability hit is regained). Depth counts from 1 at the immediate child, so it takes the full <code class="inline-code inline-math">\lambda_0</code>; earlier the exponent read <code class="inline-code inline-math">-\text{depth}/\tau</code>, which delivered only 51.3% of the documented haircut at every depth (review-2 C2, fixed 2026-10-10). The corresponding <code>nextDueAt</code> is pulled forward proportionally to the same decay (not reset to &quot;now&quot;) — this makes the child <em>more likely to surface soon</em> without lying about its actual measured retrievability.</p>
+<p>This is intentionally a <strong>soft nudge, not a state-machine reset</strong>: it never touches <code>repetitionCount</code> or <code>lapseCount</code> of the child (that child was not tested), and the true FSRS update for the child still happens normally the next time it is <em>actually reviewed</em>.</p>
+<h3 id="b2-auto-traversal-credit-invariant-24">B.2 Auto-Traversal Credit (Invariant §2.4)</h3>
+<p>Passive traversal is real exposure (the player <em>sees</em> the correct move played, in context, under time pressure of getting to the due node) but is not <strong>active recall</strong> — no retrieval effort was made, no error signal is possible. Per Karpicke &amp; Roediger&#39;s testing-effect literature, re-exposure produces a small, short-lived boost, meaningfully weaker than a successful active retrieval.</p>
+<p>Rule: auto-traversal produces a <strong>micro-stability bump with no memory-model side effects</strong>:</p>
+<div class="math-card"><div class="math-display" tabindex="0">S' = S \times (1 + \varepsilon), \qquad \varepsilon = 0.08</div></div><p>Applied by <em>extending</em> <code>nextDueAt</code> proportionally (never shrinking it), and explicitly:</p>
+<ul>
+<li><code>lastReviewedAt</code> is <strong>not</strong> updated (it is not a review),</li>
+<li><code>repetitionCount</code> / <code>lapseCount</code> / <code>difficulty</code> are <strong>not</strong> touched,</li>
+<li>capped to <strong>once per calendar day per decision</strong> (prevents a user from &quot;farming&quot; stability by rapidly re-opening the same line and inflating intervals),</li>
+<li><strong>only applied while the item is not overdue</strong> — if a prefix move is itself already due (its own interval elapsed), auto-traversal must not silently satisfy that due-ness; the engine should surface it as its own decision point instead of just walking past it. This is enforced upstream by the traversal engine, not the scheduler, but the scheduler protects itself by refusing the exposure bump to already-<code>isDue</code> states.</li>
+</ul>
+<h3 id="b3-transpositions-amp-position-identity">B.3 Transpositions &amp; Position Identity</h3>
+<p>Canonicalize every <code>RepertoireDecision</code> on <strong>FEN4 (placement, turn, castling, en-passant target) + the expected move in UCI</strong>, <em>not</em> on a per-chapter node id:</p>
+<pre tabindex="0"><code>canonicalKey = sha1(&quot;&lt;code class=&quot;inline-code inline-math&quot;&gt;fen4|&lt;/code&gt;expectedMoveUci&quot;)
+</code></pre>
+<ul>
+<li>If two nodes across chapters share <code>canonicalKey</code> → they are the <em>same memory item</em>. Merge into a single <code>ReviewState</code>, referenced by both graph nodes (many-to-one edge from <code>RepertoireDecision.positionStateId</code> to a shared <code>PositionKnowledgeState</code>). A review triggered from either chapter updates the one shared state; due-ness is likewise shared.</li>
+<li>If FEN4 matches but the <strong>expected move differs</strong> across chapters → this is not a transposition, it&#39;s a <strong>repertoire contradiction</strong> (the user has committed to two different moves in the same position across two studies). This must be surfaced as a lint/validation error at import time, not silently trained — training both would actively teach interference.</li>
+<li>Half-move clock and full-move number are deliberately excluded from the key (they don&#39;t affect legal continuations or pattern recognition), and only FEN4 is used precisely to catch transpositions Lichess/ chess.com study trees usually fail to detect.</li>
+</ul>
+<h3 id="b4-interference-mitigation-sibling-confusable-candidate-moves">B.4 Interference Mitigation (sibling / confusable candidate moves)</h3>
+<p>Real interference in chess is not &quot;same node, different candidate answers&quot; (a <code>RepertoireDecision</code> has exactly one expected continuation by definition) — it&#39;s <strong>structurally distinct decisions whose surface features are highly similar</strong> (Najdorf 6.Bg5 vs 6.Be3 are different FENs entirely). Generic SRS has no notion of this at all. We add a lightweight <strong>Confusion Registry</strong>:</p>
+<ol>
+<li><strong>Direct evidence linking:</strong> whenever an incorrect answer is recorded, compare the <em>played</em> move (and resulting FEN) against sibling decisions hanging off the same parent (or FEN-adjacent decisions found via a cheap structural hash of &quot;board minus last move&quot;). If the played move exactly matches a sibling&#39;s expected move, register a <code>ConfusionEdge(a, b, weight++)</code>.</li>
+<li><strong>Difficulty coupling:</strong> on a confirmed confusion edge, bump the <em>sibling&#39;s</em> difficulty by a small coupled amount too (<code class="inline-code inline-math">\Delta D_{\text{sibling}} = \kappa \cdot \Delta D_{\text{node}}</code>, <code class="inline-code inline-math">\kappa \approx 0.35</code>) — evidence that A and B are confusable is symmetric evidence, even though only A was tested.</li>
+<li><strong>Scheduling consequence:</strong> when the due-aware weighted-random selector (already part of your traversal engine) picks a due node with outgoing confusion edges above a weight threshold, it should <strong>interleave the confusable sibling into the same session</strong> (contrastive practice) even if the sibling isn&#39;t strictly due yet — this is the single highest-leverage, chess-specific intervention available, since discrimination training is what the literature says fixes exactly this failure mode (it is <em>not</em> something raw interval math can fix).</li>
+</ol>
+<h3 id="b5-prerequisite-priors-for-cold-start-bkt-inspired-not-bkt-replaced">B.5 Prerequisite priors for cold-start (BKT-inspired, not BKT-replaced)</h3>
+<p>New decisions (never reviewed) get their FSRS <code class="inline-code inline-math">D_0</code> seeded not just from the first rating but nudged by ancestor mastery:</p>
+<div class="math-card"><div class="math-display" tabindex="0">D_0' = \operatorname{clip}\Bigl(D_0(g) - \gamma \cdot (R_{\text{parent}} - 0.9),\ 1,\ 10\Bigr), \quad \gamma \approx 2.0</div></div><p>i.e., if the parent move is currently very well retained (<code class="inline-code inline-math">R_{\text{parent}}</code> high), assume slightly lower intrinsic difficulty for the child (the player is &quot;in flow&quot; in this part of the tree); if the parent is fragile, assume the child is a bit harder than its first rating alone would suggest. This is a prior only — it washes out after 2–3 real reviews of the child via normal FSRS mean-reversion.</p>
+<hr>
+<h2 id="c-recommended-model-specification-quotchessfsrsquot">C. Recommended Model Specification — &quot;ChessFSRS&quot;</h2>
+<h3 id="c1-retrievability-forgetting-curve">C.1 Retrievability (forgetting curve)</h3>
+<p>Power-law form (FSRS-5), with <code class="inline-code inline-math">S</code> in days:</p>
+<div class="math-card"><div class="math-display" tabindex="0">R(t, S) = \left(1 + F\cdot\frac{t}{S}\right)^{C}, \qquad C = -0.5,\quad F = 0.9^{1/C}-1 = \tfrac{19}{81}\approx 0.2345</div></div><p>chosen so that <code class="inline-code inline-math">R(S, S) = 0.9</code> by construction (i.e. <code class="inline-code inline-math">S</code> is literally &quot;days until 90% retention&quot;).</p>
+<h3 id="c2-interval-for-a-target-retention-r_texttarget">C.2 Interval for a target retention <code class="inline-code inline-math">R_{\text{target}}</code></h3>
+<p>Solve <code class="inline-code inline-math">R(t,S)=R_{\text{target}}</code> for <code class="inline-code inline-math">t</code>:</p>
+<div class="math-card"><div class="math-display" tabindex="0">I(S, R_{\text{target}}) = \frac{S}{F}\Bigl(R_{\text{target}}^{\,1/C} - 1\Bigr) = \frac{81\,S}{19}\Bigl(R_{\text{target}}^{-2}-1\Bigr)</div></div><h3 id="c3-difficulty">C.3 Difficulty</h3>
+<div class="math-card"><div class="math-display" tabindex="0">D_0(g) = \operatorname{clip}\bigl(w_4 - (g-3)w_5,\ 1,\ 10\bigr)</div></div><div class="math-card"><div class="math-display" tabindex="0">D'(D,g) = \operatorname{clip}\Bigl(w_7\cdot w_4 + (1-w_7)\bigl(D - w_6(g-3)\bigr),\ 1,\ 10\Bigr)</div></div><h3 id="c4-stability-day-1-cold-start">C.4 Stability — Day-1 (cold start)</h3>
+<div class="math-card"><div class="math-display" tabindex="0">S_0(g) = w_0,\ w_1,\ w_2,\ w_3 \quad\text{for } g=\text{Again, Hard, Good, Easy}</div></div><p>Day-1 interval <code class="inline-code inline-math">= I(S_0(g), R_{\text{target}})</code>.</p>
+<h3 id="c5-stability-successful-recall-g-ge-texthard">C.5 Stability — successful recall (<code class="inline-code inline-math">g \ge \text{Hard}</code>)</h3>
+<div class="math-card"><div class="math-display" tabindex="0">S' = S\left(1 + e^{w_8}\cdot(11-D)\cdot S^{-w_9}\cdot\bigl(e^{(1-R)w_{10}}-1\bigr)\cdot h\cdot e\right)</div></div><p><code class="inline-code inline-math">h = w_{15}</code> if <code class="inline-code inline-math">g=\text{Hard}</code> else <code class="inline-code inline-math">1</code>; <code class="inline-code inline-math">e = w_{16}</code> if <code class="inline-code inline-math">g=\text{Easy}</code> else <code class="inline-code inline-math">1</code>.</p>
+<h3 id="c6-stability-lapse-gtextagain">C.6 Stability — lapse (<code class="inline-code inline-math">g=\text{Again}</code>)</h3>
+<div class="math-card"><div class="math-display" tabindex="0">S'_{\text{lapse}} = w_{11}\cdot D^{-w_{12}}\cdot\bigl((S+1)^{w_{13}}-1\bigr)\cdot e^{(1-R)w_{14}}</div></div><p>then apply the <strong>graph-layer contagion</strong> from §B.1 to descendants (this is <em>in addition to</em>, and downstream of, the node&#39;s own lapse update).</p>
+<h3 id="c7-same-day-rapid-re-review-guard">C.7 Same-day / rapid re-review guard</h3>
+<p>If elapsed <code class="inline-code inline-math">t < t_{\text{same-day}}</code> (default <code class="inline-code inline-math">1/24</code> day = 1 hour): skip the full DSR update (at <code class="inline-code inline-math">t\to0</code>, <code class="inline-code inline-math">R\to1</code> and the formulas above degenerate/produce near-zero effective change or numerical noise). Instead apply a small linear nudge:</p>
+<div class="math-card"><div class="math-display" tabindex="0">S' = S \times \begin{cases} 1.02 & g \ge \text{Good} \\ 0.85 & g = \text{Again}\end{cases}</div></div><h3 id="c8-recommended-default-parameters-chess-tuned-prior">C.8 Recommended default parameters (chess-tuned prior)</h3>
+<p>Starting point = published FSRS-4.5 default weights, with the deltas noted (justified in §B — chess lapses should cost slightly more because of tree dependency, chess &quot;Hard&quot; correct answers should be weighted down slightly because hesitation strongly predicts a near-term lapse in tactical recall):</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Param</th>
+<th>Generic FSRS default</th>
+<th>ChessSRS default</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code class="inline-code inline-math">w_0</code> (S0 Again)</td>
+<td>0.40</td>
+<td>0.35</td>
+<td>slightly faster relapse re-surfacing</td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_1</code> (S0 Hard)</td>
+<td>0.60</td>
+<td>0.55</td>
+<td></td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_2</code> (S0 Good)</td>
+<td>2.40</td>
+<td>2.20</td>
+<td></td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_3</code> (S0 Easy)</td>
+<td>5.80</td>
+<td>5.80</td>
+<td>unchanged</td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_4</code> (D0 base)</td>
+<td>4.93</td>
+<td>4.93</td>
+<td></td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_5</code> (D0 slope)</td>
+<td>0.94</td>
+<td>0.94</td>
+<td></td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_6</code> (D responsiveness)</td>
+<td>0.86</td>
+<td><strong>1.05</strong></td>
+<td>interference/dependency makes chess errors more diagnostic of true difficulty</td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_7</code> (D mean reversion)</td>
+<td>0.01</td>
+<td>0.01</td>
+<td></td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_8</code>–<code class="inline-code inline-math">w_{10}</code></td>
+<td>1.49, 0.14, 0.94</td>
+<td>unchanged</td>
+<td></td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_{11}</code>–<code class="inline-code inline-math">w_{13}</code></td>
+<td>2.18, 0.05, 0.34</td>
+<td>unchanged</td>
+<td></td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_{12}</code> (lapse severity)</td>
+<td>0.05</td>
+<td><strong>0.09</strong></td>
+<td>tree-dependent lapses should decay stability harder</td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_{14}</code></td>
+<td>1.26</td>
+<td>unchanged</td>
+<td></td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_{15}</code> (Hard penalty)</td>
+<td>0.29</td>
+<td><strong>0.22</strong></td>
+<td>hesitant-but-correct chess recall is a weaker signal than in flashcards</td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">w_{16}</code> (Easy bonus)</td>
+<td>2.61</td>
+<td>2.61</td>
+<td></td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">\lambda_0</code> (lapse contagion)</td>
+<td>—</td>
+<td>0.18</td>
+<td>new, chess-specific</td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">\tau</code> (contagion depth decay)</td>
+<td>—</td>
+<td>1.5 plies</td>
+<td>new</td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">\varepsilon</code> (traversal exposure)</td>
+<td>—</td>
+<td>0.08</td>
+<td>new</td>
+</tr>
+<tr>
+<td><code class="inline-code inline-math">\kappa</code> (confusion coupling)</td>
+<td>—</td>
+<td>0.35</td>
+<td>new</td>
+</tr>
+</tbody></table></div>
+<p><strong>These are priors, not final values.</strong> Once ~500–1000 reviews/user accumulate, run the standard FSRS optimizer (gradient descent minimizing log-loss of <code class="inline-code inline-math">R</code> predictions against observed outcomes) <em>per-user or pooled anonymized</em>, exactly as Anki&#39;s FSRS add-on does — the architecture below stores exactly the fields (<code class="inline-code inline-math">D</code>, <code class="inline-code inline-math">S</code>, timestamps, rating) that optimizer needs, so this is a drop-in future upgrade, not a rewrite.</p>
+<h3 id="c9-target-retention-amp-user-tunables">C.9 Target retention &amp; user-tunables</h3>
+<div class="math-card"><div class="math-display" tabindex="0">R_{\text{target}} = \text{clip}(R_{\text{base}} + \Delta_{\text{tournament}},\ 0.70,\ 0.99)</div></div><p>Exposed controls:</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Control</th>
+<th>Range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Target Retention slider</strong></td>
+<td>80%–95% (maintenance default 88%)</td>
+<td>Directly plugs into <code class="inline-code inline-math">R_{\text{target}}</code> in §C.2; lower = longer intervals/less time invested, higher = shorter intervals/higher board-recall confidence</td>
+</tr>
+<tr>
+<td><strong>Tournament Mode toggle</strong></td>
+<td>boolean + event date</td>
+<td>Temporarily forces <code class="inline-code inline-math">R_{\text{target}}=0.95</code>–0.97 and caps <code>maxIntervalDays</code> to <code class="inline-code inline-math">\le</code> days-until-event for all decisions in the selected repertoire scope; auto-reverts to base retention day after the event</td>
+</tr>
+<tr>
+<td><strong>Rigor / Safety Factor</strong></td>
+<td>0.9×–1.1×</td>
+<td>Post-multiplies the computed interval <code class="inline-code inline-math">I \to I\cdot\rho</code>; a pure &quot;shrink my due dates a bit, I don&#39;t trust the model yet&quot; knob independent of the retention-probability semantics</td>
+</tr>
+<tr>
+<td><strong>Interleaving intensity</strong></td>
+<td>off / normal / aggressive</td>
+<td>Controls confusion-set interleaving threshold from §B.4</td>
+</tr>
+</tbody></table></div>
+<hr>
+<h2 id="d-dart-implementation">D. Dart Implementation</h2>
+<p>Pure Dart, zero dependencies, deterministic via injected <code>now</code>, fuzz disabled by default for testability.</p>
+<pre tabindex="0"><code class="language-dart">import &#39;dart:math&#39; as math;
 
-    <section id="dsr-model">
-      <h2>2. The DSR (Difficulty, Stability, Retrievability) Model</h2>
-      <p>
-        FSRS models human memory using three continuous variables:
-      </p>
-      <ul>
-        <li><strong>Retrievability ($R \in [0, 1]$):</strong> The probability that you will successfully recall the correct repertoire move right now. Immediately after reviewing a move, $R = 1.0$. Over time $t$ (days), $R$ decays following a power-law curve.</li>
-        <li><strong>Stability ($S \ge 0.1$):</strong> The durability of memory, defined as the time in days required for Retrievability to decay from 100% to 90% ($R(S) = 0.90$). Higher stability means slower memory decay.</li>
-        <li><strong>Difficulty ($D \in [1, 10]$):</strong> The intrinsic complexity of the chess decision. Tactically natural moves have lower difficulty ($D \approx 2$); subtle positional moves or pawn breaks have higher difficulty ($D \approx 8$).</li>
-      </ul>
-    </section>
+// ---------------------------------------------------------------------------
+// Given domain contracts (reproduced for completeness)
+// ---------------------------------------------------------------------------
 
-    <section id="equations">
-      <h2>3. Mathematical Formulation</h2>
-      <p>
-        FSRS uses a continuous power-law forgetting curve derived from empirical cognitive memory datasets (>700M reviews):
-      </p>
+enum ReviewResult { correct, incorrect }
 
-      <div class="math-card">
-        <div class="callout-title" style="color:var(--ac)">Power-Law Retrievability Equation</div>
-        <div class="math-display" tabindex="0">
-          R(t, S) = (1 + FACTOR · (t / S))^(-w)
-        </div>
-        <div class="math-legend">
-          Where:
-          <br>• <strong>t</strong> = elapsed time in days since last active recall review
-          <br>• <strong>S</strong> = memory stability in days
-          <br>• <strong>FACTOR</strong> = (0.9^(-1/w) - 1), ensuring that R(S, S) ≡ 0.90
-          <br>• <strong>w</strong> = power-law decay parameter (canonical default = 0.5)
-        </div>
-      </div>
+class ReviewState {
+  final String decisionId;
+  final DateTime? firstReviewedAt;
+  final DateTime? lastReviewedAt;
+  final DateTime? nextDueAt;
+  final int repetitionCount;
+  final int lapseCount;
+  final double stability;   // stored in MILLISECONDS (existing contract)
+  final double difficulty;  // 1..10, FSRS scale
 
-      <h3>Dynamic Interval Calculation for Target Retention</h3>
-      <p>
-        Given a player's desired retention $r_{	ext{target}}$ (configured in Settings, bounded between 0.70 and 0.97 per <code>INV-RETENTION-BOUNDS</code>), the exact due interval $I$ in days is solved analytically:
-      </p>
+  const ReviewState({
+    required this.decisionId,
+    this.firstReviewedAt,
+    this.lastReviewedAt,
+    this.nextDueAt,
+    this.repetitionCount = 0,
+    this.lapseCount = 0,
+    this.stability = 0.0,
+    this.difficulty = 0.0,
+  });
 
-      <div class="math-card">
-        <div class="callout-title" style="color:var(--ac)">Optimal Review Interval Equation</div>
-        <div class="math-display" tabindex="0">
-          I(r, S) = (S / FACTOR) · (r^(-1/w) - 1)
-        </div>
-        <div class="math-legend">
-          For target retention <strong>r = 0.90</strong>, the interval is exactly equal to stability: <strong>I(0.90, S) = S</strong>.
-          <br>For target retention <strong>r = 0.95</strong>, reviews occur earlier: <strong>I(0.95, S) ≈ 0.47 · S</strong>.
-        </div>
-      </div>
-    </section>
+  static ReviewState cold(String decisionId) =&gt; ReviewState(decisionId: decisionId);
+}
 
-    <section id="binary-grading">
-      <h2>4. Pure Binary Rating (Decision D015)</h2>
-      <p>
-        Canonical FSRS uses four buttons: <code>Again (1)</code>, <code>Hard (2)</code>, <code>Good (3)</code>, <code>Easy (4)</code>. In vocabulary flashcards, answer latency is often used to approximate ease.
-      </p>
-      <div class="callout warning">
-        <div class="callout-title">The Chess Latency Fallacy</div>
-        <p>In chess, long think times represent <strong>disciplined tournament verification</strong>, double-checking tactical lines and avoiding blunders. Penalizing think time creates timer anxiety and trains reckless blitzing habits!</p>
-      </div>
-      <p>
-        Therefore, ChessSRS strictly uses <strong>Pure Binary FSRS</strong>:
-      </p>
-      <ul>
-        <li><strong>Again (Rating 1):</strong> Incorrect move played, hint requested, or pass. The position is registered as a lapse, stability undergoes a controlled haircut, and the card is re-queued in the intra-session buffer.</li>
-        <li><strong>Good (Rating 3):</strong> Correct move played on first commit, regardless of whether it took 2 seconds or 60 seconds of calculation.</li>
-      </ul>
-      <p>
-        Think latency (<code>latencyEmaMs</code>) is tracked strictly for retrospective analytics and is completely firewalled from scheduling math.
-      </p>
-    </section>
+abstract class Scheduler {
+  bool isDue(ReviewState state, DateTime now);
+  ReviewState schedule({
+    required ReviewState previous,
+    required ReviewResult result,
+    required DateTime now,
+  });
+}
 
-    <section id="stability-transitions">
-      <h2>5. Stability & Difficulty Updates</h2>
-      <h3>On Successful Recall (Good, G = 3)</h3>
-      <p>Stability grows proportionally to difficulty, current stability, and retrieval effort:</p>
-      <div class="math-card">
-        <div class="math-display" tabindex="0">
-          S'(D, S, R) = S · (1 + e^(w8) · (11 - D) · S^(-w9) · (e^(w10 · (1 - R)) - 1))
-        </div>
-        <div class="math-legend">
-          Notice the term <strong>(1 - R)</strong>: retrieving a move when Retrievability is low (high retrieval effort) yields a substantially larger stability increase than reviewing a move you just saw a few hours ago!
-        </div>
-      </div>
+// ---------------------------------------------------------------------------
+// Rating (internal, reconstructed from binary correctness + latency signal)
+// ---------------------------------------------------------------------------
 
-      <h3>On Recall Lapse (Again, G = 1)</h3>
-      <p>When a move is forgotten, stability does not collapse to zero; it resets to a controlled lower baseline:</p>
-      <div class="math-card">
-        <div class="math-display" tabindex="0">
-          S'(D, S, R) = w11 · D^(-w12) · ((S + 1)^w13 - 1) · e^(w14 · (1 - R))
-        </div>
-      </div>
+enum Rating { again, hard, good, easy }
 
-      <h3>Difficulty Mean Reversion</h3>
-      <p>Difficulty adjusts smoothly with mean reversion to prevent extreme outliers:</p>
-      <div class="math-card">
-        <div class="math-display" tabindex="0">
-          D' = clip(w7 · D0(3) + (1 - w7) · (D - w6 · (G - 3)), 1.0, 10.0)
-        </div>
-      </div>
-    </section>
-  
+int _g(Rating r) =&gt; switch (r) {
+      Rating.again =&gt; 1,
+      Rating.hard =&gt; 2,
+      Rating.good =&gt; 3,
+      Rating.easy =&gt; 4,
+    };
+
+Rating inferRating({
+  required bool correct,
+  bool multipleAttempts = false,
+  bool hintUsed = false,
+  int? latencyMs,
+  int? medianLatencyMs,
+}) {
+  if (!correct || multipleAttempts) return Rating.again;
+  if (hintUsed) return Rating.hard;
+  if (latencyMs != null &amp;&amp; medianLatencyMs != null &amp;&amp; medianLatencyMs &gt; 0) {
+    final ratio = latencyMs / medianLatencyMs;
+    if (ratio &gt; 1.6) return Rating.hard;
+    if (ratio &lt; 0.5) return Rating.easy;
+  }
+  return Rating.good;
+}
+
+// ---------------------------------------------------------------------------
+// Parameters
+// ---------------------------------------------------------------------------
+
+class ChessFsrsParams {
+  // Initial stability per rating (days)
+  final double w0, w1, w2, w3;
+  // Difficulty
+  final double w4, w5, w6, w7;
+  // Success-stability formula
+  final double w8, w9, w10;
+  // Lapse-stability formula
+  final double w11, w12, w13, w14;
+  // Hard penalty / Easy bonus
+  final double w15, w16;
+
+  final double sameDayThresholdDays;
+  final double sameDayGainFactor;
+  final double sameDayLapseFactor;
+
+  final double minStabilityDays;
+  final double maxStabilityDays;
+
+  const ChessFsrsParams({
+    this.w0 = 0.35, this.w1 = 0.55, this.w2 = 2.20, this.w3 = 5.80,
+    this.w4 = 4.93, this.w5 = 0.94, this.w6 = 1.05, this.w7 = 0.01,
+    this.w8 = 1.49, this.w9 = 0.14, this.w10 = 0.94,
+    this.w11 = 2.18, this.w12 = 0.09, this.w13 = 0.34, this.w14 = 1.26,
+    this.w15 = 0.22, this.w16 = 2.61,
+    this.sameDayThresholdDays = 1 / 24,
+    this.sameDayGainFactor = 1.02,
+    this.sameDayLapseFactor = 0.85,
+    this.minStabilityDays = 0.02,   // ~30 minutes floor
+    this.maxStabilityDays = 365 * 5,
+  });
+
+  const ChessFsrsParams.chessDefaults() : this();
+}
+
+// ---------------------------------------------------------------------------
+// Core DSR math (pure functions, independently unit-testable)
+// ---------------------------------------------------------------------------
+
+const double kDecay = -0.5;
+final double kFactor = math.pow(0.9, 1 / kDecay).toDouble() - 1; // ≈ 0.2345
+
+double retrievability(double elapsedDays, double stabilityDays) {
+  if (stabilityDays &lt;= 0) return 0.0;
+  final t = elapsedDays &lt; 0 ? 0.0 : elapsedDays;
+  return math.pow(1 + kFactor * t / stabilityDays, kDecay).toDouble();
+}
+
+double intervalForTarget(double stabilityDays, double targetRetention) {
+  final r = targetRetention.clamp(0.70, 0.99);
+  final raw = stabilityDays / kFactor * (math.pow(r, 1 / kDecay) - 1);
+  return raw.isFinite &amp;&amp; raw &gt; 0 ? raw : 0.0;
+}
+
+double initialDifficulty(Rating rating, ChessFsrsParams p) {
+  final g = _g(rating);
+  return (p.w4 - (g - 3) * p.w5).clamp(1.0, 10.0);
+}
+
+double nextDifficulty(double d, Rating rating, ChessFsrsParams p) {
+  final g = _g(rating);
+  final delta = d - p.w6 * (g - 3);
+  final reverted = p.w7 * p.w4 + (1 - p.w7) * delta;
+  return reverted.clamp(1.0, 10.0);
+}
+
+double initialStability(Rating rating, ChessFsrsParams p) =&gt; switch (rating) {
+      Rating.again =&gt; p.w0,
+      Rating.hard =&gt; p.w1,
+      Rating.good =&gt; p.w2,
+      Rating.easy =&gt; p.w3,
+    };
+
+double nextStabilitySuccess(
+  double d, double s, double r, Rating rating, ChessFsrsParams p,
+) {
+  final hardPenalty = rating == Rating.hard ? p.w15 : 1.0;
+  final easyBonus = rating == Rating.easy ? p.w16 : 1.0;
+  final safeS = s &lt;= 0 ? p.minStabilityDays : s;
+  final factor = math.exp(p.w8) *
+      (11 - d) *
+      math.pow(safeS, -p.w9) *
+      (math.exp((1 - r) * p.w10) - 1) *
+      hardPenalty *
+      easyBonus;
+  return safeS * (1 + factor);
+}
+
+double nextStabilityLapse(double d, double s, double r, ChessFsrsParams p) {
+  final safeS = s &lt;= 0 ? p.minStabilityDays : s;
+  return p.w11 *
+      math.pow(d, -p.w12) *
+      (math.pow(safeS + 1, p.w13) - 1) *
+      math.exp((1 - r) * p.w14);
+}
+
+// ---------------------------------------------------------------------------
+// Single-node scheduler — implements the required Scheduler contract
+// ---------------------------------------------------------------------------
+
+class ChessFsrsScheduler implements Scheduler {
+  final ChessFsrsParams params;
+  final double targetRetention;   // user-tunable, 0.70..0.99
+  final double maxIntervalDays;
+  final double minIntervalDays;
+  final double fuzzFraction;      // 0.0 disables fuzz (deterministic tests)
+  final math.Random _rng;
+
+  ChessFsrsScheduler({
+    this.params = const ChessFsrsParams.chessDefaults(),
+    this.targetRetention = 0.90,
+    this.maxIntervalDays = 365 * 2,
+    this.minIntervalDays = 1 / 1440, // 1 minute floor
+    this.fuzzFraction = 0.0,
+    int? fuzzSeed,
+  }) : _rng = math.Random(fuzzSeed ?? 0);
+
+  static const int _dayMs = 86400000;
+
+  @override
+  bool isDue(ReviewState state, DateTime now) {
+    if (state.nextDueAt == null) return true;
+    return !now.isBefore(state.nextDueAt!);
+  }
+
+  @override
+  ReviewState schedule({
+    required ReviewState previous,
+    required ReviewResult result,
+    required DateTime now,
+  }) {
+    return scheduleDetailed(previous: previous, result: result, now: now);
+  }
+
+  /// Extended entry point used by callers who have latency/hint signal.
+  /// `schedule()` above delegates here with conservative defaults so the
+  /// base `Scheduler` contract still works stand-alone.
+  ReviewState scheduleDetailed({
+    required ReviewState previous,
+    required ReviewResult result,
+    required DateTime now,
+    int? latencyMs,
+    int? medianLatencyMs,
+    bool hintUsed = false,
+    bool multipleAttempts = false,
+    double? retentionOverride,
+  }) {
+    final rating = result == ReviewResult.incorrect
+        ? Rating.again
+        : inferRating(
+            correct: true,
+            latencyMs: latencyMs,
+            medianLatencyMs: medianLatencyMs,
+            hintUsed: hintUsed,
+            multipleAttempts: multipleAttempts,
+          );
+
+    final anchor = previous.lastReviewedAt ?? previous.firstReviewedAt;
+    double elapsedDays = 0;
+    if (anchor != null) {
+      final diffMs = now.difference(anchor).inMilliseconds;
+      elapsedDays = diffMs &lt;= 0 ? 0.0 : diffMs / _dayMs;
+    }
+
+    final bool isColdStart =
+        previous.repetitionCount == 0 &amp;&amp; previous.stability &lt;= 0;
+
+    double newDifficulty;
+    double newStabilityDays;
+
+    if (isColdStart) {
+      newDifficulty = initialDifficulty(rating, params);
+      newStabilityDays = initialStability(rating, params);
+    } else {
+      final prevStabilityDays =
+          previous.stability &lt;= 0 ? params.minStabilityDays : previous.stability / _dayMs;
+      final prevDifficulty =
+          previous.difficulty &lt;= 0 ? initialDifficulty(Rating.good, params) : previous.difficulty;
+
+      final r = retrievability(elapsedDays, prevStabilityDays);
+      newDifficulty = nextDifficulty(prevDifficulty, rating, params);
+
+      if (elapsedDays &lt; params.sameDayThresholdDays) {
+        newStabilityDays = rating == Rating.again
+            ? prevStabilityDays * params.sameDayLapseFactor
+            : prevStabilityDays * params.sameDayGainFactor;
+      } else if (rating == Rating.again) {
+        newStabilityDays = nextStabilityLapse(newDifficulty, prevStabilityDays, r, params);
+      } else {
+        newStabilityDays =
+            nextStabilitySuccess(newDifficulty, prevStabilityDays, r, rating, params);
+      }
+    }
+
+    newStabilityDays =
+        newStabilityDays.clamp(params.minStabilityDays, params.maxStabilityDays);
+
+    final effectiveRetention = (retentionOverride ?? targetRetention).clamp(0.70, 0.99);
+    double intervalDays = intervalForTarget(newStabilityDays, effectiveRetention);
+    intervalDays = _applyFuzz(intervalDays, previous.decisionId);
+    intervalDays = intervalDays.clamp(minIntervalDays, maxIntervalDays);
+
+    final nextDue = now.add(Duration(milliseconds: (intervalDays * _dayMs).round()));
+
+    return ReviewState(
+      decisionId: previous.decisionId,
+      firstReviewedAt: previous.firstReviewedAt ?? now,
+      lastReviewedAt: now,
+      nextDueAt: nextDue,
+      repetitionCount:
+          rating == Rating.again ? previous.repetitionCount : previous.repetitionCount + 1,
+      lapseCount: rating == Rating.again ? previous.lapseCount + 1 : previous.lapseCount,
+      stability: newStabilityDays * _dayMs,
+      difficulty: newDifficulty,
+    );
+  }
+
+  double _applyFuzz(double intervalDays, String seedKey) {
+    if (fuzzFraction &lt;= 0) return intervalDays;
+    final jitter = (_rng.nextDouble() * 2 - 1) * fuzzFraction;
+    return intervalDays * (1 + jitter);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Graph layer — lapse contagion, auto-traversal credit, transposition merge,
+// confusion coupling. This layer needs neighbor/repository context that the
+// two-argument Scheduler.schedule() cannot express, so it is deliberately a
+// separate coordinator built ON TOP OF ChessFsrsScheduler rather than an
+// alternate Scheduler implementation.
+// ---------------------------------------------------------------------------
+
+class GraphNode {
+  final String decisionId;
+  final String? parentId;
+  final String fen4;
+  final String expectedMoveUci;
+  const GraphNode({
+    required this.decisionId,
+    required this.parentId,
+    required this.fen4,
+    required this.expectedMoveUci,
+  });
+}
+
+abstract class ReviewStateRepository {
+  ReviewState? get(String decisionId);
+  void put(String decisionId, ReviewState state);
+  List&lt;String&gt; childrenOf(String decisionId);
+  /// Returns an existing canonical id sharing (fen4, expectedMoveUci), or
+  /// null if this is a brand-new memory item (§B.3).
+  String? canonicalIdFor(String fen4, String expectedMoveUci);
+}
+
+class GraphAwareParams {
+  final double contagionBase;      // lambda0
+  final double contagionTau;       // depth decay
+  final int maxContagionDepth;
+  final double contagionDifficultyBump; // beta
+  final double exposureStabilityGain;   // epsilon
+  final double confusionDifficultyCoupling; // kappa
+
+  const GraphAwareParams({
+    this.contagionBase = 0.18,
+    this.contagionTau = 1.5,
+    this.maxContagionDepth = 3,
+    this.contagionDifficultyBump = 0.6,
+    this.exposureStabilityGain = 0.08,
+    this.confusionDifficultyCoupling = 0.35,
+  });
+}
+
+class GraphAwareReviewCoordinator {
+  final ChessFsrsScheduler scheduler;
+  final ReviewStateRepository repo;
+  final GraphAwareParams gParams;
+
+  GraphAwareReviewCoordinator(
+    this.scheduler,
+    this.repo, {
+    this.gParams = const GraphAwareParams(),
+  });
+
+  /// Records a genuine active-recall attempt at [node].
+  ReviewState recordActiveReview({
+    required GraphNode node,
+    required ReviewResult result,
+    required DateTime now,
+    int? latencyMs,
+    int? medianLatencyMs,
+    bool hintUsed = false,
+    String? playedMoveUci,           // for confusion detection
+    List&lt;GraphNode&gt; siblings = const [],
+  }) {
+    final canonicalId =
+        repo.canonicalIdFor(node.fen4, node.expectedMoveUci) ?? node.decisionId;
+    final previous = repo.get(canonicalId) ?? ReviewState.cold(canonicalId);
+
+    final updated = scheduler.scheduleDetailed(
+      previous: previous,
+      result: result,
+      now: now,
+      latencyMs: latencyMs,
+      medianLatencyMs: medianLatencyMs,
+      hintUsed: hintUsed,
+    );
+    repo.put(canonicalId, updated);
+
+    if (result == ReviewResult.incorrect) {
+      _propagateLapseContagion(node.decisionId, now, depth: 1);
+      if (playedMoveUci != null) {
+        _coupleConfusableSiblings(playedMoveUci, siblings, now);
+      }
+    }
+    return updated;
+  }
+
+  /// Records a NON-tested pass-through move (Invariant §2.4). Never touches
+  /// repetitionCount/lapseCount/difficulty/lastReviewedAt.
+  ReviewState recordAutoTraversalExposure({
+    required GraphNode node,
+    required DateTime now,
+  }) {
+    final canonicalId =
+        repo.canonicalIdFor(node.fen4, node.expectedMoveUci) ?? node.decisionId;
+    final previous = repo.get(canonicalId);
+    if (previous == null || previous.stability &lt;= 0) {
+      return previous ?? ReviewState.cold(canonicalId);
+    }
+    // Never grant exposure credit to an item that is already due — the
+    // traversal engine should have stopped and tested it instead.
+    if (scheduler.isDue(previous, now)) return previous;
+    if (previous.lastReviewedAt != null &amp;&amp;
+        _isSameCalendarDay(previous.lastReviewedAt!, now)) {
+      return previous; // once/day throttle
+    }
+
+    final boostedStability = previous.stability * (1 + gParams.exposureStabilityGain);
+    final currentDue = previous.nextDueAt ?? now;
+    final remainingMs = currentDue.difference(now).inMilliseconds;
+    final extendedDue = remainingMs &gt; 0
+        ? currentDue.add(Duration(
+            milliseconds: (remainingMs * gParams.exposureStabilityGain).round()))
+        : currentDue;
+
+    final updated = ReviewState(
+      decisionId: previous.decisionId,
+      firstReviewedAt: previous.firstReviewedAt,
+      lastReviewedAt: previous.lastReviewedAt, // deliberately unchanged
+      nextDueAt: extendedDue,
+      repetitionCount: previous.repetitionCount,
+      lapseCount: previous.lapseCount,
+      stability: boostedStability,
+      difficulty: previous.difficulty,
+    );
+    repo.put(canonicalId, updated);
+    return updated;
+  }
+
+  void _propagateLapseContagion(String parentId, DateTime now, {required int depth}) {
+    if (depth &gt; gParams.maxContagionDepth) return;
+    final decay = gParams.contagionBase * math.exp(-depth / gParams.contagionTau);
+
+    for (final childId in repo.childrenOf(parentId)) {
+      final childState = repo.get(childId);
+      if (childState == null || childState.stability &lt;= 0) continue;
+
+      final shrunkStability = childState.stability * (1 - decay).clamp(0.0, 1.0);
+      final shrunkDue = _pullDueForward(childState, decay, now);
+      final bumpedDifficulty =
+          (childState.difficulty + gParams.contagionDifficultyBump * decay).clamp(1.0, 10.0);
+
+      repo.put(childId, ReviewState(
+        decisionId: childState.decisionId,
+        firstReviewedAt: childState.firstReviewedAt,
+        lastReviewedAt: childState.lastReviewedAt,
+        nextDueAt: shrunkDue,
+        repetitionCount: childState.repetitionCount,
+        lapseCount: childState.lapseCount,
+        stability: shrunkStability,
+        difficulty: bumpedDifficulty,
+      ));
+
+      _propagateLapseContagion(childId, now, depth: depth + 1);
+    }
+  }
+
+  DateTime? _pullDueForward(ReviewState s, double decay, DateTime now) {
+    if (s.nextDueAt == null) return null;
+    final remaining = s.nextDueAt!.difference(now);
+    if (remaining.isNegative) return s.nextDueAt; // already due; leave as-is
+    final newRemainingMs = (remaining.inMilliseconds * (1 - decay)).round();
+    return now.add(Duration(milliseconds: newRemainingMs));
+  }
+
+  void _coupleConfusableSiblings(
+    String playedMoveUci, List&lt;GraphNode&gt; siblings, DateTime now,
+  ) {
+    for (final sib in siblings) {
+      if (sib.expectedMoveUci != playedMoveUci) continue;
+      final sibState = repo.get(sib.decisionId);
+      if (sibState == null) continue;
+      final bumped = (sibState.difficulty +
+              gParams.confusionDifficultyCoupling)
+          .clamp(1.0, 10.0);
+      repo.put(sib.decisionId, ReviewState(
+        decisionId: sibState.decisionId,
+        firstReviewedAt: sibState.firstReviewedAt,
+        lastReviewedAt: sibState.lastReviewedAt,
+        nextDueAt: sibState.nextDueAt,
+        repetitionCount: sibState.repetitionCount,
+        lapseCount: sibState.lapseCount,
+        stability: sibState.stability,
+        difficulty: bumped,
+      ));
+    }
+  }
+
+  bool _isSameCalendarDay(DateTime a, DateTime b) =&gt;
+      a.year == b.year &amp;&amp; a.month == b.month &amp;&amp; a.day == b.day;
+}
+</code></pre>
+<h3 id="edge-cases-explicitly-handled">Edge cases explicitly handled</h3>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Case</th>
+<th>Handling</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Zero/cold stability</td>
+<td><code>isColdStart</code> branch bypasses retrievability math entirely (undefined at <code class="inline-code inline-math">S=0</code>); repository <code>get()</code> returning <code>null</code> is normalized to <code>ReviewState.cold(id)</code></td>
+</tr>
+<tr>
+<td>Rapid consecutive reviews (same session re-test)</td>
+<td><code>sameDayThresholdDays</code> branch replaces the full DSR update with a damped linear nudge, avoiding division blow-ups as <code class="inline-code inline-math">t\to0</code></td>
+</tr>
+<tr>
+<td>Overdue review (elapsed ≫ scheduled interval)</td>
+<td>Retrievability is computed from <strong>actual</strong> elapsed days, not the planned interval, so an overdue lapse correctly reflects a much lower <code class="inline-code inline-math">R</code> and produces a larger, honest stability drop — no special-casing needed, it falls out of the math</td>
+</tr>
+<tr>
+<td>Auto-traversal on an already-due prefix</td>
+<td>Explicitly refused (<code>scheduler.isDue(previous, now)</code> guard) so passive credit can never mask a due active-recall obligation</td>
+</tr>
+<tr>
+<td>Transposition merge collision</td>
+<td><code>canonicalIdFor</code> is consulted before every read/write in the coordinator, so both chapters always resolve to one shared <code>ReviewState</code></td>
+</tr>
+<tr>
+<td>Negative/garbage elapsed time (clock skew, imported data)</td>
+<td>Clamped to <code>0</code> before use in both the kernel and the coordinator</td>
+</tr>
+</tbody></table></div>
+<hr>
+<h2 id="implementation-architecture-review">Implementation Architecture Review</h2>
+<h2 id="algorithm-amp-design-correctness-review-1-of-4">Algorithm &amp; Design Correctness Review — #1 of 4</h2>
+<p><strong>Target:</strong> <code>ChessFsrsScheduler</code> and the FSRS math layer — <code>lib/src/domain/chess_fsrs_scheduler.dart</code>
+(308 LOC), its state carrier <code>lib/src/domain/review_state.dart</code>, the two sibling schedulers in
+<code>lib/src/domain/scheduler.dart</code>, and the SQLite round-trip in <code>lib/src/persistence/</code>.</p>
+<p><strong>Reference spec:</strong> <code>ChessSRS Scheduling Architecture.md</code> §C (C.1–C.9).</p>
+<p>No code was modified in this pass.</p>
+<hr>
+<h2 id="0-verification-status-read-this-first">0. Verification status (read this first)</h2>
+<p>The Dart/Flutter SDK is <strong>not available in this sandbox</strong> and cannot be installed: <code>storage.googleapis.com</code>,
+<code>dl.google.com</code>, <code>api.dart.dev</code> and <code>pub.dev</code> all returned <code>000</code> (unreachable), and the GitHub release
+asset for the SDK returned <code>404</code>. So <strong>I could not execute <code>flutter test</code>.</strong></p>
+<p>To avoid hand-waving the arithmetic, I wrote a throwaway line-by-line port of
+<code>chess_fsrs_scheduler.dart</code> and validated it by re-deriving <strong>all 26 assertions</strong> in
+<code>test/domain/chess_fsrs_scheduler_test.dart</code>. All 26 reproduce (e.g. <code>R(10,10)=0.9</code>,
+<code>I(10,0.90)=10.0</code>, cold-start <code>S=190080000.0 ms</code>, interval <code>2.7323 d</code>). Every number below comes from
+that validated port.</p>
+<p><strong>That port is deliberately not committed.</strong> A parallel Python reimplementation of the scheduler would
+drift from the authoritative Dart one and become its own liability. To confirm any trace below, run the
+real suite — <code>flutter test test/domain/chess_fsrs_scheduler_test.dart</code> — and add a case for the scenario
+in question; the port only existed to make the review tractable without an SDK.</p>
+<p>One caveat earned the hard way: my first port used Python <code>or</code> where Dart has <code>??</code>, which treats
+epoch <code>0.0</code> as null and silently corrupted an early trace. It is fixed; the numbers below are post-fix.</p>
+<p>All static claims (line numbers, call-graph, greps) come from tool calls, not memory.</p>
+<hr>
+<h2 id="1-summary">1. Summary</h2>
+<p><strong>Correct but fragile, with one high-severity behavioural bug and one high-severity dead-code path.</strong></p>
+<p>The core DSR mathematics are a faithful implementation of the spec. I verified the two properties that
+are easiest to get wrong and both hold exactly:</p>
+<ul>
+<li><code>R(S,S) = 0.9</code> by construction — <code>fsrsRetrievability(10,10)</code> returns exactly <code>0.9</code>, and
+<code>kFsrsFactor</code> computes to <code>0.23456790123456783</code> vs. <code>19/81 = 0.2345679012345679</code> (§C.1).</li>
+<li><code>I(S, 0.90) = S</code> — <code>fsrsIntervalForTarget(10, 0.90)</code> returns exactly <code>10.0</code> (§C.2).</li>
+</ul>
+<p>Difficulty uses the <em>new</em> <code>D&#39;</code> in both stability formulas, which matches canonical FSRS (many
+implementations get this backwards). The interval ladder is monotonic and the preview function matches
+<code>schedule()</code> to 0.000000 d drift for its first 6 steps. <code>schedule()</code> is O(1) time and allocation-free
+beyond the returned state.</p>
+<p>The problems are not in the formulas. They are in <strong>what the formulas are fed</strong> and <strong>which parts of
+the spec are actually reachable</strong>.</p>
+<hr>
+<h2 id="2-confirmed-issues">2. Confirmed issues</h2>
+<h3 id="c1-the-same-day-guard-protects-stability-but-not-difficulty-three-failures-in-one-session-pin-d-at-10-and-cut-stability-growth-6-high">C1 — The same-day guard protects stability but not difficulty. Three failures in one session pin <code>D</code> at 10 and cut stability growth ~6×. <strong>(High)</strong></h3>
+<p><strong>Where:</strong> <code>chess_fsrs_scheduler.dart:234</code> applies <code>fsrsNextDifficulty</code> <em>unconditionally</em>, before the
+same-day branch at <code>:236</code>.</p>
+<p><strong>Spec:</strong> §C.7 — <em>&quot;If elapsed t &lt; t_same-day: <strong>skip the full DSR update</strong>. Instead apply a small
+linear nudge: S&#39; = S × {1.02 if g≥Good; 0.85 if g=Again}.&quot;</em> The difficulty update is part of the DSR
+update the spec says to skip. The code skips only the stability half.</p>
+<p><strong>Reachability (verified, three separate checks):</strong></p>
+<ul>
+<li><code>review_session.dart:411-416</code> — on an incorrect move the decision is unconditionally re-queued. No attempt cap exists anywhere in the file.</li>
+<li><code>review_session.dart:642</code> — <code>_advanceToNextDue</code> pops with <code>_dueQueue.removeAt(0)</code> and applies <strong>no</strong> <code>isDueAt</code> check, so the re-queued item is re-presented in the same session even though the lapse just pushed its <code>nextDueAt</code> ~10 days out.</li>
+<li>Therefore N lapses on one item in one session is user-reachable.</li>
+</ul>
+<p><strong>Traced example</strong> — mature item, <code>S=100 d</code>, <code>D=4.93</code>, fails then passes, 30 s apart, five times:</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>#</th>
+<th>result</th>
+<th>D</th>
+<th>S (days)</th>
+<th>next interval (d)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>incorrect</td>
+<td>7.009</td>
+<td>7.8911</td>
+<td>9.80</td>
+</tr>
+<tr>
+<td></td>
+<td>correct</td>
+<td>6.988</td>
+<td>8.0490</td>
+<td>10.00</td>
+</tr>
+<tr>
+<td>2</td>
+<td>incorrect</td>
+<td>9.047</td>
+<td>6.8416</td>
+<td>8.50</td>
+</tr>
+<tr>
+<td></td>
+<td>correct</td>
+<td>9.005</td>
+<td>6.9785</td>
+<td>8.67</td>
+</tr>
+<tr>
+<td>3</td>
+<td>incorrect</td>
+<td><strong>10.000</strong></td>
+<td>5.9317</td>
+<td>7.37</td>
+</tr>
+<tr>
+<td></td>
+<td>correct</td>
+<td>9.949</td>
+<td>6.0503</td>
+<td>7.51</td>
+</tr>
+<tr>
+<td>5</td>
+<td>correct</td>
+<td>9.949</td>
+<td>4.5480</td>
+<td>5.65</td>
+</tr>
+</tbody></table></div>
+<p><code>D</code> saturates at the <code>clamp(1.0, 10.0)</code> ceiling after <strong>three</strong> failures. The cost is in
+<code>fsrsNextStabilitySuccess</code>&#39;s <code>(11 - d)</code> term (<code>:161</code>):</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>D</th>
+<th>(11−D)</th>
+<th>growth vs. D=4.93</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>4.93</td>
+<td>6.07</td>
+<td>1.000×</td>
+</tr>
+<tr>
+<td>7.009</td>
+<td>3.99</td>
+<td>0.657×</td>
+</tr>
+<tr>
+<td>8.87</td>
+<td>2.13</td>
+<td>0.351×</td>
+</tr>
+<tr>
+<td>10.00</td>
+<td>1.00</td>
+<td><strong>0.165×</strong></td>
+</tr>
+</tbody></table></div>
+<p>Recovery is near-geological: mean reversion is <code>w7 = 0.01</code> per review toward 4.93, so it takes
+<strong>390 consecutive successful reviews</strong> to get <code>D</code> back within 0.1 of 4.93. One bad practice session
+on a Tuesday suppresses that move&#39;s interval growth sixfold for the rest of the user&#39;s life with the app.</p>
+<p><strong>Expected:</strong> §C.7 — difficulty frozen during rapid re-review, so an intra-session burst behaves as one
+learning event.
+<strong>Actual:</strong> difficulty ratchets on every rapid failure; stability does not.</p>
+<hr>
+<h3 id="c2-decision-d01539s-hintused-multipleattempts-rule-is-unreachable-in-production-high-spec-fidelity">C2 — Decision D015&#39;s <code>hintUsed</code> / <code>multipleAttempts</code> rule is unreachable in production. <strong>(High, spec fidelity)</strong></h3>
+<p><strong>Where:</strong> <code>chess_fsrs_scheduler.dart:202-206</code>.</p>
+<p>Three independent facts, each verified:</p>
+<ol>
+<li>The <code>Scheduler</code> interface (<code>scheduler.dart:20-24</code>) declares <code>schedule({previous, result, now})</code> — <strong>no</strong> <code>hintUsed</code>/<code>multipleAttempts</code>. The extra parameters exist only on the concrete class, so they are invisible through the interface.</li>
+<li><code>grep -rn &quot;scheduler.schedule(&quot; lib/</code> returns <strong>exactly one</strong> hit: <code>graph_aware_review_coordinator.dart:191</code>, which holds the scheduler as the abstract <code>Scheduler</code> type (<code>:148</code>) and passes only three arguments. It <em>cannot</em> pass the flags.</li>
+<li><code>grep -rni hint lib/</code> finds no hint feature in <code>lib/src/domain/review/</code>, <code>lib/src/review/</code>, or <code>lib/src/view/review/</code> — only <code>hintText</code> on design-system text fields and this scheduler&#39;s own doc comment.</li>
+</ol>
+<p><strong>The concrete deviation.</strong> D015 defines <code>Again</code> as <em>&quot;incorrect move, hint used, or corrected
+false-start attempt.&quot;</em> Trace what a corrected false-start actually produces:</p>
+<ul>
+<li>User plays a wrong move → <code>submitMove</code> incorrect branch → lapse recorded (<code>Again</code>), decision re-queued.</li>
+<li>User then answers correctly when it comes back round → <code>submitMove</code> correct branch → <strong><code>Good</code></strong>, so <code>repetitionCount += 1</code> (<code>:267-269</code>) and <code>stability ×= 1.02</code>.</li>
+</ul>
+<p>Net effect of one corrected false-start: <strong>two</strong> events (<code>Again</code> then <code>Good</code>), not one <code>Again</code>, and the
+item&#39;s success counter goes <em>up</em>. (Note <code>retryMove</code> at <code>review_session.dart:437-478</code> takes the other
+route — it writes no SRS state at all, so <em>that</em> path does end as a single <code>Again</code>. Two UI paths through
+the same user action, with different scheduling outcomes.)</p>
+<p><strong>Expected:</strong> one <code>Again</code>; <code>repetitionCount</code> unchanged.
+<strong>Actual:</strong> <code>Again</code> + <code>Good</code>; <code>repetitionCount</code> incremented; stability nudged back up 2%.</p>
+<p>This is precisely what the unreachable <code>multipleAttempts</code> flag was built to express. Today it is
+exercised only by <code>chess_fsrs_scheduler_test.dart:113-121</code>, which constructs the scheduler directly —
+so the test passes while the production behaviour differs from what it asserts.</p>
+<hr>
+<h3 id="c3-fsrsintervalprogressionpreview-diverges-from-schedule-once-the-interval-cap-binds-lowmedium">C3 — <code>fsrsIntervalProgressionPreview</code> diverges from <code>schedule()</code> once the interval cap binds. <strong>(Low–Medium)</strong></h3>
+<p><strong>Where:</strong> <code>chess_fsrs_scheduler.dart:291-308</code>. The loop never applies
+<code>clamp(minIntervalDays, maxIntervalDays)</code> (<code>:246</code>) or the stability clamp (<code>:247</code>).</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>step</th>
+<th>preview (d)</th>
+<th><code>schedule()</code> (d)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0–5</td>
+<td>2.7, 10.6, 35.9, 107.9, 293.5, 732.8</td>
+<td>identical (0.000000 drift)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>1697.4</td>
+<td><strong>1095.0</strong></td>
+</tr>
+<tr>
+<td>9</td>
+<td>14724.7</td>
+<td><strong>1095.0</strong></td>
+</tr>
+</tbody></table></div>
+<p>At step 9 the preview over-promises by <strong>13.4×</strong>.</p>
+<p>Severity is currently Low because <code>grep -rn fsrsIntervalProgressionPreview lib/</code> finds no caller
+outside its own declaration — it is only used by the test. It is a trap for whoever wires it to a
+settings screen, which is the obvious next step given §C.9&#39;s &quot;Target Retention slider&quot;.</p>
+<hr>
+<h3 id="c4-switching-schedulertype-silently-reinterprets-reviewstatestability-medium">C4 — Switching <code>schedulerType</code> silently reinterprets <code>ReviewState.stability</code>. <strong>(Medium)</strong></h3>
+<p><strong>Where:</strong> <code>review_service.dart:26-28</code> selects among three schedulers from a user setting;
+<code>study_preferences.dart:177</code> defaults to <code>SchedulerType.simple</code>;
+<code>srs_settings_screen.dart:211-214</code> exposes FSRS/Simple/EaseScaling as a segmented control.</p>
+<p>All three write different semantics into the same <code>ReviewState.stability</code> field with no unit tag and no
+migration:</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>scheduler</th>
+<th>writes (<code>scheduler.dart:94,180</code>; <code>chess_fsrs_scheduler.dart:271</code>)</th>
+<th>reads it back as</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SimpleScheduler</code></td>
+<td>current interval, ms</td>
+<td>current interval, ms (<code>:82</code>)</td>
+</tr>
+<tr>
+<td><code>EaseScalingScheduler</code></td>
+<td>current interval, ms</td>
+<td>current interval, ms (<code>:170</code>)</td>
+</tr>
+<tr>
+<td><code>ChessFsrsScheduler</code></td>
+<td>days-to-90%-retention, ms</td>
+<td>stability, days (<code>:227</code>)</td>
+</tr>
+</tbody></table></div>
+<p><strong>Traced example:</strong> an item that <code>SimpleScheduler</code> had at a 30-day interval (<code>stability = 2592000000</code>,
+<code>repetitionCount = 4</code>, due now). Flip the setting to FSRS and answer correctly:</p>
+<ul>
+<li><code>isColdStart</code> = <code>false</code> (<code>:217</code>), so it is treated as mature memory.</li>
+<li><code>difficulty = 0.0</code> → falls back to <code>D0(good) = 4.93</code> (<code>:229-231</code>).</li>
+<li>FSRS computes <code>S&#39; = 79.47 d</code> → <strong>next interval 98.69 days</strong>, where Simple would have given 60.</li>
+</ul>
+<p>A 30-day item silently disappears for three months because the user tapped a different algorithm name.
+The reverse direction (FSRS→Simple) reads a 30-day stability as a 30-day interval and emits 60 d,
+where FSRS-correct would be 37.3 d.</p>
+<p><strong>Compounding factor:</strong> <code>review_state.dart:12</code> documents the field as <em>&quot;current interval in <strong>days</strong> for
+<code>SimpleScheduler</code>&quot;</em> — but all three schedulers write <strong>milliseconds</strong>. The doc is wrong, which is
+exactly the kind of thing that lets a unit collision survive review. <code>position_knowledge_state.dart:74</code>
+gets it right (&quot;Memory stability in milliseconds&quot;), so the two state classes document the same shared
+field two different ways.</p>
+<hr>
+<h3 id="c5-a-lapse-can-increase-stability-the-invariant-is-assumed-but-not-enforced-low">C5 — A lapse can <em>increase</em> stability; the invariant is assumed but not enforced. <strong>(Low)</strong></h3>
+<p><strong>Where:</strong> <code>fsrsNextStabilityLapse</code>, <code>:167-171</code>. <code>w11 · D^-w12 · ((S+1)^w13 − 1) · e^((1−R)w14)</code> has no
+monotonic clamp against <code>S</code>.</p>
+<p>126 of 210 sampled <code>(S, D, R)</code> combinations raise stability. The in-app reachable path:</p>
+<ul>
+<li>Cold-start <code>Again</code> → <code>S = w0 = 0.35 d</code>, <code>D = 6.81</code>, due in 10.4 h.</li>
+<li>Come back <strong>5 days</strong> later and fail again → <code>S = 0.350 → 0.371 d</code> (<strong>+5.9%</strong>), <code>R = 0.479</code>.</li>
+<li>Come back <strong>30 days</strong> later → <code>S = 0.350 → 0.516 d</code> (<strong>+47%</strong>), <code>R = 0.218</code>.</li>
+</ul>
+<p>Failing an item makes it <em>stickier</em> and pushes its due date out. This is shared with canonical FSRS
+(which also does not clamp), so it is arguably inherited rather than introduced — but the function&#39;s own
+doc says <em>&quot;Calculates <strong>regressed</strong> stability after a lapse&quot;</em> and
+<code>chess_fsrs_scheduler_test.dart:95</code> asserts <code>lessThan(s1.stability)</code>. The invariant is documented and
+tested in the common case only. Absolute values are small, hence Low.</p>
+<hr>
+<h3 id="c6-iscoldstart-never-re-arms-a-failed-first-attempt-permanently-demotes-the-item-low">C6 — <code>isColdStart</code> never re-arms; a failed first attempt permanently demotes the item. <strong>(Low)</strong></h3>
+<p><strong>Where:</strong> <code>:217</code> — <code>previous.repetitionCount == 0 &amp;&amp; previous.stability &lt;= 0</code>.</p>
+<p>After a failed cold start, <code>repetitionCount</code> stays <code>0</code> (<code>:268</code>) but <code>stability</code> becomes
+<code>0.35 d &gt; 0</code>, so the guard is false forever. Every later review takes the full DSR path treating
+<code>S = 0.35 d</code> as <em>earned</em> memory.</p>
+<p><strong>Traced:</strong> next correct answer gives <code>S = 1.254 d</code>, versus <code>8.536 d</code> for a clean cold start — a
+<strong>6.8× gap that never closes</strong>.</p>
+<p>Mitigating: since <code>hintUsed</code> is unreachable (C2), only a genuine first-attempt <code>incorrect</code> triggers
+this today, which is arguably intended. It becomes a live bug the moment C2 is fixed.</p>
+<hr>
+<h3 id="c7-difficulty-has-three-disagreeing-sources-of-truth-low">C7 — <code>difficulty</code> has three disagreeing sources of truth. <strong>(Low)</strong></h3>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>source</th>
+<th>value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>review_state.dart:26</code> (<code>ReviewState</code> default)</td>
+<td><code>0.0</code></td>
+</tr>
+<tr>
+<td><code>srs_schema.dart:101</code> (<code>srs_review_state</code> column <code>DEFAULT</code>)</td>
+<td><code>5.0</code></td>
+</tr>
+<tr>
+<td><code>sqlite_study_repository.dart:710</code> and <code>:975</code> (NULL fallback)</td>
+<td><code>5.0</code></td>
+</tr>
+<tr>
+<td><code>chess_fsrs_scheduler.dart:229-231</code> (fallback when <code>&lt;= 0</code>)</td>
+<td><code>4.93</code> (<code>D0(good)</code>)</td>
+</tr>
+</tbody></table></div>
+<p>A cold item built in memory gets <code>D = 4.93</code>; one read from a default-constructed row gets <code>D = 5.0</code>.
+Impact is small but real and permanent: <code>(11−D)</code> is <code>6.070</code> vs <code>6.000</code>, a <strong>−1.15%</strong> growth-rate
+difference that compounds over the item&#39;s whole life. Note <code>position_knowledge_state</code>&#39;s column
+(<code>srs_schema.dart:82</code>) defaults to <code>0.0</code> while the review-state column defaults to <code>5.0</code> — the two
+tables holding the same logical field disagree with each other too.</p>
+<hr>
+<h2 id="3-design-concerns">3. Design concerns</h2>
+<p><strong>D1 — <code>(11 − d)</code> is unguarded in a public function.</strong> <code>fsrsNextStabilitySuccess</code> (<code>:159</code>) is a public
+top-level function with no clamp on <code>d</code>. At <code>d &gt; 11</code> the factor goes negative and the function returns
+<em>negative stability</em>. <code>schedule()</code> is saved only by the <code>clamp(minStabilityDays, maxStabilityDays)</code> at
+<code>:247</code>; any future caller of the raw function must re-clamp. The other public helpers
+(<code>fsrsRetrievability</code>, <code>fsrsInitialDifficulty</code>, <code>fsrsNextDifficulty</code>) do guard their inputs.</p>
+<p><strong>D2 — <code>steps</code> is unvalidated.</strong> <code>fsrsIntervalProgressionPreview</code> (<code>:293</code>) accepts any <code>int</code>; <code>steps = 0</code>
+and <code>-1</code> both return <code>[]</code> silently, and the loop is O(steps) with no upper bound. Fine for a test, a
+hang if it is ever bound to a text field.</p>
+<p><strong>D3 — <del>O(k) sequential awaited inserts per review answer.</del> RETRACTED — see correction below.</strong>
+<code>sqlite_study_repository.dart:513-538</code>: <code>savePositionKnowledgeState</code> issues one <strong>awaited, unbatched</strong>
+<code>saveReviewState</code> per decision matching the canonical id, plus one more per row in a loop. For a
+position that transposes across many chapters this is k sequential round-trips on the review hot path.
+A batched variant exists 60 lines below (<code>:596-618</code>), so the single-item path is the outlier, not the
+house style.</p>
+<div class="callout spec">
+<p><strong>Correction (added 2026-10-08, after grepping for callers).</strong> The premise — &quot;on the review hot
+path&quot; — is false, and with it the severity. <code>savePositionKnowledgeState</code> has <strong>zero production
+callers</strong>; the only references outside its own definition are the interface declaration at
+<code>study_repository.dart:77</code> and five call sites in tests. <code>savePositionKnowledgeStates</code> (the batched
+variant) has <strong>no callers at all</strong>, production or test.</p>
+<p>The path that actually runs on a review answer is <code>saveAnswerBatch</code>, called from
+<code>review_service.dart:317</code> and <code>:355</code>. It already uses <code>_db.batch()</code> and mirrors to
+<code>kTableSrsReviewState</code> with a single <code>INSERT … SELECT … WHERE canonicalStateId = ?</code> rather than a
+per-decision loop — i.e. it already does what this entry recommended.</p>
+<p>What remains is not a performance issue but a <strong>dead-code</strong> one: two public repository methods and
+their five test call sites exist solely to be tested. The unbatched loop in the singular method is
+still a latent trap for whoever first wires it up in production, since it would reintroduce the O(k)
+round-trips on the very path <code>saveAnswerBatch</code> was written to avoid. Either wire the singular method
+through the batch, or delete both and let <code>saveAnswerBatch</code> be the only writer. <strong>Improvement 7 below
+is void as originally written.</strong></p>
+</div>
+<p><strong>D4 — Timestamps are persisted as offset-less local time.</strong>
+<code>sqlite_study_repository.dart:517-519</code> write <code>toIso8601String()</code> on local <code>DateTime</code>s (no <code>Z</code>, no
+offset), and <code>:704-706</code> read them back with <code>DateTime.parse</code>, which yields local. Round-trips are
+consistent <em>within</em> a timezone; a device timezone change reinterprets every stored <code>nextDueAt</code> as
+wall-clock in the new zone, shifting all due dates by the offset delta. For an SRS app whose entire
+output is a due date, this deserves a deliberate decision.</p>
+<p><strong>D5 — <code>repetitionCount</code> means different things per scheduler, but <code>isLearned</code> reads it uniformly.</strong>
+FSRS never resets it on lapse (<code>:267-269</code>); <code>SimpleScheduler</code> and <code>EaseScalingScheduler</code> both reset to
+<code>0</code> (<code>scheduler.dart:102,186</code>). Meanwhile <code>ReviewState.isLearned</code> (<code>:60</code>) is just <code>repetitionCount &gt; 0</code>
+for all of them, and combined with C6 an item can be <strong>neither</strong> <code>isNew</code> (<code>:59</code>) <strong>nor</strong> <code>isLearned</code>
+after a failed first attempt. The field doc concedes &quot;semantics depend on scheduler&quot; — which is an
+acknowledgement that the derived predicates built on it cannot be trusted.</p>
+<p><strong>D6 — &quot;FSRS-5&quot; in the name, FSRS-4.5 in the math.</strong> The class doc (<code>:172-176</code>) says
+<em>&quot;Domain-adapted FSRS-5&quot;</em>. §C.3 and the code implement
+<code>clip(w7·w4 + (1−w7)(D − w6(g−3)), 1, 10)</code> — the FSRS-4.5 difficulty form, without the linear damping
+FSRS-5 added. Separately, §C.8&#39;s parameter table still lists <code>w15</code> (Hard penalty) and <code>w16</code> (Easy bonus)
+that the binary <code>ChessFsrsParams</code> does not carry at all. The spec table predates Decision D015 and was
+never reconciled. Cosmetic, but it will mislead anyone trying to port FSRS&#39;s published optimizer onto
+this — which §C.8 explicitly proposes doing.</p>
+<p><strong>D7 — <code>maxStabilityDays</code> and <code>maxIntervalDays</code> are unlinked.</strong> <code>1825 d</code> vs <code>1095 d</code> (<code>:43</code>, <code>:180</code>).
+Once the interval cap binds, <code>I(1825, 0.88) = 2266.6 d</code> is clamped to <code>1095 d</code>, so the item is actually
+reviewed at <code>R = 0.93628</code> rather than the 0.88 target. That inflated <code>R</code> is then fed back into
+<code>fsrsNextStabilitySuccess</code>, systematically under-rewarding the most mature items. Self-consistent, but
+the target-retention contract quietly stops holding for exactly the items the user has mastered best.
+(Symmetrically, <code>minIntervalDays = 1/1440</code> can never bind: <code>minStabilityDays = 0.02 d</code> already implies a
+minimum interval of 35.77 min.)</p>
+<hr>
+<h2 id="4-suggested-improvements-priority-order">4. Suggested improvements (priority order)</h2>
+<p>Each is scoped to be reviewable on its own.</p>
+<ol>
+<li><strong>Gate difficulty on the same-day guard (C1).</strong> Move <code>:234</code> inside the <code>else</code> of the same-day branch
+at <code>:236</code>, so <code>newDifficulty = prevDifficulty</code> when <code>elapsedDays &lt; sameDayThresholdDays</code>. ~5 lines,
+brings the code in line with §C.7 as written. Add a regression test: 3 intra-session failures must
+leave <code>D</code> at its pre-session value. <em>Highest value-to-risk ratio in this file.</em></li>
+<li><strong>Resolve the D015 gap (C2).</strong> Either (a) widen the <code>Scheduler.schedule</code> contract to carry
+<code>hintUsed</code>/<code>multipleAttempts</code> and pass them from <code>graph_aware_review_coordinator.dart:191</code>, or
+(b) delete the dead parameters and record a corrected false-start as a single <code>Again</code> — which means
+making the <code>submitMove</code> correct branch aware that this decision already lapsed this session. Option
+(b) also fixes the two-paths-one-action inconsistency between <code>submitMove</code> and <code>retryMove</code>.</li>
+<li><strong>Tag the state with its producing scheduler (C4).</strong> Add a <code>schedulerKind</code> (or <code>stabilityUnit</code>)
+field to <code>ReviewState</code>, persist it, and on mismatch either migrate or reset to cold-start. Cheapest
+immediate win: fix the <code>review_state.dart:12</code> doc comment, which currently states the wrong unit.</li>
+<li><strong>Make the preview honest (C3).</strong> Route it through the same clamps as <code>schedule()</code>, or delete it
+until something calls it. It has no caller today, so deletion is free.</li>
+<li><strong>Decide the lapse-monotonicity question (C5).</strong> Either add <code>math.min(newS, S)</code> to
+<code>:170</code>, or document that non-monotonicity is intentional FSRS inheritance and add a test pinning the
+<code>S=0.35, 5 d overdue</code> case so a future weight retune cannot silently make it worse.</li>
+<li><strong>Collapse the difficulty defaults to one named constant (C7).</strong> Export
+<code>kDefaultDifficulty = 4.93</code> (or <code>0.0</code> + universal fallback) and use it in the schema, both row
+mappers, and <code>:229</code>.</li>
+<li><del><strong>Batch the per-decision writes (D3).</strong></del> <strong>Void — see the D3 retraction.</strong> The production write
+path (<code>saveAnswerBatch</code>, <code>review_service.dart:317</code>/<code>:355</code>) is already batched. The real finding is
+that <code>savePositionKnowledgeState</code> / <code>savePositionKnowledgeStates</code> are <strong>dead code</strong> reachable only
+from tests, and the singular one still contains the unbatched loop. Decide between routing it
+through the batch and deleting both.</li>
+<li><strong>Store timestamps as UTC or epoch-ms (D4).</strong> Mechanical, but it is a schema change, so it wants its
+own migration and should not be bundled with anything above.</li>
+</ol>
+<p>Items 1, 4, 6 are localised and low-risk. Items 2, 3, 8 touch persisted data or the public
+<code>Scheduler</code> contract and want a design note first.</p>
+<hr>
+<h2 id="5-not-reviewed-here">5. Not reviewed here</h2>
+<p>Deferred to the remaining three passes, though several surfaced incidentally above and are flagged so
+they are not lost:</p>
+<ul>
+<li><strong>Auto-traversal exposure credit compounds without any recall test.</strong>
+<code>graph_aware_review_coordinator.dart:235</code> multiplies stability by <code>1.08</code> once per calendar day, with
+only a same-day throttle and a &quot;not already due&quot; guard (<code>:224</code>). An item merely <em>passed over</em> while
+drilling other lines can reach <code>1.08^30 = 10.06×</code> stability in a month, never having been actively
+recalled. Needs a proper look in pass #2.</li>
+<li><strong>Repeated failures re-fire graph side-effects.</strong> Each <code>incorrect</code> re-triggers lapse contagion and
+sibling coupling (<code>:196-203</code>), so C1&#39;s three-failure session also applies contagion three times.
+Pass #2.</li>
+<li><strong><code>review_session.dart</code> state machine</strong> (970 LOC) — the <code>submitMove</code>/<code>retryMove</code> divergence in C2 is a
+symptom of something larger there. Pass #3.</li>
+<li><strong><code>review_service.dart</code> / <code>review_controller.dart</code></strong> (688 + 1508 LOC) — idempotency, double-scheduling,
+and clock injection under concurrency. Pass #4.</li>
+</ul>
+<hr>
+<h2 id="6-resolution-log">6. Resolution log</h2>
+<p>Every item above has now been dispositioned. This is the audit trail for why each one was fixed,
+documented, or dropped, so a later reader does not have to re-derive the reasoning.</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Finding</th>
+<th>Disposition</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C1</td>
+<td>Difficulty mutated during rapid re-review</td>
+<td><strong>Fixed</strong> <code>18dde77</code></td>
+<td>Contradicted §C.7 and changed scheduling output. Two regression tests, one with fail-to-pass evidence against base.</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>Corrected false-start graded twice</td>
+<td><strong>Fixed</strong> <code>604d5a1</code></td>
+<td>Same human action had two outcomes depending on which button ended the turn. Fixed at the session layer; one test removed with an <code>Ack-G08:</code> trailer.</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>Interval preview ignored the scheduler&#39;s clamps</td>
+<td><strong>Fixed</strong> <code>5ccb7ba</code></td>
+<td>Advertised 1697 d where the scheduler emits 1095 d. Preview now clamps in the same order; tolerance measured, not guessed.</td>
+</tr>
+<tr>
+<td>C4</td>
+<td>Cross-scheduler <code>stability</code> reinterpretation</td>
+<td><strong>Deferred, documented</strong></td>
+<td>See note below. Every available remedy mutates user memory.</td>
+</tr>
+<tr>
+<td>C5</td>
+<td>Lapse formula not monotone in S</td>
+<td><strong>Documented + pinned</strong> <code>cbf3194</code></td>
+<td>Matches canonical FSRS and §C.6; adding <code>min(result, s)</code> would be a spec change. Numbers pinned so a weight retune cannot silently widen the window.</td>
+</tr>
+<tr>
+<td>C6</td>
+<td><code>isColdStart</code> never re-arms</td>
+<td><strong>Open</strong></td>
+<td>Genuine 6.8× gap but needs a product answer on what &quot;forgotten&quot; means. Low blast radius in practice.</td>
+</tr>
+<tr>
+<td>C7</td>
+<td>Three disagreeing difficulty defaults</td>
+<td><strong>Dropped</strong></td>
+<td>Both columns are <code>NOT NULL</code> and the repository always writes explicitly, so the <code>?? 5.0</code> fallbacks are unreachable. Dead magic numbers, not a live bug.</td>
+</tr>
+<tr>
+<td>D1</td>
+<td><code>steps</code> unvalidated</td>
+<td><strong>Fixed</strong> <code>5ccb7ba</code></td>
+<td>Folded into the C3 fix.</td>
+</tr>
+<tr>
+<td>D2</td>
+<td><code>stability</code> doc said &quot;days&quot;</td>
+<td><strong>Fixed</strong> <code>5ccb7ba</code></td>
+<td>The comment is what let C4 survive review. Now states milliseconds and names each scheduler&#39;s meaning.</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>Sequential per-decision writes</td>
+<td><strong>Retracted</strong></td>
+<td>Premise false — no production callers; the real path is already batched. Real finding is dead code. See the D3 correction.</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>Offset-less local timestamps</td>
+<td><strong>Open</strong></td>
+<td>Real portability bug, but it is a schema migration with data risk and deserves its own PR.</td>
+</tr>
+<tr>
+<td>D5–D7</td>
+<td>Semantics / naming / cap-linking</td>
+<td><strong>Open</strong></td>
+<td>Recorded; none is a live defect today.</td>
+</tr>
+</tbody></table></div>
+<h3 id="why-c4-was-deferred-rather-than-fixed">Why C4 was deferred rather than fixed</h3>
+<p>The collision is real and demonstrable: a 30-day interval written by <code>SimpleScheduler</code> and later read
+by <code>ChessFsrsScheduler</code> yields 98.69 d instead of the expected 60 d, because the two schedulers store
+different quantities in the same column. A fix requires a schema migration to record which scheduler
+produced a row — that part is mechanical (<code>database.dart</code> is at <code>version: 15</code> with an <code>onUpgrade</code>
+handler) — and then a policy decision about what happens to memory already on disk when someone
+changes the algorithm setting:</p>
+<ol>
+<li><strong>Reset to cold start.</strong> Honest and simple, but destroys every accumulated interval the moment a
+user taps a different algorithm name.</li>
+<li><strong>Convert.</strong> A principled mapping exists (<code>I(S, 0.88) = S × 1.242</code>, so <code>S = interval / 1.242</code>), but
+it is approximate: <code>SimpleScheduler</code>&#39;s ladder was not produced by the FSRS curve, so the conversion
+invents a stability the user never earned.</li>
+<li><strong>Warn and require confirmation.</strong> Least destructive; leaves the data intact but makes the
+reinterpretation the user&#39;s informed choice.</li>
+</ol>
+<p>All three mutate or expose user memory differently, and the choice is a product decision rather than
+an engineering one. Option 1 is the only one that can be ruled out on technical grounds, since it
+punishes curiosity with irreversible data loss. <strong>Recommendation: option 3 now, option 2 later if
+switching turns out to be common.</strong> Until then the gap is documented in <code>review_state.dart</code> at the
+field that causes it, which is where a future reader will look.</p>
+<h3 id="note-on-process">Note on process</h3>
+<p>Two of the corrections above (D3 retracted, C7 dropped) were found by checking the <em>callers</em> of the
+code the review described, not the code itself. Both original findings read the implementation
+correctly and still reached a wrong conclusion about impact, because neither asked whether the path
+was reachable in production. Passes #2–#4 should check reachability before assigning severity.</p>
+
     
     <nav class="doc-pagination" aria-label="Document pagination">
       <a class="doc-page-card prev" href="testing-strategy.html">
@@ -294,11 +1515,21 @@
     <aside class="doc-toc-aside" aria-label="Table of contents">
       <div class="doc-toc-title">On This Page</div>
       <div class="doc-toc-list">
-        <div class="doc-toc-item"><a href="#why-fsrs">Why FSRS for Chess</a></div>
-<div class="doc-toc-item"><a href="#dsr-model">The DSR Memory Model</a></div>
-<div class="doc-toc-item"><a href="#equations">Mathematical Formulation</a></div>
-<div class="doc-toc-item"><a href="#binary-grading">Pure Binary Rating (D015)</a></div>
-<div class="doc-toc-item"><a href="#stability-transitions">Stability & Difficulty Updates</a></div>
+        <div class="doc-toc-item"><a href="#chesssrs-scheduling-architecture-a-graph-aware-dsr-model">ChessSRS Scheduling Architecture: A Graph-Aware DSR Model</a></div>
+<div class="doc-toc-item"><a href="#executive-summary">Executive Summary</a></div>
+<div class="doc-toc-item"><a href="#a-algorithmic-candidates-comparison">A. Algorithmic Candidates Comparison</a></div>
+<div class="doc-toc-item"><a href="#b-graph-aware-adaptation-amp-invariants">B. Graph-Aware Adaptation &amp; Invariants</a></div>
+<div class="doc-toc-item"><a href="#c-recommended-model-specification-quotchessfsrsquot">C. Recommended Model Specification — &quot;ChessFSRS&quot;</a></div>
+<div class="doc-toc-item"><a href="#d-dart-implementation">D. Dart Implementation</a></div>
+<div class="doc-toc-item"><a href="#implementation-architecture-review">Implementation Architecture Review</a></div>
+<div class="doc-toc-item"><a href="#algorithm-amp-design-correctness-review-1-of-4">Algorithm &amp; Design Correctness Review — #1 of 4</a></div>
+<div class="doc-toc-item"><a href="#0-verification-status-read-this-first">0. Verification status (read this first)</a></div>
+<div class="doc-toc-item"><a href="#1-summary">1. Summary</a></div>
+<div class="doc-toc-item"><a href="#2-confirmed-issues">2. Confirmed issues</a></div>
+<div class="doc-toc-item"><a href="#3-design-concerns">3. Design concerns</a></div>
+<div class="doc-toc-item"><a href="#4-suggested-improvements-priority-order">4. Suggested improvements (priority order)</a></div>
+<div class="doc-toc-item"><a href="#5-not-reviewed-here">5. Not reviewed here</a></div>
+<div class="doc-toc-item"><a href="#6-resolution-log">6. Resolution log</a></div>
       </div>
     </aside>
 </div>

@@ -49,6 +49,7 @@
     <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
       <a href="../index.html">Home</a>
       <a href="index.html">Documentation Hub</a>
+      <a href="product.html">Product Vision</a>
       <a href="architecture.html">Architecture</a>
       <a href="fsrs-algorithm.html">FSRS Algorithm</a>
       <a href="graph-coordinator.html">Graph Coordinator</a>
@@ -69,6 +70,11 @@
         
           <a class="doc-nav-link " href="index.html">
             <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="product.html">
+            <span>Product Definition & Journeys</span>
             
           </a>
 
@@ -147,9 +153,15 @@
     <p class="doc-lede">The domain vocabulary, entity hierarchy, position identity keys, and SQLite database schema.</p>
     
     <div class="doc-meta-bar">
+      
       <div class="doc-meta-item">
         <strong>Source in app repo:</strong>
         <a href="https://github.com/cassandre60/ChessSRS/blob/main/docs/domain-model.md" target="_blank" rel="noopener"><code>docs/domain-model.md</code></a>
+      </div>
+
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/docs/INTEGRATION_MAP.md" target="_blank" rel="noopener"><code>docs/INTEGRATION_MAP.md</code></a>
       </div>
       <div class="doc-meta-item">
         <strong>App version:</strong> <code>v1.4.0</code>
@@ -158,95 +170,278 @@
         <strong>Licence:</strong> <code>GPL-3.0</code>
       </div>
     </div>
-    
-    <section id="entities">
-      <h2>1. Core Domain Entities</h2>
-      <p>The domain model resides strictly in <code>lib/src/domain/</code>, modeled as immutable data classes:</p>
-      <ul>
-        <li><strong>Study:</strong> The top-level repertoire collection imported from a single source (PGN file or Lichess study URL). Contains metadata and one or more Chapters.</li>
-        <li><strong>Chapter:</strong> A named logical unit from the PGN, corresponding to a single game header or study chapter. Contains root move node and orientation.</li>
-        <li><strong>PositionNode / Variation:</strong> A node in the branching chess tree. Tracks FEN state, parent pointer, incoming move, and child moves (variations).</li>
-        <li><strong>RepertoireDecision:</strong> The atomic scheduled unit of spaced repetition. Links a specific position with the expected repertoire move.</li>
-        <li><strong>ReviewState:</strong> Spaced repetition tracking data (current stability, difficulty, repetitions, lapse count, next due timestamp).</li>
-        <li><strong>ReviewEvent:</strong> Immutable log record of an active recall attempt (rating, timestamp, review duration, stability change).</li>
-      </ul>
-    </section>
+    <h2 id="domain-model">Domain Model</h2>
+<h2 id="core-entities">Core entities</h2>
+<h3 id="study">Study</h3>
+<p>A user-owned collection imported from one source. Contains one or more Chapters.</p>
+<p>Suggested fields:</p>
+<ul>
+<li>id</li>
+<li>title</li>
+<li>source metadata</li>
+<li>created/updated timestamps</li>
+<li>chapters</li>
+</ul>
+<h3 id="chapter">Chapter</h3>
+<p>A logical unit from the source PGN, commonly a game or named study chapter.</p>
+<p>Suggested fields:</p>
+<ul>
+<li>id</li>
+<li>studyId</li>
+<li>title</li>
+<li>source order</li>
+<li>root position/node</li>
+<li>metadata</li>
+</ul>
+<h3 id="positionnode">PositionNode</h3>
+<p>A node in the repertoire tree representing a chess position and its move relationships.</p>
+<p>Suggested concepts:</p>
+<ul>
+<li>id</li>
+<li>position key / FEN-equivalent state</li>
+<li>parent node</li>
+<li>incoming move</li>
+<li>child nodes</li>
+<li>source chapter references</li>
+<li>annotations/comments if preserved</li>
+</ul>
+<p>A tree node should not be assumed to be a review item.</p>
+<h3 id="repertoiredecision">RepertoireDecision</h3>
+<p>A decision the user may be asked to recall.</p>
+<p>Conceptually:</p>
+<pre tabindex="0"><code class="language-text">position + user-side expected repertoire move(s) + review identity
+</code></pre>
+<p>Multiple study branches may refer to the same chess position. Do not merge them automatically unless the product explicitly defines compatible repertoire semantics.</p>
+<h3 id="reviewstate">ReviewState</h3>
+<p>Current SRS state for one review item.</p>
+<p>Must support at least:</p>
+<ul>
+<li>first review</li>
+<li>last review</li>
+<li>next due</li>
+<li>repetitions / recall history summary</li>
+<li>difficulty/stability data needed by scheduler</li>
+</ul>
+<h3 id="reviewevent">ReviewEvent</h3>
+<p>Immutable-ish historical record of a review outcome. Keep enough information to reconstruct/debug scheduling behaviour.</p>
+<h3 id="opening">Opening</h3>
+<p>A future cross-study classification/grouping concept. It should be orthogonal to Study and Chapter.</p>
+<h2 id="relationships">Relationships</h2>
+<pre tabindex="0"><code class="language-text">Study
+  -&gt; many Chapters
+Chapter
+  -&gt; root PositionNode
+PositionNode
+  -&gt; child PositionNodes
+PositionNode
+  -&gt; zero or more RepertoireDecisions
+RepertoireDecision
+  -&gt; one ReviewState
+ReviewState
+  -&gt; many ReviewEvents
+</code></pre>
+<h2 id="important-distinction">Important distinction</h2>
+<p>A PGN move tree is content.</p>
+<p>A RepertoireDecision is a learning unit.</p>
+<p>A ReviewState is scheduling data.</p>
+<p>Keep these concepts separate.</p>
+<h2 id="position-identity">Position identity</h2>
+<p>A position identity must be deterministic and must account for all chess state relevant to legal moves and repetition semantics. FEN is a useful interchange representation; an internal normalized key may be better for persistence.</p>
+<p>Do not identify a position only by its piece placement if side-to-move, castling rights, or en-passant state can affect legal moves.</p>
+<h2 id="repertoire-branches">Repertoire branches</h2>
+<p>A position may have multiple valid repertoire continuations because the PGN contains branches. Review should know which move(s) are accepted for the active study/scope.</p>
+<p>Do not infer that every legal chess move is a repertoire answer.</p>
+<h2 id="future-sync-identity">Future sync identity</h2>
+<p>Entities that may sync across devices need stable IDs generated independently of the local database implementation. Do not rely on auto-increment database IDs as cross-device identity.</p>
+<hr>
+<h2 id="repertoire-integration-mapping">Repertoire Integration Mapping</h2>
+<h2 id="integration-map-listudy-amp-chessrs-extraction-plan">Integration Map — Listudy &amp; chessrs Extraction Plan</h2>
+<p>Status: <strong>Phase 0 map.</strong> No integration happens until the Lichess Mobile
+foundation is stable (Phase 1) and the vertical slice ships (Phase 2/3).</p>
+<p>The reset directive is explicit: do not merge repositories. Extract behavior
+and proven solutions into <strong>isolated modules</strong> inside our domain boundary.</p>
+<pre tabindex="0"><code class="language-text">Lichess Mobile (UI/app foundation)
+        |
+        +-- application/product modules
+        |
+        +-- OUR domain boundary (contracts below)
+        |        |
+        |        +-- Listudy-derived training semantics  (module: repertoire training)
+        |        +-- chessrs-derived SRS semantics        (module: srs scheduling)
+        |
+        +-- local persistence/import infrastructure (sqflite, PGN via dartchess)
+</code></pre>
+<h2 id="license-constraints-hard">License constraints (hard)</h2>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Source</th>
+<th>License</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>lichess-org/mobile</td>
+<td>GPL-3.0</td>
+<td>We are a fork: entire app is GPL-3.0. Preserve LICENSE, COPYING.md, notices.</td>
+</tr>
+<tr>
+<td>ZackMurry/chessrs</td>
+<td>GPL-3.0</td>
+<td>GPL-compatible: direct code reuse <em>permitted</em> if desired; still prefer clean reimplementation in Dart. Attribute.</td>
+</tr>
+<tr>
+<td>ArneVogel/listudy</td>
+<td><strong>AGPL-3.0</strong></td>
+<td>AGPL ≠ GPL interchangeable. Do <strong>not</strong> copy code. Study behavior, reimplement independently.</td>
+</tr>
+</tbody></table></div>
+<p>Consequence: from chessrs, <em>small, attributed</em> code adaptation is legally
+possible; from listudy, only behavioral inspiration. Default posture for both:
+<strong>reimplement against our contracts</strong>, cite the source file in the doc comment.</p>
+<h2 id="from-listudy-phase-4-behavioral-extractions">From Listudy (Phase 4) — behavioral extractions</h2>
+<p>Source: <code>assets/js/study.js</code>, <code>assets/js/modules/tree_utils.js</code>,
+<code>modules/tree_from_pgn.js</code>, <code>study_controller.ex</code> (concept only).</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Concept</th>
+<th>Source</th>
+<th>Our module</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Training loop: validate user move against tree children; wrong → undo board, mark error, retrain all sibling replies to 0</td>
+<td><code>study.js handle_move</code></td>
+<td>review session engine</td>
+<td>our RepertoireDecision updates instead of node values</td>
+</tr>
+<tr>
+<td>Opponent reply auto-play with weighted-random + anti-repetition (<code>tree_size_weighted_random_move</code>, value bump)</td>
+<td><code>study.js ai_move</code></td>
+<td>review session engine</td>
+<td>keeps review varied across sessions</td>
+</tr>
+<tr>
+<td>Per-node training value 0–5; value 5 = fully trained; auto-skip fully trained prefix moves (key moves)</td>
+<td><code>tree_utils.js update_node_value</code>, <code>study.js start_training</code></td>
+<td>ReviewState/SRS design input</td>
+<td>maps to &quot;auto-traverse non-due material&quot;</td>
+</tr>
+<tr>
+<td>Chapters = PGN games; <code>FEN</code> header support; chapter selector</td>
+<td><code>study.js setup_chapter_select</code></td>
+<td>repertoire module</td>
+<td>matches our Study→Chapter model</td>
+</tr>
+<tr>
+<td>Trees cached client-side keyed by PGN hash (regenerate on change)</td>
+<td><code>study.js setup_trees</code></td>
+<td>import pipeline</td>
+<td>hashing invalidation pattern for local DB</td>
+</tr>
+<tr>
+<td>Move comments + PGN arrow/circle shapes (<code>csl</code>/<code>cal</code>) rendered on board</td>
+<td><code>study.js get_pgn_shapes</code></td>
+<td>repertoire UI (optional)</td>
+<td>only where useful; secondary</td>
+</tr>
+<tr>
+<td>Hint arrows gated by training value (new/2×/5×/always)</td>
+<td><code>study.js display_arrows</code></td>
+<td>review settings (optional)</td>
+<td>post-beta</td>
+</tr>
+<tr>
+<td>Progress per chapter (<code>tree_progress</code>)</td>
+<td><code>tree_utils.js</code></td>
+<td>review stats (minimal)</td>
+<td>only if it serves Review UX</td>
+</tr>
+</tbody></table></div>
+<p>Explicitly NOT taken: Elixir backend, users/favorites/comments socially,
+tactics/books/blog SEO pages, achievements &amp; combos, Stockfish web worker,
+chessclicker.</p>
+<h2 id="from-chessrs-phase-5-behavioral-extractions">From chessrs (Phase 5) — behavioral extractions</h2>
+<p>Source: <code>backend/src/main/kotlin/com/zackmurry/chessrs/</code> (entity, service),
+<code>frontend/src/pages/practice/</code> + <code>store/boardSlice.ts</code>.</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Concept</th>
+<th>Source</th>
+<th>Our module</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Review item = position + move: <code>fenBefore</code>, <code>san</code>, <code>uci</code>, <code>isWhite</code></td>
+<td><code>entity/Move.kt</code></td>
+<td>RepertoireDecision</td>
+<td>confirms our decision-unit model</td>
+</tr>
+<tr>
+<td>SRS interval ladder: <code>ease × scaling^numReviews</code> (minutes), user-tunable ease/scaling</td>
+<td><code>service/SpacedRepetitionService.kt</code></td>
+<td>second <code>Scheduler</code> impl</td>
+<td>complements our SimpleScheduler ladder</td>
+</tr>
+<tr>
+<td>Fields: <code>lastReviewed</code>, <code>numReviews</code>, <code>due</code>, <code>timeCreated</code></td>
+<td><code>entity/Move.kt</code></td>
+<td>ReviewState</td>
+<td>subset of our state (we add lapses/stability for FSRS-upgrade path)</td>
+</tr>
+<tr>
+<td>Review queue prefetching: fetch N due items, refill when 1 remains</td>
+<td><code>PracticeMainPanel.tsx</code></td>
+<td>review session engine</td>
+<td>avoids per-item latency in UI</td>
+</tr>
+<tr>
+<td>Wrong answer → show correct move on the board, pause ~3s, reset; correct → advance</td>
+<td><code>PracticeMainPanel.tsx</code>, <code>boardSlice</code></td>
+<td>review feedback UX</td>
+<td>aligns with our quiet-feedback principle</td>
+</tr>
+<tr>
+<td>Per-move board perspective (isWhite flips board)</td>
+<td><code>PracticeMainPanel.tsx</code></td>
+<td>review scene</td>
+<td>board orientation from repertoire side</td>
+</tr>
+<tr>
+<td><code>cleanFen</code> normalized position identity</td>
+<td><code>Move.kt</code></td>
+<td>position keys</td>
+<td>matches QUALITY.md position identity invariant</td>
+</tr>
+<tr>
+<td><code>opening</code> string on moves for grouping</td>
+<td><code>Move.kt</code>, <code>OpeningService.kt</code></td>
+<td>Opening cross-study dimension</td>
+<td>Phase 4/5+</td>
+</tr>
+</tbody></table></div>
+<p>Explicitly NOT taken: Kotlin/Spring backend, GraphQL API, PostgreSQL/JDBC,
+OAuth/Lichess auth, accounts, engine service.</p>
+<h2 id="integration-sequence">Integration sequence</h2>
+<ol>
+<li><strong>Phase 2 (slice)</strong> uses OUR contracts only (already encode most chessrs
+queue/feedback behavior — the old ReviewEngine&#39;s semantics survive as spec).</li>
+<li><strong>Phase 4 (Listudy)</strong>: opponent auto-reply + variation-aware training inside
+the review engine; chapter/FEN handling verified against import tests.</li>
+<li><strong>Phase 5 (chessrs)</strong>: alternate scheduler impl + queue prefetch tuning,
+behind the <code>Scheduler</code> contract, selected in settings.</li>
+</ol>
+<p>Each integration is one isolated module + tests; no cross-cutting rewrites.</p>
 
-    <section id="decision-model">
-      <h2>2. The RepertoireDecision Unit</h2>
-      <p>
-        In an opening repertoire, you do not review opponent moves—you only review <strong>your own planned replies</strong>!
-      </p>
-      <div class="code-block">
-        <div class="code-header"><span>RepertoireDecision Structure</span><span>Concept</span></div>
-        <pre tabindex="0"><code>RepertoireDecision {
-  String id;                 // Unique decision identifier
-  String studyId;            // Parent study
-  String chapterId;          // Parent chapter
-  String fen;                // Board position (FEN4)
-  Move expectedMove;         // The user-prepared move (UCI)
-  String canonicalStateId;   // Pointer to shared ReviewState (for transpositions)
-}</code></pre>
-      </div>
-      <p>
-        Opponent choices represent branch forks. Each of your planned responses constitutes a <code>RepertoireDecision</code>.
-      </p>
-    </section>
-
-    <section id="lifecycle">
-      <h2>3. Review State Lifecycle</h2>
-      <p>A position transitions across distinct memory stages:</p>
-      <ol>
-        <li><strong>Fresh / Unseen:</strong> Position has been imported but never reviewed. Positioned in the "Fresh" pool, introduced gradually according to the "New positions per day" limit.</li>
-        <li><strong>Learning:</strong> Undergoing initial acquisition. Intervals are measured in hours or single days until basic retention is proven.</li>
-        <li><strong>Retained / Active Review:</strong> Governed by continuous FSRS power-law scheduling. Intervals expand geometrically as stability increases.</li>
-        <li><strong>Lapsed:</strong> Move was missed during review. Moves into intra-session buffer, receives stability reduction, and resets to short intervals until regained.</li>
-      </ol>
-    </section>
-
-    <section id="database-schema">
-      <h2>4. SQLite Database Schema</h2>
-      <p>Persistence uses SQLite tables with indexed keys for fast query execution on mobile devices:</p>
-      <div class="code-block">
-        <div class="code-header"><span>Core Database Tables</span><span>SQL DDL</span></div>
-        <pre tabindex="0"><code>-- Studies table
-CREATE TABLE studies (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  pgn_hash TEXT NOT NULL,
-  source_type TEXT NOT NULL,
-  created_at INTEGER NOT NULL
-);
-
--- Repertoire chapters
-CREATE TABLE chapters (
-  id TEXT PRIMARY KEY,
-  study_id TEXT NOT NULL REFERENCES studies(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  side TEXT NOT NULL, -- 'white' or 'black'
-  sort_order INTEGER NOT NULL
-);
-
--- Decisions & review states
-CREATE TABLE review_states (
-  canonical_id TEXT PRIMARY KEY, -- sha1(fen4 + uci)
-  stability REAL NOT NULL,
-  difficulty REAL NOT NULL,
-  repetitions INTEGER NOT NULL,
-  lapses INTEGER NOT NULL,
-  last_reviewed_at INTEGER,
-  next_due_at INTEGER NOT NULL
-);
-
-CREATE INDEX idx_review_states_due ON review_states(next_due_at);</code></pre>
-      </div>
-    </section>
-  
     
     <nav class="doc-pagination" aria-label="Document pagination">
-      <a class="doc-page-card prev" href="index.html">
+      <a class="doc-page-card prev" href="product.html">
               <span class="doc-page-dir">← Previous</span>
-              <span class="doc-page-label">Documentation Hub</span>
+              <span class="doc-page-label">Product Definition & Journeys</span>
             </a>
       <a class="doc-page-card next" href="architecture.html">
               <span class="doc-page-dir">Next →</span>
@@ -259,10 +454,19 @@ CREATE INDEX idx_review_states_due ON review_states(next_due_at);</code></pre>
     <aside class="doc-toc-aside" aria-label="Table of contents">
       <div class="doc-toc-title">On This Page</div>
       <div class="doc-toc-list">
-        <div class="doc-toc-item"><a href="#entities">Core Domain Entities</a></div>
-<div class="doc-toc-item"><a href="#decision-model">The RepertoireDecision Unit</a></div>
-<div class="doc-toc-item"><a href="#lifecycle">Review State Lifecycle</a></div>
-<div class="doc-toc-item"><a href="#database-schema">SQLite Schema & Tables</a></div>
+        <div class="doc-toc-item"><a href="#domain-model">Domain Model</a></div>
+<div class="doc-toc-item"><a href="#core-entities">Core entities</a></div>
+<div class="doc-toc-item"><a href="#relationships">Relationships</a></div>
+<div class="doc-toc-item"><a href="#important-distinction">Important distinction</a></div>
+<div class="doc-toc-item"><a href="#position-identity">Position identity</a></div>
+<div class="doc-toc-item"><a href="#repertoire-branches">Repertoire branches</a></div>
+<div class="doc-toc-item"><a href="#future-sync-identity">Future sync identity</a></div>
+<div class="doc-toc-item"><a href="#repertoire-integration-mapping">Repertoire Integration Mapping</a></div>
+<div class="doc-toc-item"><a href="#integration-map-listudy-amp-chessrs-extraction-plan">Integration Map — Listudy &amp; chessrs Extraction Plan</a></div>
+<div class="doc-toc-item"><a href="#license-constraints-hard">License constraints (hard)</a></div>
+<div class="doc-toc-item"><a href="#from-listudy-phase-4-behavioral-extractions">From Listudy (Phase 4) — behavioral extractions</a></div>
+<div class="doc-toc-item"><a href="#from-chessrs-phase-5-behavioral-extractions">From chessrs (Phase 5) — behavioral extractions</a></div>
+<div class="doc-toc-item"><a href="#integration-sequence">Integration sequence</a></div>
       </div>
     </aside>
 </div>

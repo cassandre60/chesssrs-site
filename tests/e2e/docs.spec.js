@@ -9,6 +9,7 @@ const isInk3 = (node) =>
 
 const DOC_PAGES = [
   '/docs/index.html',
+  '/docs/product.html',
   '/docs/architecture.html',
   '/docs/fsrs-algorithm.html',
   '/docs/graph-coordinator.html',

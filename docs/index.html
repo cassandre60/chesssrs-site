@@ -49,6 +49,7 @@
     <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
       <a href="../index.html">Home</a>
       <a href="index.html">Documentation Hub</a>
+      <a href="product.html">Product Vision</a>
       <a href="architecture.html">Architecture</a>
       <a href="fsrs-algorithm.html">FSRS Algorithm</a>
       <a href="graph-coordinator.html">Graph Coordinator</a>
@@ -70,6 +71,11 @@
           <a class="doc-nav-link active" href="index.html">
             <span>Documentation Hub</span>
             <span class="doc-nav-badge">Current</span>
+          </a>
+
+          <a class="doc-nav-link " href="product.html">
+            <span>Product Definition & Journeys</span>
+            
           </a>
 
           <a class="doc-nav-link " href="domain-model.html">
@@ -147,9 +153,20 @@
     <p class="doc-lede">The complete technical reference manual for ChessSRS: architecture, spaced repetition mathematics, graph traversal, and formal specifications.</p>
     
     <div class="doc-meta-bar">
+      
       <div class="doc-meta-item">
         <strong>Source in app repo:</strong>
         <a href="https://github.com/cassandre60/ChessSRS/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener"><code>ARCHITECTURE.md</code></a>
+      </div>
+
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/SPEC.md" target="_blank" rel="noopener"><code>SPEC.md</code></a>
+      </div>
+
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/PRODUCT.md" target="_blank" rel="noopener"><code>PRODUCT.md</code></a>
       </div>
       <div class="doc-meta-item">
         <strong>App version:</strong> <code>v1.4.0</code>
@@ -186,6 +203,15 @@
       <p>Explore the complete architectural and mathematical specifications of ChessSRS:</p>
       <div class="doc-hub-grid">
         
+    <a class="doc-hub-card" href="product.html">
+      <div>
+        <div class="doc-hub-card-kicker">Product</div>
+        <div class="doc-hub-card-title">Product Definition & Journeys</div>
+        <div class="doc-hub-card-desc">Core product vision, competitive personas, 5 core user journeys, and MVP boundaries.</div>
+      </div>
+      <div class="doc-hub-card-footer">Read documentation →</div>
+    </a>
+
     <a class="doc-hub-card" href="domain-model.html">
       <div>
         <div class="doc-hub-card-kicker">Domain</div>
@@ -307,7 +333,7 @@
       <h2>Recommended Reading Paths</h2>
       <p>Select the path best aligned with your exploration goals:</p>
       <ul>
-        <li><strong>For Chess Learners & Players:</strong> Start with <a href="fsrs-algorithm.html">FSRS Spaced Repetition</a> to understand review intervals, and <a href="graph-coordinator.html">Graph-Aware Coordinator</a> to see how transpositions and mistakes are handled.</li>
+        <li><strong>For Chess Learners & Players:</strong> Start with <a href="product.html">Product Vision</a> and <a href="fsrs-algorithm.html">FSRS Spaced Repetition</a> to understand review intervals, and <a href="graph-coordinator.html">Graph-Aware Coordinator</a> to see how transpositions and mistakes are handled.</li>
         <li><strong>For Software Architects:</strong> Read <a href="architecture.html">System Architecture</a> to inspect layer boundaries and Lichess mobile fork mechanics, followed by <a href="domain-model.html">Domain Model & Schemas</a>.</li>
         <li><strong>For Contributors & Developers:</strong> Follow the <a href="developer-guide.html">Developer Guide</a> to set up the FVM toolchain, run codegen, and pass the <a href="testing-strategy.html">Testing & Quality Gates</a>.</li>
       </ul>
@@ -316,9 +342,9 @@
     
     <nav class="doc-pagination" aria-label="Document pagination">
       <div></div>
-      <a class="doc-page-card next" href="domain-model.html">
+      <a class="doc-page-card next" href="product.html">
               <span class="doc-page-dir">Next →</span>
-              <span class="doc-page-label">Domain Model & Schemas</span>
+              <span class="doc-page-label">Product Definition & Journeys</span>
             </a>
     </nav>
   </main>

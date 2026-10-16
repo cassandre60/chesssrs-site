@@ -49,6 +49,7 @@
     <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
       <a href="../index.html">Home</a>
       <a href="index.html">Documentation Hub</a>
+      <a href="product.html">Product Vision</a>
       <a href="architecture.html">Architecture</a>
       <a href="fsrs-algorithm.html">FSRS Algorithm</a>
       <a href="graph-coordinator.html">Graph Coordinator</a>
@@ -69,6 +70,11 @@
         
           <a class="doc-nav-link " href="index.html">
             <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="product.html">
+            <span>Product Definition & Journeys</span>
             
           </a>
 
@@ -147,9 +153,15 @@
     <p class="doc-lede">How quality invariants are mechanically enforced through deterministic gates, anti-weakening tripwires, and testing budgets.</p>
     
     <div class="doc-meta-bar">
+      
       <div class="doc-meta-item">
         <strong>Source in app repo:</strong>
         <a href="https://github.com/cassandre60/ChessSRS/blob/main/TEST_STRATEGY.md" target="_blank" rel="noopener"><code>TEST_STRATEGY.md</code></a>
+      </div>
+
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/GATES.md" target="_blank" rel="noopener"><code>GATES.md</code></a>
       </div>
       <div class="doc-meta-item">
         <strong>App version:</strong> <code>v1.4.0</code>
@@ -158,95 +170,382 @@
         <strong>Licence:</strong> <code>GPL-3.0</code>
       </div>
     </div>
-    
-    <section id="gate-hierarchy">
-      <h2>1. The Deterministic Quality Gate Hierarchy</h2>
-      <p>
-        ChessSRS enforces an automated referee pipeline that mechanically verifies every pull request before code reaches <code>main</code>:
-      </p>
-      <div class="doc-table-wrap">
-        <table class="doc-table">
-          <thead>
-            <tr>
-              <th>Gate</th>
-              <th>Name</th>
-              <th>Description & Enforcement</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>G01</strong></td>
-              <td>Format Verification</td>
-              <td><code>dart format --set-exit-if-changed</code> with strict line width 100.</td>
-            </tr>
-            <tr>
-              <td><strong>G02</strong></td>
-              <td>Static Analysis</td>
-              <td><code>flutter analyze --fatal-infos</code>. Zero warnings, zero hints allowed.</td>
-            </tr>
-            <tr>
-              <td><strong>G03</strong></td>
-              <td>Banned API Gate</td>
-              <td><code>scripts/gates/banned_apis_check.py</code> prevents Flutter imports in domain and unclocked <code>DateTime.now</code> in schedulers.</td>
-            </tr>
-            <tr>
-              <td><strong>G05</strong></td>
-              <td>Spec Traceability</td>
-              <td><code>scripts/gates/spec_trace_check.py</code> asserts that active tests cite every <code>INV-xxx</code> ID from <code>SPEC.md</code>.</td>
-            </tr>
-            <tr>
-              <td><strong>G08</strong></td>
-              <td>Anti-Weakening Tripwire</td>
-              <td>Diffs commits against <code>origin/main</code> to detect and block deleted assertions, loosened tolerances, or skipped tests.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+    <h2 id="verification-amp-testing-strategy">Verification &amp; Testing Strategy</h2>
+<p>This document defines <strong>how the invariants and properties in <code>QUALITY.md</code>
+are mechanically proven</strong> through automated tests, static analysis, quality
+gates — and mandatory runtime validation.</p>
+<div class="callout spec">
+<p>Adapted to the Lichess Mobile foundation (Phase 1+). Test file paths will be
+re-established as the new suite is built; the <em>enforcement matrix</em> below is
+the durable contract. Legacy tests (<code>legacy/pre-reset</code>) are contract
+references — mine them for intended behavior, translate valuable cases,
+never copy tests that only encode the old architecture.</p>
+</div>
+<hr>
+<h2 id="1-quality-invariant-enforcement-matrix">1. Quality Invariant Enforcement Matrix</h2>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Invariant / Property in <code>QUALITY.md</code></th>
+<th>Enforcement Mechanism</th>
+<th>Test Target</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Layer Independence &amp; Clean Architecture</strong></td>
+<td>Static analysis (<code>fvm flutter analyze</code>, zero warnings) + import-boundary gate G03 (<code>.gates/banned-apis.json</code>) + in-suite boundary test</td>
+<td>whole project; the domain layer is <code>lib/src/domain/</code>; boundary test is <code>test/gates/domain_boundary_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>Single Chess Representation (dartchess only)</strong></td>
+<td>Dependency review + analyzer import linting</td>
+<td><code>pubspec.yaml</code>, domain &amp; application code</td>
+</tr>
+<tr>
+<td><strong>Legal Move Validation &amp; SAN/UCI</strong></td>
+<td>dartchess itself (already upstream-tested); our adapter unit tests</td>
+<td><code>test/import/pgn_importer_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>PGN Multi-game &amp; Variation Preservation</strong></td>
+<td>Unit tests of import pipeline (dartchess <code>PgnParser</code> → Study/Chapter/tree)</td>
+<td><code>test/import/pgn_importer_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>Study Tree Normalization &amp; Error Reporting</strong></td>
+<td>Integration tests incl. malformed-PGN quarantine</td>
+<td><code>test/import/pgn_importer_test.dart</code>, <code>test/import/chapter_orientation_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>SRS Interval Growth &amp; Lapse Recovery</strong></td>
+<td>Deterministic unit tests with injected <code>Clock</code> + clock rule in G03 (no <code>DateTime.now</code> in scheduling/review paths)</td>
+<td><code>test/domain/scheduler_test.dart</code>, <code>test/domain/chess_fsrs_scheduler_test.dart</code>, <code>test/gates/domain_boundary_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>Repertoire Answer Validation &amp; Persistence</strong></td>
+<td>Service tests over repository (in-memory + sqflite)</td>
+<td><code>test/review/review_service_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>Auto-Traversal &amp; No Permanent Exclusion</strong></td>
+<td>Deterministic engine tests (fixed clock)</td>
+<td><code>test/review/review_engine_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>Review Scene Rendering &amp; Interaction</strong></td>
+<td>Widget tests using Lichess <code>test_helpers.dart</code> board helpers</td>
+<td><code>test/view/review/review_screen_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>Incremental Persistence</strong></td>
+<td>Repository tests asserting write scope</td>
+<td><code>test/persistence/sqlite_study_repository_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>Move Validation Latency (&lt; 16 ms, §4.1)</strong></td>
+<td>Wall-clock assertion on the median of a graded-move batch, sample list printed on failure</td>
+<td><code>test/review/move_latency_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>Spec-to-Test Traceability (SPEC.md)</strong></td>
+<td>Every <code>INV-xxx</code> cited by at least one test; tests cite only real IDs (gate G05)</td>
+<td><code>SPEC.md</code> ↔ <code>test/</code> suites via SPEC coverage comments</td>
+</tr>
+<tr>
+<td><strong>No Unreachable Source</strong></td>
+<td>Import/export graph walk from <code>lib/main.dart</code>; new unreachable files fail, ratcheted against a baseline</td>
+<td><code>test/reachability/reachability_test.dart</code></td>
+</tr>
+<tr>
+<td><strong>Complete Mandatory Quality Gate</strong></td>
+<td>Executable script</td>
+<td><code>verify</code></td>
+</tr>
+</tbody></table></div>
+<h2 id="2-test-suite-organization-target">2. Test Suite Organization (target)</h2>
+<pre tabindex="0"><code class="language-text">test/
+├── domain/          # pure Dart: entities, scheduler, review engine (no Flutter)
+├── import/          # PGN → study normalization, variation preservation, errors
+├── persistence/     # sqflite store (sqflite_common_ffi in CI), durability
+├── review/          # review session engine + provider-level tests
+└── view/            # review scene widget tests (board helpers, feedback states)
+</code></pre>
+<p>New tests are written <strong>with the contract</strong> (test-first or test-with) per the
+development loop in <code>AGENTS.md</code>.</p>
+<h2 id="3-verification-levels">3. Verification Levels</h2>
+<h3 id="level-1-targeted-brick-check">Level 1: Targeted Brick Check</h3>
+<p>During development of a specific function or contract, run only the targeted
+test file:</p>
+<pre tabindex="0"><code class="language-bash">fvm flutter test test/domain/scheduler_test.dart
+</code></pre>
+<h3 id="level-2-full-local-quality-gate-verify">Level 2: Full Local Quality Gate (<code>./verify</code>)</h3>
+<p>Before committing or marking a task complete:</p>
+<pre tabindex="0"><code class="language-bash">./verify
+</code></pre>
+<p>executing <code>fvm flutter analyze</code> (zero warnings) + <code>fvm flutter test</code>.</p>
+<h3 id="level-3-runtime-validation-mandatory-for-user-visible-work">Level 3: Runtime Validation (MANDATORY for user-visible work)</h3>
+<p>Automated green is <strong>not</strong> evidence of a working app (this project has been
+burned by exactly that before). For every user-visible milestone:</p>
+<ol>
+<li><code>./verify</code> passes.</li>
+<li><code>fvm flutter run -d linux</code> (or attached device) and manually exercise the
+affected feature.</li>
+<li>Visually inspect the UI (screenshots for UI work).</li>
+<li>Only then record the milestone complete in <code>IMPLEMENTATION_PLAN.md</code>.</li>
+</ol>
+<h3 id="level-4-continuous-integration">Level 4: Continuous Integration</h3>
+<p>GitHub Actions runs <code>./verify</code> on every PR and push to <code>main</code> in a clean
+environment.</p>
+<hr>
+<h2 id="the-complete-quality-gate-registry">The Complete Quality Gate Registry</h2>
+<h2 id="gates-the-registry-of-everything-that-can-reject-a-change">GATES: the registry of everything that can reject a change</h2>
+<p>Protected path. If a gate is not in this file, it does not exist.
+Local entry point (same as CI): <code>./scripts/gates.sh [t0|t1|t2]</code>.</p>
+<p>Product suite entry point <code>./verify</code> (analyze + full <code>flutter test</code>) is owned
+by <code>test.yml</code> and stays the authority on whether the suite is green. The gates
+below do not duplicate it; they enforce what it cannot: referee integrity,
+spec coverage of intent, and check strength.</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>ID</th>
+<th>Gate</th>
+<th>Tier</th>
+<th>Runtime</th>
+<th>Catches</th>
+<th>Known blind spots</th>
+<th>Local command</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>G01</td>
+<td>format + lint + strict types</td>
+<td>T0/T1</td>
+<td>min</td>
+<td>style drift, unsafe casts</td>
+<td>logic errors</td>
+<td>owned by <code>test.yml</code> (<code>dart format</code> check + <code>flutter analyze</code>)</td>
+<td>CI</td>
+</tr>
+<tr>
+<td>G02</td>
+<td>architecture boundary test</td>
+<td>T1</td>
+<td>s</td>
+<td>domain importing UI/DB/IO, wall-clock reads in scheduling paths</td>
+<td>dynamic imports; application-layer network use (import path only, by design)</td>
+<td><code>fvm flutter test test/gates/domain_boundary_test.dart</code></td>
+<td>gates PR</td>
+</tr>
+<tr>
+<td>G03</td>
+<td>banned APIs in core</td>
+<td>T0</td>
+<td>s</td>
+<td>hidden clocks, layer rot</td>
+<td>aliased/bracketed call sites; <code>Random()</code> fallback (documented, injected)</td>
+<td><code>scripts/gates.sh t0</code></td>
+<td>gates PR</td>
+</tr>
+<tr>
+<td>G04</td>
+<td>unit + property + widget tests</td>
+<td>T1</td>
+<td>min</td>
+<td>regressions, invariant breaks</td>
+<td>unspecified behavior; load-sensitive review tests (see Blind spots)</td>
+<td>owned by <code>test.yml</code></td>
+<td>CI</td>
+</tr>
+<tr>
+<td>G05</td>
+<td>spec traceability</td>
+<td>T1</td>
+<td>s</td>
+<td>invariants with no test; tests citing unknown IDs</td>
+<td>weak tests that cite IDs (needs G06)</td>
+<td><code>python3 scripts/gates/spec_trace_check.py --spec SPEC.md --tests test</code></td>
+<td>gates PR</td>
+</tr>
+<tr>
+<td>G06</td>
+<td>hand-picked mutants (local T2)</td>
+<td>T2</td>
+<td>min</td>
+<td>tests that do not check scheduler boundaries</td>
+<td>unlisted lines; equivalent mutants</td>
+<td><code>./scripts/gates.sh t2</code></td>
+<td>contributor</td>
+</tr>
+<tr>
+<td>G07</td>
+<td>protected paths</td>
+<td>T1</td>
+<td>s</td>
+<td>referee edits without human approval</td>
+<td>uncommitted local edits (CI judges commits)</td>
+<td><code>python3 scripts/gates/protected_paths_check.py --base origin/main</code></td>
+<td>owner</td>
+</tr>
+<tr>
+<td>G08</td>
+<td>test-weakening tripwire</td>
+<td>T1</td>
+<td>s</td>
+<td>removed asserts/tests, new <code>skip:</code>/suppressions in live code</td>
+<td>subtle weakening (renamed expectations, padded tolerances); <code>redteam/</code> + <code>scripts/gates/</code> excluded (inert corpus data / self-naming patterns — both G07-guarded)</td>
+<td><code>python3 scripts/gates/test_weakening_check.py --base origin/main</code> (an <code>Ack-G08: &lt;reason&gt;</code> commit trailer records reviewed intent; findings still print — the trailer is a line of its own starting with <code>Ack-G08:</code>, matched as <code>^Ack-G08:</code>, so a mention inside another line does not count)</td>
+<td>owner</td>
+</tr>
+<tr>
+<td>G09</td>
+<td>fail-to-pass (bugfix PRs)</td>
+<td>T2</td>
+<td>min</td>
+<td>tests that cannot fail</td>
+<td>wrong-reason failures (use EXPECT_PATTERN); reviewer-enforced until CI-wired</td>
+<td><code>bash scripts/gates/fail_to_pass_check.sh &lt;base&gt; &quot;&lt;test cmd&gt;&quot;</code></td>
+<td>reviewer</td>
+</tr>
+<tr>
+<td>G10</td>
+<td>ratchets (deps, suppressions, skips, tests, domain size)</td>
+<td>T1</td>
+<td>s</td>
+<td>silent drift</td>
+<td>metrics gamed in isolation (kept small on purpose)</td>
+<td><code>./scripts/gates.sh t1</code> (collect + compare)</td>
+<td>gates PR</td>
+</tr>
+<tr>
+<td>G11</td>
+<td>dependency + secret posture</td>
+<td>T1</td>
+<td>—</td>
+<td>unjustified deps</td>
+<td>no scanner wired yet; pubspec.yaml is a protected path so every dep change needs approval</td>
+<td>reviewer + G07</td>
+<td>owner</td>
+</tr>
+<tr>
+<td>G12</td>
+<td>red-team corpus recall</td>
+<td>T3/nightly + gate-change PRs</td>
+<td>min</td>
+<td>weak fast gates</td>
+<td>unknown unknowns</td>
+<td><code>python3 scripts/gates/redteam_runner.py --gate-cmd &quot;./scripts/gates.sh t1&quot;</code></td>
+<td>gates PR</td>
+</tr>
+</tbody></table></div>
+<h2 id="class-evidence-enforced-by-reviewer-pr-template-ci-wired-where-noted">Class → evidence (enforced by reviewer + PR template; CI-wired where noted)</h2>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Class</th>
+<th>Required evidence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>bugfix</td>
+<td>regression test failing on base, passing here (G09 script output pasted; EXPECT_PATTERN for the right reason)</td>
+</tr>
+<tr>
+<td>perf</td>
+<td>before/after numbers on the pinned harness + equivalence test vs old implementation</td>
+</tr>
+<tr>
+<td>refactor</td>
+<td>no test files modified (G08 verifies), behavior-equivalence evidence</td>
+</tr>
+<tr>
+<td>feature</td>
+<td>SPEC.md updated first in a spec-change PR; property tests per new invariant (G05 verifies)</td>
+</tr>
+<tr>
+<td>test-only</td>
+<td>names the mutant, invariant, or ratchet it improves</td>
+</tr>
+<tr>
+<td>dependency</td>
+<td>written reason + pubspec.yaml approval (G07); size/startup note</td>
+</tr>
+<tr>
+<td>docs</td>
+<td>no code changes (fast CI lane stays cheap)</td>
+</tr>
+<tr>
+<td>gate-change / spec-change</td>
+<td>separate PR, no product code, human approval (G07), red-team recall not reduced</td>
+</tr>
+</tbody></table></div>
+<h2 id="blind-spots-known-accepted">Blind spots (known, accepted)</h2>
+<ul>
+<li>Uncommitted local edits bypass G07/G08 locally; CI judges pushed commits.</li>
+<li>Several review controller tests are load-sensitive (<code>pumpAsync</code> fixed 80ms
+waits): they can flake under CPU contention in wide runs and pass in
+isolation. Re-run the file alone before blaming a change; the real fix is
+condition-polling helpers (see AGENTS.md lessons 2026-09-28).</li>
+<li><code>build_runner</code> rewrites <code>lib/l10n/*.dart</code> formatting in fresh worktrees;
+run <code>dart format lib/l10n/</code> after codegen and do not commit the churn.</li>
+<li>G05 proves intent coverage, not test quality; G06 covers six scheduler
+boundaries only. Full mutation and crash-consistency are Phase 2.</li>
+</ul>
+<h2 id="gate-health-review-quarterly">Gate health (review quarterly)</h2>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Gate</th>
+<th>Rejections</th>
+<th>False positives</th>
+<th>Flaky reruns</th>
+<th>Escapes traced</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>(empty — first review 2027-01)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table></div>
+<h2 id="escapes-log">Escapes log</h2>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Date</th>
+<th>What escaped</th>
+<th>Root cause</th>
+<th>New gate / invariant / red-team case</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>(none recorded since gates introduced 2026-10-01)</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>2026-10-02</td>
+<td>Every lichess socket handshake was refused with HTTP 400, so cloud evaluation, study sync and the ping indicator were dead while the suite stayed green</td>
+<td>The fake channels key on path alone, so no test could see that the sri was missing from the connect URL, and no fast gate reads a wire format</td>
+<td>Regression test shipped in #129. SPEC INV-064 and its test citation added in the escape PR (this row&#39;s &quot;not added&quot; stood until G-BASEINV was fixed by #135/#137). Red-team case rt-08 guards the trace link; the wire-behavior link is guarded by the required Tests lane (G04) — t1 recall runs no flutter tests, so a reintroduced wire bug escapes t1 by construction</td>
+</tr>
+</tbody></table></div>
+<p>Adding a row? Follow <code>docs/ESCAPE_TO_GATE.md</code> — the row is step 7 of the
+escape loop, after the regression test, SPEC invariant, and red-team case.</p>
+<h2 id="operator-checklist-owner-actions-not-automatable-here">Operator checklist (owner actions, not automatable here)</h2>
+<ol>
+<li>GitHub branch protection on <code>main</code>: required status checks (<code>Tests</code>,
+<code>Gates</code>), required human review, no direct pushes, no force pushes.</li>
+<li>Confirm SPEC.md T0/T1 invariants by merging (they transcribe QUALITY.md).</li>
+<li>Quarterly: review this file&#39;s health tables, tighten ratchets, delete dead gates.</li>
+</ol>
 
-    <section id="tripwire-g08">
-      <h2>2. The G08 Anti-Weakening Tripwire</h2>
-      <p>
-        AI agents and fatigued engineers frequently "fix" failing tests by quietly weakening them: deleting assertions, adding <code>@skip</code> annotations, widening numerical tolerances, or adding blanket lint suppressions.
-      </p>
-      <p>
-        Gate <strong>G08</strong> (<code>scripts/gates/test_weakening_check.py</code>) parses git diffs to detect:
-      </p>
-      <ul>
-        <li>Any deleted <code>expect(...)</code> call without a compensating assertion.</li>
-        <li>Introduction of <code>// ignore:</code> or <code>// ignore_for_file:</code> comments.</li>
-        <li>Modification of benchmark tolerances or ratchet baselines.</li>
-      </ul>
-      <p>If any test weakening is discovered, CI halts immediately.</p>
-    </section>
-
-    <section id="testing-budgets">
-      <h2>3. Local Test Budgets (Preserving Hardware)</h2>
-      <div class="callout warning">
-        <div class="callout-title">The Local Machine is Not a Build Server</div>
-        <p>Running 1,400+ Flutter tests repeatedly saturates laptop CPUs, pins fans at 100%, and throttles battery life. Local development follows strict budget rules:</p>
-      </div>
-      <ul>
-        <li><strong>Inner loop:</strong> Run only the targeted test file using <code>fvm flutter test test/... --plain-name 'test name'</code>.</li>
-        <li><strong>Full test suites:</strong> Delegated to GitHub Actions runners on push.</li>
-        <li><strong>Release builds:</strong> Release compilation (R8, AOT) is never performed on developer machines; artifacts are built on GitHub Actions runners.</li>
-      </ul>
-    </section>
-
-    <section id="escape-flywheel">
-      <h2>4. The Escape-to-Gate Flywheel</h2>
-      <p>
-        When a bug slips past existing checks, ChessSRS follows a mandatory remediation flywheel (<code>docs/ESCAPE_TO_GATE.md</code>):
-      </p>
-      <ol>
-        <li><strong>Failing Regression Test:</strong> Write a targeted test that fails 100% reliably on current code.</li>
-        <li><strong>SPEC Assignment:</strong> Formulate a new invariant in <code>SPEC.md</code> naming the failure condition.</li>
-        <li><strong>Red-Team Corpus Addition:</strong> Add adversarial PGN fixtures or malformed inputs to <code>redteam/</code>.</li>
-        <li><strong>Root Cause Fix:</strong> Apply the minimal architectural fix that resolves the issue cleanly.</li>
-        <li><strong>Escapes Log Update:</strong> Record the incident in <code>docs/escapes-log.md</code>.</li>
-      </ol>
-    </section>
-  
     
     <nav class="doc-pagination" aria-label="Document pagination">
       <a class="doc-page-card prev" href="specifications.html">
@@ -264,10 +563,17 @@
     <aside class="doc-toc-aside" aria-label="Table of contents">
       <div class="doc-toc-title">On This Page</div>
       <div class="doc-toc-list">
-        <div class="doc-toc-item"><a href="#gate-hierarchy">Deterministic Quality Gates</a></div>
-<div class="doc-toc-item"><a href="#tripwire-g08">The G08 Anti-Weakening Tripwire</a></div>
-<div class="doc-toc-item"><a href="#testing-budgets">Local Testing Budgets</a></div>
-<div class="doc-toc-item"><a href="#escape-flywheel">The Escape-to-Gate Flywheel</a></div>
+        <div class="doc-toc-item"><a href="#verification-amp-testing-strategy">Verification &amp; Testing Strategy</a></div>
+<div class="doc-toc-item"><a href="#1-quality-invariant-enforcement-matrix">1. Quality Invariant Enforcement Matrix</a></div>
+<div class="doc-toc-item"><a href="#2-test-suite-organization-target">2. Test Suite Organization (target)</a></div>
+<div class="doc-toc-item"><a href="#3-verification-levels">3. Verification Levels</a></div>
+<div class="doc-toc-item"><a href="#the-complete-quality-gate-registry">The Complete Quality Gate Registry</a></div>
+<div class="doc-toc-item"><a href="#gates-the-registry-of-everything-that-can-reject-a-change">GATES: the registry of everything that can reject a change</a></div>
+<div class="doc-toc-item"><a href="#class-evidence-enforced-by-reviewer-pr-template-ci-wired-where-noted">Class → evidence (enforced by reviewer + PR template; CI-wired where noted)</a></div>
+<div class="doc-toc-item"><a href="#blind-spots-known-accepted">Blind spots (known, accepted)</a></div>
+<div class="doc-toc-item"><a href="#gate-health-review-quarterly">Gate health (review quarterly)</a></div>
+<div class="doc-toc-item"><a href="#escapes-log">Escapes log</a></div>
+<div class="doc-toc-item"><a href="#operator-checklist-owner-actions-not-automatable-here">Operator checklist (owner actions, not automatable here)</a></div>
       </div>
     </aside>
 </div>

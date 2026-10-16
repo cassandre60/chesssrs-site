@@ -49,6 +49,7 @@
     <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
       <a href="../index.html">Home</a>
       <a href="index.html">Documentation Hub</a>
+      <a href="product.html">Product Vision</a>
       <a href="architecture.html">Architecture</a>
       <a href="fsrs-algorithm.html">FSRS Algorithm</a>
       <a href="graph-coordinator.html">Graph Coordinator</a>
@@ -69,6 +70,11 @@
         
           <a class="doc-nav-link " href="index.html">
             <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="product.html">
+            <span>Product Definition & Journeys</span>
             
           </a>
 
@@ -147,6 +153,7 @@
     <p class="doc-lede">How ChessSRS traverses repertoires as DAGs, manages transpositions, applies lapse contagion, and schedules review queues.</p>
     
     <div class="doc-meta-bar">
+      
       <div class="doc-meta-item">
         <strong>Source in app repo:</strong>
         <a href="https://github.com/cassandre60/ChessSRS/blob/main/docs/review-2-graph-aware-coordinator.md" target="_blank" rel="noopener"><code>docs/review-2-graph-aware-coordinator.md</code></a>
@@ -158,118 +165,372 @@
         <strong>Licence:</strong> <code>GPL-3.0</code>
       </div>
     </div>
-    
-    <section id="dag-model">
-      <h2>1. The Repertoire as a Directed Acyclic Graph (DAG)</h2>
-      <p>
-        Individual games are trees, but an entire chess opening repertoire is a <strong>Directed Acyclic Graph (DAG)</strong>.
-        Different move orders frequently converge to identical board positions (transpositions).
-      </p>
-      <p>
-        Generic flashcard engines treat every node independently. If a player practices <code>1.d4 Nf6 2.c4 e6 3.Nc3 Bb4</code>,
-        and separately reaches the same Nimzo-Indian through an English move order <code>1.c4 e6 2.d4 Nf6 3.Nc3 Bb4</code>,
-        a naive system would schedule them as two separate cards. The user would be tested twice on the identical position!
-      </p>
-      <p>
-        ChessSRS bridges this gap with its <strong>Graph-Aware Review Coordinator</strong> (<code>lib/src/domain/review/graph_coordinator.dart</code>).
-      </p>
-    </section>
+    <h2 id="review-2-graph-aware-review-coordinator">Review 2 — Graph-Aware Review Coordinator</h2>
+<p><strong>Scope:</strong> <code>lib/src/domain/graph_aware_review_coordinator.dart</code> (309 LOC), plus its two production
+call sites in <code>lib/src/domain/review/review_session.dart</code> (<code>:345</code>, <code>:399</code>, <code>:591</code>) and the repository
+adapter <code>_SessionReviewStateRepository</code> (<code>review_session.dart:938-969</code>).</p>
+<p><strong>Intent, from <code>ChessSRS Scheduling Architecture.md</code> §B:</strong> wrap a plain FSRS kernel with three
+chess-specific graph effects — upstream lapse contagion (§B.1), auto-traversal exposure credit
+(§B.2), and confusable sibling coupling (§B.4) — plus canonical transposition resolution (§B.3). The
+stated design principle is that these are <em>soft nudges, not state-machine resets</em>: they must never
+touch <code>repetitionCount</code> or <code>lapseCount</code>, and the true FSRS update still happens when a node is
+actually reviewed.</p>
+<p><strong>Verification status.</strong> All line numbers and arithmetic below were read and computed against the
+working tree at commit <code>8f00ea777</code>. Decay and compounding figures were computed directly, not
+estimated. No Dart toolchain is available in this environment, so nothing here was executed — every
+claim is either a quoted line or arithmetic on quoted constants. Where I could not establish
+something I say so.</p>
+<hr>
+<h2 id="1-summary">1. Summary</h2>
+<p>The coordinator implements the specified structure faithfully: the contagion recursion is depth-bounded,
+the soft-nudge contract is respected (no <code>repetitionCount</code>/<code>lapseCount</code> writes anywhere in the file),
+and the canonical-resolution logic is well-reasoned and unusually well-commented. Two of the three
+graph effects are numerically weaker or stronger than the spec says.</p>
+<p><strong>Two confirmed defects, one of them severe:</strong></p>
+<ul>
+<li><strong>C1 (HIGH) — fixed, see §6.</strong> Auto-traversal exposure credit is unbounded. Its only cross-session throttle is
+in-memory, so the &quot;once per calendar day&quot; guarantee documented at <code>:215</code> holds only within a single
+session. An item merely <em>passed over</em> while drilling other lines compounds stability and due date
+geometrically — 10× a month at one session a day, 1000× at three. The &quot;never grant credit to an
+already-due item&quot; guard at <code>:224</code> cannot bound it, because each grant pushes <code>nextDueAt</code> further
+out and makes the item <em>less</em> due.</li>
+<li><strong>C2 (MEDIUM).</strong> Lapse contagion runs at 51.3% of its documented strength. The spec&#39;s prose defines
+<code>λ0 = 0.18</code> as the &quot;max 18% stability haircut, applied only to the immediate child&quot;, but the
+formula it gives — which the code implements literally — yields 9.24% at the immediate child.</li>
+</ul>
+<p>Everything else I looked at held up. Notably, two things I suspected turned out to be <strong>not</strong> bugs,
+and are recorded in §5 so they are not re-raised.</p>
+<hr>
+<h2 id="2-confirmed-issues">2. Confirmed issues</h2>
+<h3 id="c1-exposure-credit-compounds-without-bound-across-sessions-high">C1 — Exposure credit compounds without bound across sessions — <strong>HIGH</strong></h3>
+<p><strong>Status: fixed</strong> (<code>af0988ca2</code>). <code>lastExposedAt</code> is now persisted and the coordinator&#39;s throttle is
+seeded from the store, so the cap holds across restarts. §6 records the two CI failures it took to
+land and the lessons from both.</p>
+<p><code>graph_aware_review_coordinator.dart:215-247</code></p>
+<pre tabindex="0"><code class="language-dart">/// Throttled to once per calendar day per decision.
+...
+if (previous.lastReviewedAt != null &amp;&amp; _isSameCalendarDay(previous.lastReviewedAt!, now)) {
+  return previous;
+}
+final lastExposed = _lastExposedAt[canonicalId];
+if (lastExposed != null &amp;&amp; _isSameCalendarDay(lastExposed, now)) {
+  return previous;
+}
+</code></pre>
+<p>There are two guards, and neither survives a session boundary:</p>
+<ol>
+<li><strong>The <code>lastReviewedAt</code> guard (<code>:227</code>)</strong> only fires on a day the item was <em>actively reviewed</em>.
+Exposure deliberately never updates <code>lastReviewedAt</code> (that is the soft-nudge contract, and it is
+correct). So on every day the item is merely traversed, <code>lastReviewedAt</code> is from an earlier day,
+<code>_isSameCalendarDay</code> is false, and the guard passes.</li>
+<li><strong>The <code>_lastExposedAt</code> guard (<code>:230</code>)</strong> reads <code>final Map&lt;String, DateTime&gt; _lastExposedAt = {}</code>
+(<code>:152</code>) — a plain instance field with no persistence. <code>snapshotExposureThrottle</code> /
+<code>restoreExposureThrottle</code> (<code>:171</code>, <code>:174</code>) exist only to roll back a failed persist within a
+session (<code>review_session.dart:263</code>, <code>:290</code>); they do not load anything from the store. A new
+<code>ReviewSession</code> constructs a new coordinator (<code>review_session.dart:85</code>) with an empty map.</li>
+</ol>
+<p><strong>Demonstrating input.</strong> One canonical decision with <code>stability = 10 d</code>, <code>nextDueAt = now + 20 d</code>,
+last actively reviewed a week ago. The user drills a different line that auto-traverses past it.</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>sessions opened that day</th>
+<th>grants/day</th>
+<th>stability after 30 days</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>1</td>
+<td><strong>10.06×</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>2</td>
+<td><strong>101.26×</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td>3</td>
+<td><strong>1018.92×</strong></td>
+</tr>
+</tbody></table></div>
+<p>Each grant applies <code>stability *= 1.08</code> (<code>:235</code>) and extends the due date by 8% of the <em>remaining</em>
+interval (<code>:238-243</code>), so both series are geometric in the number of grants, and the number of grants
+is bounded only by how often the user opens the app.</p>
+<p><strong>Expected:</strong> at most one credit per calendar day per decision, so ≤ <code>1.08^30 = 10.06×</code> per month,
+which is already generous for an item that was never actively recalled.</p>
+<p><strong>Actual:</strong> <code>1.08^(sessions_per_day × 30)</code>. There is no ceiling at all.</p>
+<p><strong>Why the <code>:224</code> guard does not save it.</strong> <code>if (scheduler.isDue(previous, now)) return previous;</code>
+looks like a bound, but it works in the wrong direction: a grant extends <code>nextDueAt</code>, so the item
+becomes <em>less</em> due after each grant and the guard becomes easier to pass, not harder. The guard
+prevents crediting overdue items; it does nothing about over-crediting current ones.</p>
+<p><strong>Practical impact.</strong> An item that is frequently traversed but rarely tested drifts toward never
+surfacing. That is the exact failure mode §B.1 was written to avoid (&quot;it manufactures enormous,
+demotivating review backlogs&quot;) — in reverse.</p>
+<p><strong>Fix direction.</strong> Persist the exposure throttle, or derive it from data that is already persisted.
+The cleanest option needs no new column: stamp <code>lastExposedAt</code> into the state (or reuse a field that
+is already written) so the same-calendar-day test survives a restart. Second-best is to bound total
+exposure credit per item — e.g. refuse once cumulative exposure gain exceeds some fraction of
+actively-earned stability — which also caps the &quot;never recalled&quot; drift.</p>
+<hr>
+<h3 id="c2-lapse-contagion-delivers-513-of-the-documented-0-medium">C2 — Lapse contagion delivers 51.3% of the documented <code>λ0</code> — <strong>MEDIUM</strong></h3>
+<p><code>graph_aware_review_coordinator.dart:257</code></p>
+<pre tabindex="0"><code class="language-dart">final decay = params.contagionBase * math.exp(-depth / params.contagionTau);
+</code></pre>
+<p>The architecture doc §B.1 specifies the formula <code>S_child&#39; = S_child × (1 − λ0·e^(−depth/τ))</code>, which
+this line implements exactly. But the prose in the same section defines the parameter differently:</p>
+<div class="callout spec">
+<p>with defaults <code>λ0 = 0.18</code> (<strong>max 18% stability haircut, applied only to the immediate child</strong>)</p>
+</div>
+<p>The recursion is entered at <code>depth: 1</code> (<code>:198</code>), so the immediate child never sees <code>depth = 0</code>:</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>depth</th>
+<th>code (<code>e^(−depth/τ)</code>)</th>
+<th>prose intent (<code>e^(−(depth−1)/τ)</code>)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1 — immediate child</td>
+<td><strong>0.09242</strong> (9.24%)</td>
+<td><strong>0.18000</strong> (18.00%)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>0.04745</td>
+<td>0.09242</td>
+</tr>
+<tr>
+<td>3</td>
+<td>0.02436</td>
+<td>0.04745</td>
+</tr>
+<tr>
+<td>4</td>
+<td>0.01251</td>
+<td>0.02436</td>
+</tr>
+</tbody></table></div>
+<p>The code is off by exactly <code>e^(1/τ) = 1.9477</code>, i.e. it delivers <strong>51.3%</strong> of the specified strength at
+every depth.</p>
+<p><strong>Demonstrating input.</strong> A child with <code>stability = 10 d</code> directly below a lapse.</p>
+<ul>
+<li>Expected per §B.1 prose: <code>10 × (1 − 0.18) = 8.20 d</code>.</li>
+<li>Actual: <code>10 × (1 − 0.09242) = 9.076 d</code>.</li>
+</ul>
+<p><strong>Which side is wrong is a spec question, not a code question.</strong> The formula and the prose disagree,
+and the code follows the formula. Two self-consistent repairs exist:</p>
+<ul>
+<li>Change the exponent to <code>-(depth - 1) / τ</code>, making the immediate child see the full <code>λ0 = 0.18</code>.</li>
+<li>Keep the code and raise <code>contagionBase</code> to <code>0.3506</code>, so <code>0.3506 × e^(−1/1.5) = 0.18</code>.</li>
+</ul>
+<p>Both change scheduling output, so neither should be picked silently. The tie-breaker is that
+<code>λ0</code>&#39;s own doc comment at <code>:104</code> repeats the prose reading — <em>&quot;Maximum stability haircut applied at
+depth 1 (lambda0 = 0.18)&quot;</em> — which is a third statement of the 18%-at-depth-1 intent. Two of three
+sources say the immediate child should take 18%. <strong>Recommend the exponent fix</strong>, and note that the
+<code>D_child</code> bump at <code>:265</code> uses the same <code>decay</code>, so it is under-strength by the same factor.</p>
+<hr>
+<h3 id="c3-recordautotraversalexposure-returns-a-state-it-never-stored-low">C3 — <code>recordAutoTraversalExposure</code> returns a state it never stored — <strong>LOW</strong></h3>
+<p><code>graph_aware_review_coordinator.dart:219-221</code></p>
+<pre tabindex="0"><code class="language-dart">if (previous == null || previous.stability &lt;= 0) {
+  return previous ?? ReviewState.initial(decisionId: canonicalId);
+}
+</code></pre>
+<p>This branch covers two different cases and returns two different kinds of value. When
+<code>previous != null</code> it returns the stored state unchanged (harmless). When <code>previous == null</code> it
+returns a <strong>fresh <code>ReviewState.initial</code> that was never passed to <code>repo.put</code></strong> — the method&#39;s contract
+is otherwise &quot;return the state now in the repo&quot;, and the call site assumes that:</p>
+<pre tabindex="0"><code class="language-dart">final exposedState = _coordinator.recordAutoTraversalExposure(node: expNode, now: now);
+if (exposedState != null) {
+  _reviewStates[nextDecision.canonicalId] = exposedState;
+  _reviewStates[nextDecision.id] = exposedState;
+  sideEffects.add(exposedState);
+}
+</code></pre>
+<p>(<code>review_session.dart:591-596</code>)</p>
+<p>So merely <em>passing over</em> a never-reviewed node materialises an initial state into the session&#39;s state
+map and into <code>sideEffects</code>, which is the list that gets persisted. The immediate consequence is small
+— <code>ReviewState.initial</code> has <code>nextDueAt == null</code>, and <code>isDueAt</code> (<code>review_state.dart:70</code>) returns true
+for null, so the item stays due and nothing is lost. But it writes rows for items the user never
+engaged with, and it makes the return value&#39;s meaning depend on which sub-branch ran.</p>
+<p><strong>Fix.</strong> Return <code>null</code> in the <code>previous == null</code> case — the call site already null-checks — and keep
+returning <code>previous</code> for the <code>stability &lt;= 0</code> case. That restores a single meaning: non-null iff the
+repo was written.</p>
+<hr>
+<h2 id="3-design-concerns">3. Design concerns</h2>
+<p><strong>D1 — Throttle bookkeeping is conflated with rollback bookkeeping.</strong> <code>_lastExposedAt</code> serves two
+masters: it is the daily throttle (C1) <em>and</em> the thing snapshotted for persist-rollback. That is why
+fixing C1 is not purely local — any move to persisted state has to keep the rollback path working,
+since <code>restoreExposureThrottle</code> (<code>:174</code>) does a <code>clear()</code> + <code>addAll()</code> on it. Worth splitting the two
+concerns explicitly.</p>
+<p><strong>D2 — <code>maxContagionDepth = 3</code> truncates a series the spec describes as reaching depth 4.</strong> §B.1 says
+&quot;contagion is essentially gone by depth 4&quot;, and <code>:98</code> caps at 3. At depth 4 the residual is 1.25%
+(code) or 2.44% (prose reading), so this is a deliberate-looking truncation rather than an error, but
+the constant and the prose should agree or the doc should say &quot;we cut at 3&quot;.</p>
+<p><strong>D3 — <code>GraphNode.parentId</code> is required but never read.</strong> It is a constructor requirement
+(<code>:14</code>), both production call sites pass a value (<code>review_session.dart:339</code>, <code>:587</code>), and no code in
+the file references it — contagion walks <code>childrenOf</code>, never parents. Dead required parameter; either
+use it or drop it.</p>
+<p><strong>D4 — <code>InMemoryReviewStateRepository</code> is a parallel implementation that production does not use.</strong>
+<code>:56-92</code> ships a full second repository including <code>setChildren</code> and <code>setCanonicalId</code> mutators.
+Production uses <code>_SessionReviewStateRepository</code>. That is normal for a test double, but it lives in
+<code>lib/</code> rather than <code>test/</code>, so it ships to users and can drift from the real adapter — and it already
+differs in one respect: it does not mirror writes across occurrence/canonical keys the way
+<code>_SessionReviewStateRepository.put</code> does (<code>review_session.dart:955-959</code>). Tests written against it
+therefore cannot catch key-aliasing bugs in the real path.</p>
+<p><strong>D5 — Coupling depends on the caller supplying <code>siblings</code>, and the contract is implicit.</strong>
+<code>_coupleConfusableSiblings</code> (<code>:288-304</code>) is only reachable when
+<code>playedMoveUci != null &amp;&amp; siblings.isNotEmpty</code> (<code>:201</code>). The one production call site that can trigger
+it — the incorrect branch, <code>review_session.dart:399-405</code> — does supply both, so <strong>§B.4 fires in
+production as intended</strong>. The concern is only that this dependency is undocumented: <code>recordActiveReview</code>
+takes <code>playedMoveUci</code> and <code>siblings</code> as optional parameters with empty defaults, so a future call site
+that omits them silently disables the effect rather than failing. The correct branch
+(<code>review_session.dart:345-348</code>) correctly passes neither, since coupling is gated on <code>incorrect</code>.</p>
+<hr>
+<h2 id="4-suggested-improvements-in-priority-order">4. Suggested improvements, in priority order</h2>
+<ol>
+<li><strong>Bound exposure credit (C1).</strong> Highest value by a wide margin — it is the only finding here that
+grows without limit. Persisting the throttle is a small change; bounding cumulative credit is the
+more robust design.</li>
+<li><strong>Resolve the <code>λ0</code> spec contradiction (C2).</strong> Decide between the exponent fix and raising
+<code>contagionBase</code> to <code>0.3506</code>, then update the doc so formula, prose, and the <code>:104</code> comment all say
+the same thing. Add a test asserting the depth-1 haircut percentage so the three cannot drift apart
+again.</li>
+<li><strong>Make the sibling-coupling contract explicit (D5).</strong> <code>playedMoveUci</code> and <code>siblings</code> should be
+required when <code>result == incorrect</code>, or at least documented as the switch that enables §B.4, so a
+future call site cannot silently disable a documented feature.</li>
+<li><strong>Tighten the exposure return contract (C3).</strong> Small, local, and it removes a persistence surprise.</li>
+<li><strong>Reconcile <code>maxContagionDepth</code> with §B.1&#39;s &quot;depth 4&quot; (D2).</strong> One-line change or one-line doc edit.</li>
+<li><strong>Drop the unused <code>parentId</code> (D3)</strong> and consider moving the test double out of <code>lib/</code> (D4).</li>
+</ol>
+<hr>
+<h2 id="5-checked-and-found-sound-do-not-re-raise">5. Checked and found sound — do not re-raise</h2>
+<p>Recorded because each was a plausible bug on first reading and each turned out to be correct. The
+common failure in this codebase&#39;s reviews so far (see review-1 §6) has been describing code accurately
+while getting its impact wrong, so the negative results are worth as much as the findings.</p>
+<ul>
+<li><strong>Key aliasing in contagion.</strong> <code>_propagateLapseContagion</code> walks raw ids while <code>recordActiveReview</code>
+writes the primary under <code>canonicalId</code> — which looks like contagion would read/write the wrong keys
+and silently no-op. It does not: <code>_SessionReviewStateRepository.get</code> and <code>.put</code> both resolve
+occurrence→canonical and mirror writes to both keys (<code>review_session.dart:938-969</code>), and
+<code>_childDecisionIdsOf</code> returns <em>canonical</em> ids (<code>:905</code>), so the recursion is consistent.</li>
+<li><strong>Double-application of contagion.</strong> A child reachable by two paths would take two haircuts. The
+child set is built as a <code>Set&lt;String&gt;</code> of canonical ids (<code>:898</code>), so siblings that share a canonical
+identity are deduplicated before recursion.</li>
+<li><strong>Unbounded recursion / cycles.</strong> <code>depth &gt; maxContagionDepth</code> (<code>:256</code>) bounds the walk at 3
+regardless of topology, so a cyclic graph terminates.</li>
+<li><strong>Contract violation on counters.</strong> No path in the file writes <code>repetitionCount</code> or <code>lapseCount</code>, so
+the §B.1 soft-nudge contract holds for all three effects.</li>
+<li><strong>The primary node double-penalised by sibling coupling.</strong> Only reachable when
+<code>result == incorrect</code> (<code>:196</code>), in which case the played move differs from the primary&#39;s expected
+move, so the <code>sib.expectedMoveUci != playedMoveUci</code> filter (<code>:294</code>) excludes the primary.</li>
+<li><strong>§B.4 sibling coupling inert in production.</strong> My first reading of the call sites concluded that
+neither <code>playedMoveUci</code> nor <code>siblings</code> was ever passed, making confusable-sibling coupling dead
+outside tests. <strong>That was wrong.</strong> The incorrect branch passes both —
+<code>siblings: _findSiblingGraphNodes(decision)</code> and <code>playedMoveUci: movePlayed.uci</code>
+(<code>review_session.dart:398-405</code>) — so the effect is live. Recording it here because the error was
+made by reading one call site and generalising to both, which is the same mistake review-1 made
+twice over in D3 and C7.</li>
+</ul>
+<p><strong>Not verified:</strong> whether the session could supply <code>siblings</code> to enable §B.4 (D5), and the real-world
+distribution of auto-traversal frequency that determines how fast C1 bites. Neither is needed to act
+on the findings above.</p>
+<hr>
+<h2 id="6-fixing-c1-and-the-two-ci-failures-it-took-to-land">6. Fixing C1, and the two CI failures it took to land</h2>
+<p>The fix is landed and green. It took five extra CI runs, and both failures turned out to be
+concrete and avoidable, so they are written up here rather than dropped.</p>
+<h3 id="what-the-fix-does">What the fix does</h3>
+<p>The spec requires the cap to be per calendar day, and the bug is that the only record of the last
+grant dies with the session. So the fix persists it:</p>
+<ol>
+<li><code>lastExposedAt TEXT</code> on <code>kTablePositionKnowledgeState</code> (<code>srs_schema.dart</code>).</li>
+<li><code>PositionKnowledgeState.lastExposedAt</code>, carried through <code>copyWith</code>, <code>==</code> and <code>hashCode</code>.</li>
+<li>The repository writes the column on all three write paths and reads it in the row mapper.</li>
+<li><code>GraphAwareReviewCoordinator</code> takes <code>initialExposureThrottle</code>; <code>ReviewSession</code> and <code>ReviewEngine</code>
+pass it through, and the session exposes <code>exposureThrottle</code> so the caller can persist it.</li>
+<li><code>ReviewService</code> seeds the coordinator from the knowledge states it already loads at session
+creation, and stamps the current throttle onto every state it writes.</li>
+</ol>
+<p>Step 5 is safe against erasure even though the write is <code>INSERT OR REPLACE</code>: the throttle is seeded
+for every in-scope canonical id, so a null means &quot;never exposed&quot; rather than &quot;unknown&quot;.</p>
+<p>Two tests accompany it — an <code>INV-028</code> coordinator test that reseeds a fresh coordinator and asserts
+the same-day refusal still holds (and that the next day grants again), plus a round-trip through
+<code>saveAnswerBatch</code>. That takes the coordinator file from 10 tests to 11 and the repository file from
+26 to 27.</p>
+<h3 id="failure-1-a-migration-this-environment-could-not-account-for">Failure 1 — a migration this environment could not account for</h3>
+<p>The first version of step 1 bumped the schema to v16 and added the <code>ALTER</code> to <code>onUpgrade</code>. That
+reproducibly failed <strong>2 unit tests</strong> in CI. Because this environment cannot read CI logs, the only
+available signal was the pass/fail count, and five runs isolated the cause:</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Commit</th>
+<th>Configuration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>f730ce63e</code></td>
+<td>full fix, my tests reverted</td>
+<td>1663 passed, <strong>2 failed</strong></td>
+</tr>
+<tr>
+<td><code>d1db493b0</code></td>
+<td>schema + database + repository reverted</td>
+<td>green</td>
+</tr>
+<tr>
+<td><code>7a627a444</code></td>
+<td>schema + repository kept, <code>database.dart</code> at v15</td>
+<td>green</td>
+</tr>
+<tr>
+<td><code>74f6cc0a7</code></td>
+<td>full fix, coordinator test only</td>
+<td>1664 passed, <strong>2 failed</strong></td>
+</tr>
+</tbody></table></div>
+<p>The two failures are not in either file I touched: the coordinator regression test passes in both
+failing runs, and the second excludes the persistence round-trip test entirely.</p>
+<p>The mechanism was never explained, and it is still not. For a fresh database <code>openAppDatabase</code> runs
+<code>onCreate</code>, not <code>onUpgrade</code>, so the version bump and the <code>ALTER</code> should both be inert — and the
+tests use fresh temp databases. Every explanation constructed contradicts the observation: no test
+exercises <code>onUpgrade</code>; there are no <code>.db</code> fixtures; no test asserts a schema version; the tests that
+build the schema by hand call <code>createSrsTables</code> directly and so already get the new column.</p>
+<p><strong>Resolution: avoid the version bump.</strong> The column is now added by an idempotent top-up in <code>onOpen</code>
+that reads <code>PRAGMA table_info</code> first. It leaves <code>version</code> and <code>onUpgrade</code> untouched, it converges
+for any database whether or not it predates the column, and it does not touch the one file the
+bisect implicated. That is green.</p>
+<p>The cost is a deliberate departure from the repo&#39;s versioned-migration convention: this column is
+reconciled on open rather than by a numbered migration step. Anyone who later moves the schema to
+v16 should fold this top-up into the migration and delete it, and anyone debugging the two failures
+should start from the table above.</p>
+<h3 id="failure-2-dart-format-joins-single-argument-calls-that-fit">Failure 2 — <code>dart format</code> joins single-argument calls that fit</h3>
+<p>The second failure was <code>Verify formatting</code>, and it was mine. The formatter joins a single-argument
+call onto one line when the result fits the 100-column page width, <strong>even when the call carries a
+trailing comma</strong>:</p>
+<pre tabindex="0"><code class="language-dart">// written — failed formatting
+await db.execute(
+  &#39;ALTER TABLE $kTablePositionKnowledgeState ADD COLUMN lastExposedAt TEXT&#39;,
+);
 
-    <section id="transpositions">
-      <h2>2. Transpositions & Canonical Position Identity</h2>
-      <p>
-        Every <code>RepertoireDecision</code> is canonicalized on <strong>FEN4</strong> (piece placement, active color, castling availability, and en-passant target) combined with the expected repertoire move in UCI notation:
-      </p>
-      <div class="code-block">
-        <div class="code-header"><span>Canonical Key Calculation</span><span>Dart</span></div>
-        <pre tabindex="0"><code>// Half-move clock and full-move counter are stripped: they do not alter legal moves or tactical patterns.
-final canonicalKey = sha1('$fen4|$expectedMoveUci');</code></pre>
-      </div>
-      <h3>State Sharing Mechanics</h3>
-      <ul>
-        <li><strong>Single Shared Knowledge State:</strong> If two tree nodes across different chapters share the same <code>canonicalKey</code>, they map to the exact same <code>ReviewState</code> record in SQLite.</li>
-        <li><strong>Bi-directional Updates:</strong> Answering the move correctly in Chapter A updates the stability and due date for that position across Chapter B and Chapter C automatically.</li>
-        <li><strong>Contradiction Detection:</strong> If the same FEN4 occurs in two studies with <em>conflicting</em> expected moves, ChessSRS flags this as a repertoire contradiction rather than training interfering habits.</li>
-      </ul>
-    </section>
+// expected — 96 columns, fits
+await db.execute(&#39;ALTER TABLE $kTablePositionKnowledgeState ADD COLUMN lastExposedAt TEXT&#39;);
+</code></pre>
+<p>This is checkable without running <code>dart</code>. Across <code>lib/src</code> and <code>test</code> there are 17 split
+single-argument calls with trailing commas; before the fix, exactly one would have fitted on a
+single line, and it was this one. Every other split single-argument call in the repo is split
+because joining it would exceed the page width. So the repo is a reference for what the formatter
+wants: <strong>if a split call would fit on one line, the formatter will join it, so write it joined.</strong></p>
+<p>The same rule generalises the earlier lesson. An earlier version of these two tests also failed
+formatting and was fixed by copying the construct shapes already used in their files — single-line
+method calls with the times hoisted to locals, list literals assigned to a local instead of passed
+inline. Both lessons are the same lesson: without a local toolchain, match the surrounding code
+exactly rather than writing an equivalent-looking variant, and verify by counting shapes in the
+existing tree.</p>
 
-    <section id="lapse-contagion">
-      <h2>3. Upstream Lapse Contagion Decay</h2>
-      <p>
-        What should happen to descendant moves when you make a mistake on move 4?
-      </p>
-      <ul>
-        <li><strong>Naive Approach 1:</strong> Reset the entire branch to Day 1. (Demoralizing; produces giant review backlogs from a single slip).</li>
-        <li><strong>Naive Approach 2:</strong> Leave child nodes untouched. (Dangerous; if you forgot move 4, you cannot reach move 8 in a real game).</li>
-      </ul>
-      <p>
-        ChessSRS implements <strong>exponentially decaying lapse contagion</strong>, softly nudging descendant nodes without resetting their repetition history:
-      </p>
-
-      <div class="math-card">
-        <div class="callout-title" style="color:var(--ac)">Lapse Contagion Equation</div>
-        <div class="math-display" tabindex="0">
-          S_child' = S_child · (1 - λ0 · e^(-(depth - 1) / τ))
-          D_child' = clip(D_child + β · λ0 · e^(-(depth - 1) / τ), 1.0, 10.0)
-        </div>
-        <div class="math-legend">
-          Defaults: <strong>λ0 = 0.18</strong> (max 18% stability haircut on immediate child), <strong>τ = 1.5</strong> plies (contagion dissipates rapidly with depth), <strong>β = 0.6</strong> (small difficulty nudge).
-        </div>
-      </div>
-      <p>
-        The child's <code>nextDueAt</code> is pulled forward proportionally, bringing the downstream line back into review sooner while leaving its active repetition count intact.
-      </p>
-    </section>
-
-    <section id="auto-traversal">
-      <h2>4. Auto-Traversal Exposure Credit (INV-024)</h2>
-      <p>
-        When testing a deep variation at move 12, the player is guided through the initial moves 1 through 11. Passive exposure reinforces visual familiarity, but is not active recall.
-      </p>
-      <p>
-        ChessSRS grants prefix moves an <strong>auto-traversal exposure bump</strong>:
-      </p>
-      <div class="math-card">
-        <div class="math-display" tabindex="0">
-          S' = S · (1 + ε),   where ε = 0.08 (+8% stability)
-        </div>
-        <div class="math-legend">
-          Strict guardrails prevent abuse:
-          <br>• Capped to <strong>once per calendar day</strong> per decision (prevents farming stability by repeatedly opening lines).
-          <br>• <strong>lastReviewedAt</strong> is NOT updated (it was not active retrieval).
-          <br>• <strong>Never applied to already-due positions</strong> (if a prefix move is due, it must be actively tested).
-        </div>
-      </div>
-    </section>
-
-    <section id="intra-session">
-      <h2>5. The Intra-Session Fail-Forward Loop</h2>
-      <p>
-        In traditional apps, if you get a move wrong, you see the answer and move on. By tomorrow, that line is forgotten again.
-      </p>
-      <p>
-        ChessSRS enforces an <strong>intra-session retry queue</strong>:
-      </p>
-      <ol>
-        <li>When you play an incorrect move, the board displays the correct move and highlights the expected square.</li>
-        <li>The card is immediately appended to the end of your current session's queue.</li>
-        <li>After you complete the regular due cards, all failed positions re-appear for fresh recall.</li>
-        <li>A session is not marked "Nothing due" until every lapsed move is recalled cleanly from memory!</li>
-      </ol>
-    </section>
-
-    <section id="scoping">
-      <h2>6. Review Scopes & Prioritization</h2>
-      <p>
-        The review queue adapts dynamically to user focus:
-      </p>
-      <ul>
-        <li><strong>Color Isolation:</strong> Top-bar square buttons toggle between White repertoire drawer and Black repertoire drawer. White and Black lines are never mixed in the same session.</li>
-        <li><strong>Opening Scopes:</strong> Drill an entire opening family (e.g. "French Defense") or drill a single specific study chapter.</li>
-        <li><strong>Practice Mode:</strong> Drill variations freely without modifying your FSRS due dates or stability schedules.</li>
-      </ul>
-    </section>
-  
     
     <nav class="doc-pagination" aria-label="Document pagination">
       <a class="doc-page-card prev" href="fsrs-algorithm.html">
@@ -287,12 +548,13 @@ final canonicalKey = sha1('$fen4|$expectedMoveUci');</code></pre>
     <aside class="doc-toc-aside" aria-label="Table of contents">
       <div class="doc-toc-title">On This Page</div>
       <div class="doc-toc-list">
-        <div class="doc-toc-item"><a href="#dag-model">Repertoire as a DAG</a></div>
-<div class="doc-toc-item"><a href="#transpositions">Transpositions & State Sharing</a></div>
-<div class="doc-toc-item"><a href="#lapse-contagion">Upstream Lapse Contagion</a></div>
-<div class="doc-toc-item"><a href="#auto-traversal">Auto-Traversal Exposure</a></div>
-<div class="doc-toc-item"><a href="#intra-session">Intra-Session Fail-Forward</a></div>
-<div class="doc-toc-item"><a href="#scoping">Review Scopes & Queues</a></div>
+        <div class="doc-toc-item"><a href="#review-2-graph-aware-review-coordinator">Review 2 — Graph-Aware Review Coordinator</a></div>
+<div class="doc-toc-item"><a href="#1-summary">1. Summary</a></div>
+<div class="doc-toc-item"><a href="#2-confirmed-issues">2. Confirmed issues</a></div>
+<div class="doc-toc-item"><a href="#3-design-concerns">3. Design concerns</a></div>
+<div class="doc-toc-item"><a href="#4-suggested-improvements-in-priority-order">4. Suggested improvements, in priority order</a></div>
+<div class="doc-toc-item"><a href="#5-checked-and-found-sound-do-not-re-raise">5. Checked and found sound — do not re-raise</a></div>
+<div class="doc-toc-item"><a href="#6-fixing-c1-and-the-two-ci-failures-it-took-to-land">6. Fixing C1, and the two CI failures it took to land</a></div>
       </div>
     </aside>
 </div>

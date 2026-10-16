@@ -278,10 +278,16 @@
 }
 
 .callout.note {
-  border-left-color: #3b82f6;
+  border-left-color: #1d4ed8;
 }
 .callout.note .callout-title {
-  color: #3b82f6;
+  color: #1d4ed8;
+}
+:root[data-theme="dark"] .callout.note {
+  border-left-color: #60a5fa;
+}
+:root[data-theme="dark"] .callout.note .callout-title {
+  color: #60a5fa;
 }
 
 .callout.spec {

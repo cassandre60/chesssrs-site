@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>System Architecture & Foundation — ChessSRS Documentation</title>
-<meta name="description" content="The technical design of ChessSRS: Lichess Mobile GPL-3.0 base, pure domain boundaries, Riverpod 3.x, and local persistence.">
+<meta name="description" content="Lichess Mobile GPL-3.0 base, 4-tier layer isolation, component boundaries, and SQLite local persistence.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#F5F3EF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0F0D0B" media="(prefers-color-scheme: dark)">
@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="../assets/icon-180.png">
 <meta property="og:type" content="article">
 <meta property="og:title" content="System Architecture & Foundation — ChessSRS Documentation">
-<meta property="og:description" content="The technical design of ChessSRS: Lichess Mobile GPL-3.0 base, pure domain boundaries, Riverpod 3.x, and local persistence.">
+<meta property="og:description" content="Lichess Mobile GPL-3.0 base, 4-tier layer isolation, component boundaries, and SQLite local persistence.">
 <meta property="og:url" content="https://cassandre60.github.io/chesssrs-site/docs/architecture.html">
 <meta property="og:image" content="https://cassandre60.github.io/chesssrs-site/assets/og.jpg">
 <link rel="stylesheet" href="../assets/demo-tokens.css">
@@ -49,6 +49,7 @@
     <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
       <a href="../index.html">Home</a>
       <a href="index.html">Documentation Hub</a>
+      <a href="product.html">Product Vision</a>
       <a href="architecture.html">Architecture</a>
       <a href="fsrs-algorithm.html">FSRS Algorithm</a>
       <a href="graph-coordinator.html">Graph Coordinator</a>
@@ -69,6 +70,11 @@
         
           <a class="doc-nav-link " href="index.html">
             <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="product.html">
+            <span>Product Definition & Journeys</span>
             
           </a>
 
@@ -144,12 +150,18 @@
     </div>
     <span class="doc-kicker">Architecture</span>
     <h1 class="doc-title">System Architecture & Foundation</h1>
-    <p class="doc-lede">The technical design of ChessSRS: Lichess Mobile GPL-3.0 base, pure domain boundaries, Riverpod 3.x, and local persistence.</p>
+    <p class="doc-lede">Lichess Mobile GPL-3.0 base, 4-tier layer isolation, component boundaries, and SQLite local persistence.</p>
     
     <div class="doc-meta-bar">
+      
       <div class="doc-meta-item">
         <strong>Source in app repo:</strong>
         <a href="https://github.com/cassandre60/ChessSRS/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener"><code>ARCHITECTURE.md</code></a>
+      </div>
+
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/CUT_PROPOSALS.md" target="_blank" rel="noopener"><code>CUT_PROPOSALS.md</code></a>
       </div>
       <div class="doc-meta-item">
         <strong>App version:</strong> <code>v1.4.0</code>
@@ -158,29 +170,36 @@
         <strong>Licence:</strong> <code>GPL-3.0</code>
       </div>
     </div>
-    
-    <section id="foundation">
-      <h2>1. The Foundation Reset</h2>
-      <p>
-        ChessSRS is built on a direct fork of <strong>Lichess Mobile</strong> (<a href="https://github.com/lichess-org/mobile" target="_blank" rel="noopener">lichess-org/mobile</a>), licensed under <strong>GNU General Public License v3.0 (GPL-3.0)</strong>.
-      </p>
-      <p>
-        The previous standalone Flutter prototype was permanently archived at git tag <code>legacy/pre-reset</code>. It serves as reference material only: the product contracts and domain behavior are implemented cleanly within the Lichess Mobile architectural patterns.
-      </p>
-      <p>
-        Lichess Mobile provides a battle-tested foundation: high-performance <code>chessground</code> board rendering with 60fps animations, rock-solid move legality validation via <code>dartchess</code>, native audio synthesis, and proven Riverpod state-management patterns. On top of this foundation, ChessSRS replaces online multiplayer with a local-first spaced repetition repertoire engine.
-      </p>
-    </section>
-
-    <section id="layer-boundaries">
-      <h2>2. Layer Boundaries & Component Responsibilities</h2>
-      <p>The codebase is structured into four strict architectural tiers:</p>
-
-      <div class="code-block">
-        <div class="code-header"><span>Architectural Layer Dependency Flow</span><span>ASCII Diagram</span></div>
-        <pre tabindex="0"><code>┌────────────────────────────────────────────────────────────┐
+    <h2 id="technical-architecture">Technical Architecture</h2>
+<div class="callout spec">
+<p><strong>Foundation reset</strong>: this application is built on a fork of
+<a href="https://github.com/lichess-org/mobile">lichess-org/mobile</a> (GPL-3.0).
+The previous standalone Flutter implementation is archived at git tag
+<code>legacy/pre-reset</code>. It is reference material only — the product and domain
+knowledge lives in the Markdown specifications, not in the old code.</p>
+</div>
+<h2 id="1-what-this-application-is">1. What this application is</h2>
+<p><strong>A local-first chess repertoire + spaced-repetition trainer</strong> built on the
+Lichess Mobile application foundation. It is <em>not</em> &quot;Lichess with modifications&quot;:
+Lichess Mobile provides the technical/UI foundation (board, theme, navigation,
+state management, persistence patterns); our product provides the domain
+(repertoire, review, SRS).</p>
+<pre tabindex="0"><code class="language-text">Lichess Mobile foundation (GPL-3.0 fork)
+        |
+        +-- application/product modules (Riverpod providers)
+        |
+        +-- OUR domain boundary (pure Dart: repertoire, review, SRS)
+        |       |
+        |       +-- Listudy-derived training semantics
+        |       +-- chessrs-derived SRS/review semantics
+        |
+        +-- local persistence / import infrastructure (sqflite, dartchess PGN)
+</code></pre>
+<h2 id="2-layer-boundaries">2. Layer boundaries</h2>
+<pre tabindex="0"><code class="language-text">┌────────────────────────────────────────────────────────────┐
 │ Presentation — Lichess Mobile shell (Flutter + Riverpod)    │
-│   Review screen · Scope drawer · Library sheet · Settings  │
+│   Review scene (primary) · Repertoire selector · Import ·  │
+│   Settings (Lichess settings framework)                    │
 └──────────────────────────┬─────────────────────────────────┘
                            │ talks only to application providers
 ┌──────────────────────────▼─────────────────────────────────┐
@@ -189,9 +208,9 @@
 └──────────────────────────┬─────────────────────────────────┘
                            │ repository interfaces only
 ┌──────────────────────────▼─────────────────────────────────┐
-│ DOMAIN (pure Dart, zero Flutter/chessground imports)        │
-│   Study · Chapter · RepertoireDecision · ReviewState       │
-│   ReviewSession engine · FSRS Scheduler contract           │
+│ DOMAIN (ours) — pure Dart, no Flutter/chessground imports   │
+│   Study · Chapter · repertoire tree · RepertoireDecision   │
+│   ReviewSession engine · ReviewState · Scheduler contract  │
 └──────────────────────────┬─────────────────────────────────┘
                            │ adapters only
 ┌──────────────────────────▼─────────────────────────────────┐
@@ -199,108 +218,1049 @@
 │   dartchess (rules, FEN, SAN, PGN) · chessground widgets   │
 │   sqflite local DB · settings/preferences · file import   │
 │   (no network on any critical path)                        │
-└────────────────────────────────────────────────────────────┘</code></pre>
-      </div>
+└────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="boundary-invariants">Boundary invariants</h3>
+<ol>
+<li><strong>Pure domain</strong>: our domain code (<code>lib/src/domain/</code>, 23 files) contains pure
+Dart logic and entities. Zero imports of <code>package:flutter/...</code> widgets,
+chessground, or sqflite — enforced by inspection and by the banned-API gate
+(<code>scripts/gates/banned_apis_check.py</code>). Testable without a widget tree.
+The module&#39;s public surface is the barrel <code>domain/domain.dart</code>.</li>
+<li><strong>One chess representation</strong>: <code>dartchess</code> is <em>the</em> chess rules engine.
+Do not introduce a second chess library or reimplement move generation.
+Domain code may consume dartchess core types (<code>Position</code>, <code>Move</code>, <code>San</code>)
+through thin adapters; UI consumes chessground. Never create competing
+representations of moves/positions/games.</li>
+<li><strong>Lichess UI is not our domain model</strong>: Lichess <code>model/</code> classes for online
+features are presentation/application concerns of the foundation, not
+domain entities of our product. Our entities live in our domain module.</li>
+<li><strong>Local-first critical path</strong>: user move → legality (dartchess) → repertoire
+lookup → SRS update → board update runs entirely in memory, locally.
+Network access is never on this path.</li>
+<li><strong>Isolated integrations</strong>: Listudy-derived and chessrs-derived behavior
+live in isolated domain modules behind our contracts (see
+<code>docs/INTEGRATION_MAP.md</code>). No cross-cutting merges.</li>
+<li><strong>Imported repertoires vs. online studies</strong>: Repertoires imported into
+ChessSRS (from PGN or Lichess) are pure, local-first snapshots stored in
+SQLite. They have no live socket connection and never auto-sync with
+remote changes. Remote Lichess study browsing (<code>StudyScreen</code>/<code>StudyController</code>)
+operates strictly in-memory over WebSockets for live viewing; it never
+writes to the local database.</li>
+</ol>
+<h2 id="3-component-responsibilities">3. Component responsibilities</h2>
+<h3 id="domain-ours">Domain (ours)</h3>
+<ul>
+<li><strong><code>Study</code> / <code>Chapter</code></strong>: repertoire content containers (source PGN file →
+study; PGN game → chapter, honoring FEN headers).</li>
+<li><strong>Repertoire tree</strong>: branching move tree of positions. Reuses the
+Lichess <code>Node</code>/<code>Branch</code> tree <em>pattern</em> where practical, but decision
+semantics are ours.</li>
+<li><strong><code>RepertoireDecision</code></strong>: THE scheduled unit — a position (from the player&#39;s
+perspective) plus the expected repertoire move(s). Every branch the player
+must recall is a decision; opponent moves are not scheduled independently.</li>
+<li><strong><code>ReviewState</code> / <code>ReviewEvent</code></strong>: SRS tracking — first/last review, next
+due, repetition count, lapses, stability — plus immutable review log.</li>
+<li><strong><code>Scheduler</code></strong> (contract): interval computation, implemented three times and
+selected at runtime from settings (<code>SchedulerType</code> in
+<code>model/study/study_preferences.dart</code>, resolved by <code>schedulerProvider</code> in
+<code>review/review_service.dart</code>): <code>SimpleScheduler</code> (exponential ladder, the
+default), <code>EaseScalingScheduler</code> (chessrs-style ease and scaling), and
+<code>ChessFsrsScheduler</code> (binary FSRS, <code>targetRetention</code>, default 0.88). Adding a
+fourth means implementing the contract and extending the <code>switch</code> — nothing
+else in the domain knows which one is in use.</li>
+<li><strong><code>ReviewSession</code> engine</strong>: due-decision selection, move validation against
+<em>repertoire</em> (not engine truth), auto-traversal of non-due material,
+opponent-reply auto-play, correct/incorrect feedback semantics.</li>
+<li><strong><code>Clock</code></strong> abstraction: deterministic time in tests.</li>
+</ul>
+<h3 id="infrastructure-lichess-derived">Infrastructure (Lichess-derived)</h3>
+<ul>
+<li><strong>dartchess</strong>: legality, SAN/UCI, FEN, and PGN parsing (<code>PgnParser</code>) —
+used by the import pipeline; PGN is an <em>input format</em>, never the domain model.</li>
+<li><strong>chessground</strong>: board rendering, drag &amp; drop, animation — presentation only.</li>
+<li><strong>sqflite (<code>db/</code>)</strong>: local persistence for studies, trees, decisions, review
+states, events. Incremental writes; full study tree never rewritten per move.</li>
+<li><strong>settings/preferences</strong>: board theme, piece set, sound — Lichess framework.</li>
+<li><strong>import</strong>: PGN file import (multi-game, RAV variations, comments, NAGs,
+starting FENs) with graceful, structured degradation — never silent corruption.</li>
+</ul>
+<h3 id="presentation-lichess-derived">Presentation (Lichess-derived)</h3>
+<ul>
+<li>App shell, tab navigation (reduced to: <strong>Review</strong> primary, settings in More),
+theming (<code>styles/</code>), reusable <code>widgets/</code>.</li>
+<li><strong>Review scene</strong>: board-dominant screen; the board is the product.</li>
+<li><strong>Review modes</strong>:<ul>
+<li><code>ReviewMode.srs</code>: standard spaced-repetition training updating review states and logging events.</li>
+<li><code>ReviewMode.practice</code>: non-destructive rehearsal (cram mode) allowing active board testing without altering SRS intervals.</li>
+</ul>
+</li>
+<li><strong>Review scopes</strong> (<code>domain/review/review_scope.dart</code>, six constructors):<ul>
+<li><code>ReviewScope.all()</code>: all active studies in the review pool.</li>
+<li><code>ReviewScope.white()</code> / <code>ReviewScope.black()</code>: one side of every study —
+the two sides of a repertoire carry separate review memory.</li>
+<li><code>ReviewScope.study(id)</code>: specific study.</li>
+<li><code>ReviewScope.chapter({studyId, chapterId})</code>: one chapter.</li>
+<li><code>ReviewScope.opening(name)</code>: virtual cross-study opening hub.</li>
+</ul>
+</li>
+<li><strong>Review order</strong> (<code>domain/review/review_order.dart</code>): <code>dueDate</code> (most
+overdue first), <code>byLine</code> (study → chapter → tree order, the default), or
+<code>random</code>. The due <em>set</em> is identical in all three; only presentation order
+changes.</li>
+</ul>
+<h2 id="4-review-state-machine-preserved-product-semantics">4. Review state machine (preserved product semantics)</h2>
+<pre tabindex="0"><code class="language-text">                ┌───────────────┐
+                │ Select Scope  │  (all active / one study / one opening)
+                └───────┬───────┘
+                        ▼
+                ┌───────────────┐
+                │ Due Decision? ├─── No ──► calm idle state (option: Explore / Practice)
+                └───────┬───────┘
+                        │ Yes
+                        ▼
+                ┌───────────────┐
+                │ Show Position │  (board oriented; move comments strictly hidden)
+                └───────┬───────┘
+                        ▼
+                  User plays move
+                        │
+          ┌─────────────┴─────────────┐
+          ▼                           ▼
+    [Repertoire move]           [Other move]
+          │                           │
+   • record success (if SRS)   • record lapse (if SRS)
+   • reveal move comment       • reveal expected move &amp; comment
+   • auto-traverse non-due     • keep board interactive for reguess
+   • opponent auto-reply       • re-queue failed item
+          │                           │
+          └─────────────┬─────────────┘
+                        ▼
+                Next Due Decision      (until nothing due)
+</code></pre>
+<p>Key semantics (from PRODUCT/QUALITY + reference projects):</p>
+<ul>
+<li>Any valid repertoire branch is accepted; the played branch is followed.</li>
+<li>Auto-traversal is <strong>never permanent exclusion</strong> — learned moves return when due.</li>
+<li>No session-complete screen; review is an ongoing utility.</li>
+<li>Move comments are withheld during recall to prevent spoilers, then displayed post-move.</li>
+<li>Wrong-move feedback leaves the board interactive so the user can immediately reguess.</li>
+<li>Practice mode traverses lines identically to SRS mode but performs zero database writes.</li>
+</ul>
+<h2 id="5-identity-amp-determinism">5. Identity &amp; determinism</h2>
+<ul>
+<li>Entities use stable unique IDs (sync-ready).</li>
+<li>Position identity = normalized 4-field FEN (placement, side to move,
+castling, en-passant) — the &quot;clean FEN&quot; concept.</li>
+<li>All time-dependent logic takes an abstract <code>Clock</code> for deterministic tests.</li>
+</ul>
+<h2 id="6-licensing-constraints-binding">6. Licensing constraints (binding)</h2>
+<ul>
+<li>The whole application remains <strong>GPL-3.0</strong> as a fork of Lichess Mobile.
+Preserve <code>LICENSE</code>, <code>COPYING.md</code>, and copyright notices verbatim when
+trimming code.</li>
+<li>chessrs (GPL-3.0): adaptation permitted with attribution; default is
+reimplementation.</li>
+<li>listudy (AGPL-3.0): <strong>no code copying</strong>; behavioral reference only.</li>
+<li>See <code>docs/INTEGRATION_MAP.md</code> for the extraction rules.</li>
+</ul>
+<h2 id="7-related-documents">7. Related documents</h2>
+<ul>
+<li><code>PRODUCT.md</code> — product definition (authoritative)</li>
+<li><code>MVP.md</code> — current scope</li>
+<li><code>QUALITY.md</code> — invariants</li>
+<li><code>TEST_STRATEGY.md</code> — how invariants are proven</li>
+<li><code>CUT_PROPOSALS.md</code> — Lichess foundation trim map &amp; status</li>
+<li><code>docs/INTEGRATION_MAP.md</code> — Listudy/chessrs extraction plan</li>
+<li><code>docs/decisions.md</code> — durable decision log</li>
+<li><code>Chess_Repertoire_SRS_Product_Blueprint.md</code> — deep product philosophy (consult on demand)</li>
+</ul>
+<h2 id="8-module-map">8. Module map</h2>
+<p>Sizes are hand-written Dart (generated <code>*.freezed.dart</code> / <code>*.g.dart</code> are
+gitignored and absent from a fresh clone). &quot;Depends on&quot; lists inward edges
+only, i.e. what the module imports.</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Module</th>
+<th>Files / lines</th>
+<th>Role</th>
+<th>Entry points</th>
+<th>Depends on</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>lib/src/domain/</code></td>
+<td>23 / 3,153</td>
+<td>Pure-Dart domain: repertoire tree, decisions, SRS state, review engine, scheduler contract, clock</td>
+<td>barrel <code>domain.dart</code>; <code>ReviewSession</code>, <code>ReviewEngine</code>, <code>Scheduler</code>, <code>PositionKnowledgeState</code></td>
+<td><code>dartchess</code>, <code>meta</code>, <code>logging</code>, <code>uuid</code>, <code>crypto</code> — <strong>no Flutter, chessground or sqflite</strong></td>
+</tr>
+<tr>
+<td><code>lib/src/review/</code></td>
+<td>2 / 2,182</td>
+<td>Application layer: orchestrates sessions, persistence and SRS updates; Riverpod providers</td>
+<td><code>reviewServiceProvider</code>, <code>ReviewService.startSession</code> / <code>submitMove</code> / <code>retryMove</code> / <code>getDueSummary</code>; <code>ReviewController</code></td>
+<td>domain, persistence, <code>study_preferences</code></td>
+</tr>
+<tr>
+<td><code>lib/src/persistence/</code></td>
+<td>7 / 1,746</td>
+<td>SQLite schema, <code>StudyRepository</code> contract and its sqflite implementation, JSON adapters, two one-shot data migrations</td>
+<td><code>study_repository.dart</code> (contract), <code>sqlite_study_repository.dart</code>, <code>srs_schema.dart</code></td>
+<td>domain, <code>sqflite</code>, <code>dartchess</code></td>
+</tr>
+<tr>
+<td><code>lib/src/db/</code></td>
+<td>3 / 410</td>
+<td>Opens the one database, bundles the openings DB, secure storage</td>
+<td><code>database.dart</code> (<code>openDatabase</code>, schema v15)</td>
+<td>sqflite, <code>sqflite_common_ffi</code> (desktop/tests)</td>
+</tr>
+<tr>
+<td><code>lib/src/import/</code></td>
+<td>4 / 1,047</td>
+<td>PGN import/export, Lichess study import, opening-name derivation</td>
+<td><code>importPgn</code> / <code>importPgnAsync</code> → <code>ImportResult</code>; <code>pgn_exporter.dart</code></td>
+<td>dartchess, domain</td>
+</tr>
+<tr>
+<td><code>lib/src/network/</code></td>
+<td>5 / 2,736</td>
+<td>Lichess HTTP, WebSocket, connectivity, server status — Lichess-derived</td>
+<td><code>http.dart</code> (<code>HttpClientFactory</code>), <code>socket.dart</code>, <code>server_status.dart</code></td>
+<td><code>http</code>, <code>cronet_http</code>, <code>cupertino_http</code>, <code>web_socket_channel</code></td>
+</tr>
+<tr>
+<td><code>lib/src/model/</code></td>
+<td>111 / 22,504</td>
+<td>Lichess-derived feature models (games, studies, auth, engine, users)</td>
+<td><code>model/**/*_providers.dart</code></td>
+<td>everything above</td>
+</tr>
+<tr>
+<td><code>lib/src/view/</code></td>
+<td>76 / 23,784</td>
+<td>Screens. <code>review/</code> is ours; the rest is the inherited Lichess surface</td>
+<td>screen widgets</td>
+<td>application layer, widgets, model</td>
+</tr>
+<tr>
+<td><code>lib/src/widgets/</code>, <code>styles/</code>, <code>design/</code></td>
+<td>65 / 12,827</td>
+<td>Reusable widgets, tokens, and the design package</td>
+<td>—</td>
+<td>material_ui, chessground</td>
+</tr>
+<tr>
+<td><code>lib/</code> total</td>
+<td>329 / 73,557</td>
+<td></td>
+<td><code>lib/main.dart</code> → <code>lib/src/app.dart</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>test/</code></td>
+<td>188 / 51,543</td>
+<td>1,598 test declarations</td>
+<td>see §13</td>
+<td></td>
+</tr>
+</tbody></table></div>
+<p>Dependency direction is inward-only <strong>with three known exceptions</strong>: three
+screens import the persistence layer directly instead of going through an
+application provider —
+<code>view/settings/srs_settings_screen.dart</code> (<code>db/database.dart</code>),
+<code>view/review/study_chapters_screen.dart</code> (<code>persistence/study_repository.dart</code>)
+and <code>view/analysis/analysis_hub_screen.dart</code> (<code>persistence/persistence.dart</code>).
+This is tracked as item 14 in <code>docs/tech-debt-inventory.md</code>, not an intended
+shortcut. Five screens also import <code>domain/</code> directly, which is allowed for
+value types but should not grow into orchestration.</p>
+<h2 id="9-data-flow">9. Data flow</h2>
+<h3 id="flow-a-import-a-pgn-then-review-it">Flow A — import a PGN, then review it</h3>
+<ol>
+<li><strong>Pick a file</strong> (<code>view/more/import_pgn_screen.dart</code>, <code>file_picker</code>).</li>
+<li><strong>Parse</strong>: <code>ReviewController</code> calls <code>importPgnAsync</code> / <code>importPgn</code>
+(<code>import/pgn_importer.dart:198,358</code>), which uses dartchess for legality,
+SAN and FEN. Multi-game PGN, RAV variations, comments, NAGs and starting
+FENs are handled; malformed input yields a structured <code>ImportError</code> and is
+reported, never silently dropped.</li>
+<li><strong>Persist</strong>: <code>StudyRepository.saveImportResult</code>
+(<code>persistence/study_repository.dart:21</code>) writes <code>srs_study</code>,
+<code>srs_chapter</code> and one <code>srs_decision</code> row per recallable branch — the whole
+tree goes into <code>srs_chapter.treeJson</code>, and per-move writes never rewrite it.</li>
+<li><strong>Start a session</strong>: <code>ReviewController</code> → <code>ReviewService.startSession</code>
+(<code>review/review_service.dart:157</code>) reads active studies, filters decisions
+by the chosen <code>ReviewScope</code>, and constructs a <code>ReviewSession</code> with the
+selected <code>Scheduler</code> and <code>Clock</code>.</li>
+</ol>
+<h3 id="flow-b-answering-one-move-the-critical-path">Flow B — answering one move (the critical path)</h3>
+<ol>
+<li><code>ReviewController</code> forwards the board&#39;s move to <code>ReviewService.submitMove</code>
+(<code>review_service.dart:270</code>).</li>
+<li>The service takes a <code>checkpoint()</code> of the session and calls
+<code>ReviewSession.submitMove</code> (<code>domain/review/review_session.dart:302</code>) — pure
+Dart, no I/O: legality against dartchess, lookup in the repertoire tree,
+branch selection, and the SRS transition computed by the injected
+<code>Scheduler</code>.</li>
+<li>It returns a <code>ReviewStepResult</code> (correct / incorrect, the expected move,
+the comment to reveal, plus <code>sideEffectStates</code> for graph effects such as
+contagion and sibling updates).</li>
+<li><strong>In SRS mode only</strong>, the service maps each updated state to a
+<code>PositionKnowledgeState</code> and writes it with the review event — incremental,
+per answer. In <code>practice</code> mode this step is skipped entirely and nothing is
+written.</li>
+<li>The controller updates the board and prompts the next due decision.</li>
+</ol>
+<p>No step on this path performs network I/O. This is the invariant that makes
+review work offline, and it is why the scheduler and clock are injectable:
+tests drive the whole path deterministically with a fixed clock.</p>
+<h2 id="10-data-model">10. Data model</h2>
+<p>One SQLite database (Lichess schema v15, opened in <code>db/database.dart</code>). SRS
+tables are created by <code>createSrsTables</code> (<code>persistence/srs_schema.dart</code>):</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Table</th>
+<th>Key columns</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>srs_study</code></td>
+<td><code>id</code>, <code>title</code>, <code>createdAt</code>, <code>updatedAt</code>, <code>isActive</code>, <code>pgnHash</code></td>
+<td><code>pgnHash</code> (indexed) deduplicates re-imports</td>
+</tr>
+<tr>
+<td><code>srs_chapter</code></td>
+<td><code>id</code>, <code>studyId</code> FK→study (cascade), <code>sourceOrder</code>, <code>title</code>, <code>startingFen</code>, <code>treeJson</code>, <code>opening</code>, <code>orientation</code></td>
+<td>one row per chapter; the move tree lives in <code>treeJson</code> so a single move never rewrites the tree</td>
+</tr>
+<tr>
+<td><code>srs_decision</code></td>
+<td><code>id</code>, <code>studyId</code>, <code>chapterId</code>, <code>nodeId</code>, <code>expectedMoves</code>, <code>canonicalStateId</code></td>
+<td><strong>the scheduled unit</strong>: one row per branch the player must recall. <code>expectedMoves</code> holds multiple accepted moves; <code>canonicalStateId</code> links a node to a position&#39;s knowledge state</td>
+</tr>
+<tr>
+<td><code>position_knowledge_state</code></td>
+<td><code>nextDueAt</code> (indexed), …</td>
+<td>knowledge keyed by canonical position, so the same position reached by different move orders shares one schedule</td>
+</tr>
+<tr>
+<td><code>srs_review_state</code></td>
+<td><code>nextDueAt</code> (indexed), …</td>
+<td>per-decision SRS counters (first/last review, interval, lapses)</td>
+</tr>
+<tr>
+<td><code>srs_review_event</code></td>
+<td><code>decisionId</code> (indexed), <code>whenTimestamp</code> (indexed)</td>
+<td>append-only review log</td>
+</tr>
+</tbody></table></div>
+<p>Relationships: study 1→N chapters 1→N decisions; decisions reference a
+canonical position state; review events reference the decision they came from.
+Foreign keys cascade on study/chapter delete.</p>
+<p><strong>Position identity</strong> is the normalised four-field FEN (placement, side to
+move, castling rights, en-passant) — the &quot;clean FEN&quot; of §5, which is what makes
+cross-move-order knowledge sharing and transposition handling possible. A
+decision&#39;s canonical knowledge ID is <code>sha1(&quot;&lt;fenKey&gt;|&lt;every accepted move, sorted&gt;&quot;)</code>: the answer set is part of the identity, so two <em>different questions</em>
+asked at the same position keep separate schedules instead of being merged.
+(The earlier format used only the first accepted move and could not tell them
+apart — see the migration below.)</p>
+<p>Two <strong>one-shot data migrations</strong> run after the schema upgrade and read/write
+rows, so they run outside the schema batch:</p>
+<ul>
+<li><code>canonical_rekey_migration.dart</code> — rewrites persisted <code>canonicalStateId</code>
+values and <code>position_knowledge_state</code> rows from the old first-move key format
+to the complete-answer-set format, recomputing from each chapter&#39;s stored tree
+and reading the answer set back from <code>srs_decision.expectedMoves</code> so the
+rewrite cannot drift from what was actually persisted. Without it every
+position would look never-reviewed and a user&#39;s accumulated intervals, due
+dates and history would silently reset. Idempotent.</li>
+<li><code>opening_name_repair_migration.dart</code> — erases chapter &quot;openings&quot; that were
+really just titles mentioning an opening, keeping genuine ones.</li>
+</ul>
+<h2 id="11-external-dependencies-and-integration-points">11. External dependencies and integration points</h2>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Integration</th>
+<th>Where</th>
+<th>Failure handling</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Lichess HTTP API — <code>lichess.org</code>, <code>lichess1.org</code> (<code>constants.dart</code>, overridable via <code>--dart-define</code>)</td>
+<td><code>network/http.dart</code>; <code>HttpClientFactory</code> prefers Cronet on Android, <code>CupertinoClient</code> on iOS/macOS, and falls back to <code>dart:io</code> <code>HttpClient</code> in a <code>catch</code></td>
+<td>offline-first: nothing on the review path calls it; failures surface as errors in the Lichess-derived screens, and the factory degrades to the plain HTTP client</td>
+</tr>
+<tr>
+<td>Lichess WebSocket — <code>socket.lichess.org</code></td>
+<td><code>network/socket.dart</code></td>
+<td>study browsing is strictly in-memory and read-only; it never writes to SQLite (§2 invariant 6)</td>
+</tr>
+<tr>
+<td>Lichess OAuth (PKCE)</td>
+<td><code>flutter_appauth</code>, <code>model/auth/auth_repository.dart</code></td>
+<td>app remains fully usable signed-out; only the Lichess-specific screens need it</td>
+</tr>
+<tr>
+<td>Lichess explorer / tablebase</td>
+<td><code>explorer.lichess.org</code>, <code>tablebase.lichess.org</code></td>
+<td>advisory lookups; absence degrades to &quot;no data&quot;, not an error state</td>
+</tr>
+<tr>
+<td>Server availability</td>
+<td><code>network/server_status.dart</code> derives <code>ServerStatus</code> from HTTP <strong>503 = maintenance, 502 = down</strong></td>
+<td>status is informational; the local review loop is unaffected. <code>connectivity_plus</code> gates network-only affordances</td>
+</tr>
+<tr>
+<td>Chess engine</td>
+<td><code>model/engine/</code> — native Stockfish and Fairy-Stockfish via <code>multistockfish</code>, Leela via <code>lc0</code> (both git-pinned, see <code>docs/dependency-audit.md</code> §4)</td>
+<td>advisory only, never the Review judge (decision D005); <code>engine_failure.dart</code>, <code>engine_budget.dart</code> and a slot model keep a missing or crashing engine from breaking review</td>
+</tr>
+<tr>
+<td>Bundled assets</td>
+<td><code>assets/chess_openings.db</code> (1.1 MB, copied out of the bundle on first use), <code>assets/maia/</code>, <code>assets/images/stockfish/</code>, <code>positions.json</code>, <code>endgames.json</code></td>
+<td>no network needed; the openings DB is versioned by filename and replaced on mismatch</td>
+</tr>
+</tbody></table></div>
+<h2 id="12-design-decisions-and-tradeoffs">12. Design decisions and tradeoffs</h2>
+<p>The durable log is <code>docs/decisions.md</code> (D001–D017) and it is the authority;
+this is a map of the ones that shape the code most:</p>
+<ul>
+<li><strong>D002 local-first</strong> — the review path never touches the network (§9).
+Tradeoff: no cross-device sync yet (D009 scopes it as future work).</li>
+<li><strong>D003 / D013</strong> — PGN is an input format and dartchess is the only chess
+representation. Tradeoff: domain code may not use chessground types, so
+adapters exist at the boundary.</li>
+<li><strong>D005</strong> — the engine is advisory: a position is judged against the
+<em>repertoire</em>, not engine truth.</li>
+<li><strong>D007 / D008</strong> — &quot;learned&quot; is never permanent exclusion, and there is no
+session-complete screen; review is an ongoing utility.</li>
+<li><strong>D015</strong> — FSRS is implemented as one of three schedulers rather than
+replacing the ladder outright, which keeps the algorithm a setting
+(§3, verified in code).</li>
+<li><strong>D016</strong> — visual identity is deliberately independent of Lichess Mobile,
+which is why <code>design/</code> exists alongside the inherited <code>styles/</code>.</li>
+</ul>
+<p>Inferred (from code, not written down): the schema stores the move tree as
+<code>treeJson</code> on the chapter row and writes decisions separately, which trades
+queryability of the tree for the guarantee that a move never rewrites the whole
+study — consistent with the incremental-persistence invariant in <code>QUALITY.md</code>.
+Marked as inferred because no document states the choice explicitly.</p>
+<h2 id="13-known-limitations-and-technical-debt">13. Known limitations and technical debt</h2>
+<p>Full detail lives elsewhere; this is the signpost.</p>
+<ul>
+<li><code>docs/tech-debt-inventory.md</code> — the scanned inventory, with impact/effort/risk
+and what was deliberately left out.</li>
+<li><code>docs/dependency-audit.md</code> — every dependency, advisory check, and the staged
+upgrade plan. Both engine git pins are behind the branches they were waiting
+for.</li>
+<li>Boundary erosion: the three presentation→persistence imports listed in §8
+(item 14), and the four remaining duplications item 21 did not collapse.</li>
+<li>Verification is CI&#39;s job by design (<code>AGENTS.md</code> §3.1): <code>flutter analyze</code> and
+<code>flutter test</code> are the authority, and the gates (<code>scripts/gates.sh t1</code>) cover
+what tests do not. Anything documented here as &quot;verified&quot; was checked against
+the tree in this repository, not against a running build.</li>
+</ul>
+<hr>
+<h2 id="appendix-subsystem-cuts-amp-upstream-discipline">Appendix: Subsystem Cuts &amp; Upstream Discipline</h2>
+<h2 id="lichess-mobile-cut-proposals">Lichess Mobile Cut Proposals</h2>
+<p>Status: <strong>ACTIVE — Phase 1 F5+ staged cuts in progress.</strong></p>
+<p>This document is the authoritative record of what is removed, what is kept,
+and why. Update it before executing any cut. Future agents: read this entire
+file before touching anything.</p>
+<p>The guiding rule:</p>
+<div class="callout spec">
+<p>Trim the Lichess <strong>product</strong>. Preserve the Lichess <strong>technical foundation</strong>.
+When uncertain: keep it. Delete less, verify more.</p>
+</div>
+<hr>
+<h2 id="execution-status-key">Execution status key</h2>
+<ul>
+<li><code>[ ]</code> not started</li>
+<li><code>[~]</code> in progress</li>
+<li><code>[x]</code> DONE — verified (analyze 0 + all tests pass + app launches)</li>
+<li><code>[K]</code> KEEP — owner decision: do not remove</li>
+<li><code>[G]</code> GREY — owner undecided; leave untouched until explicit approval</li>
+<li><code>[T]</code> TRIM-LATER — defer to Phase 6 refinement</li>
+</ul>
+<hr>
+<h2 id="owner-decisions-recorded-2026-09-14">Owner decisions (recorded 2026-09-14)</h2>
+<p>These are the authoritative decisions from the owner. Do not override them.</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Decision</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C1 Firebase</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed 2026-09-30 (Option B) — firebase_core, crashlytics, messaging dropped; app is 100% offline-first with zero cloud dependencies</td>
+</tr>
+<tr>
+<td>C2 Notifications</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed 2026-09-30 — FCM path and Lichess push models removed; app has no server-push dependencies</td>
+</tr>
+<tr>
+<td>C3 Auth/login</td>
+<td><code>[K]</code> KEEP</td>
+<td>Login is optional but enables importing Lichess/chess.com studies; app is 100% functional offline without it</td>
+</tr>
+<tr>
+<td>C4 Online play</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed 2026-09-15 — lobby, seeks, challenges, view/play, model/lobby, model/challenge</td>
+</tr>
+<tr>
+<td>C5 Server games</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed 2026-09-15 — server game lifecycle, correspondence, GameScreen, ongoing games</td>
+</tr>
+<tr>
+<td>C6 Puzzles tab</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed 2026-09-15 — tab, model/view dirs, deep links, quick action; shared FeedbackTile/SideToPlayPiece moved to widgets/feedback.dart</td>
+</tr>
+<tr>
+<td>C7 Watch tab</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed (commit dd996ee74) — docs marked late in C6 commit</td>
+</tr>
+<tr>
+<td>C8 Social</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed 2026-09-15 — removed Community/Players/Friends, Inbox from More tab &amp; account menu, Home friends carousel, and message service poller</td>
+</tr>
+<tr>
+<td>C9 Learn tab + coord training</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed 2026-09-14</td>
+</tr>
+<tr>
+<td>C10 Blog/recap/announce</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed 2026-09-15 — models, services, home carousel, test</td>
+</tr>
+<tr>
+<td>C11 Over-the-board game</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed 2026-09-14</td>
+</tr>
+<tr>
+<td>C11 Chess clock tool</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed by owner request 2026-09-14</td>
+</tr>
+<tr>
+<td>C12 Offline computer play</td>
+<td><code>[G]</code> GREY</td>
+<td>Owner undecided; leave untouched until explicit approval</td>
+</tr>
+<tr>
+<td>C13 Engine (Stockfish)</td>
+<td><code>[G]</code> GREY</td>
+<td>May be useful as optional import advisor — undecided</td>
+</tr>
+<tr>
+<td>C14 Opening explorer</td>
+<td><code>[K]</code> KEEP</td>
+<td>Owner decision</td>
+</tr>
+<tr>
+<td>C15 Analysis screen</td>
+<td><code>[G]</code> GREY</td>
+<td>Undecided — shares widgets with study; leave untouched</td>
+</tr>
+<tr>
+<td>C16 Board editor</td>
+<td><code>[K]</code> KEEP</td>
+<td>Owner decision</td>
+</tr>
+<tr>
+<td>C17 WebSocket</td>
+<td><code>[K]</code> KEEP</td>
+<td>Owner decision (2026-09-16) — kept for study sync, cloud Stockfish evaluation, and future sync</td>
+</tr>
+<tr>
+<td>C18 HTTP repos</td>
+<td><code>[K]</code> KEEP</td>
+<td>Owner decision (2026-09-16) — base HTTP, auth, study import, opening explorer, and tablebase kept; dead online repos trimmed</td>
+</tr>
+<tr>
+<td>UI-A Donate / patron links</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed (commit 1af79eab3)</td>
+</tr>
+<tr>
+<td>UI-B &quot;About Lichess&quot; in More tab</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed (commit 1af79eab3)</td>
+</tr>
+<tr>
+<td>UI-C &quot;Lichess is a free…&quot; message (LichessMessage widget)</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed (commit 1af79eab3)</td>
+</tr>
+<tr>
+<td>UI-D &quot;Welcome to the Lichess app&quot; card</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed (commit 1af79eab3)</td>
+</tr>
+<tr>
+<td>UI-E &quot;Not all features available&quot; text</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed (commit 1af79eab3)</td>
+</tr>
+<tr>
+<td>UI-F App background theming</td>
+<td><code>[x]</code> DONE</td>
+<td>Removed 2026-09-27 — see the note below</td>
+</tr>
+</tbody></table></div>
+<p><strong>C8 Social note</strong>: Friends list, inbox, player search, and relations navigation
+entries were removed from the More tab and Account menu; the Home screen friends
+carousel was removed; the background message service was silenced; and the relation
+repository, following_user model, and follow/block actions were pruned in Step 15.
+Base user/account models remain for C3 (auth).</p>
+<p><strong>UI-F App background note</strong>: The setting was removed because it could not work, not
+because it was judged unimportant. Two independent facts, each verified in the code:</p>
+<ol>
+<li><strong>Its only consumer was unreachable.</strong> <code>makeAppTheme</code> in <code>lib/src/theme.dart</code> was
+defined and never called — <code>app.dart</code> builds the Diagram theme through
+<code>srsThemeData(srsColors)</code>. The background fed <code>_makeBackgroundImageTheme</code>, a
+translucent-surface theme whose whole purpose was letting a background show through,
+and that in turn was reachable only from <code>makeAppTheme</code>. The preference was stored
+and read by nothing that ran. Separately, <code>scaffoldBackgroundColor: c.ground</code> is
+opaque in <code>theme_bridge.dart</code>, so even the dead path could not have shown through.</li>
+<li><strong>The Diagram palette is specified against a fixed <code>ground</code>.</strong>
+<code>design/docs/02-tokens.md</code> tabulates &quot;Contrast on ground (light / dark)&quot; and
+<code>tokens.dart</code> states &quot;Every value passes 4.5:1 against ground and surface in its own
+theme&quot;. <code>ground</code> is <code>#F1F3F4</code> / <code>#0D0F13</code>, defined as &quot;App background&quot;. A
+user-chosen image behind <code>ink</code> text invalidates the one guarantee the token system
+rests on, and nothing tests it against an arbitrary background.</li>
+</ol>
+<p>Making the feature work was therefore not a small fix: it meant either dropping that
+contrast guarantee or building image-luminance sampling to pick light or dark per
+picture, which is feature creep the feature policy forbids by default. Leaving a picker
+that visibly selects a background and changes nothing was the worst of the three
+options, so it went.</p>
+<p>Reversal, if the owner disagrees: do not set <code>scaffoldBackgroundColor</code> in
+<code>theme_bridge.dart</code> and restore <code>FullScreenBackground</code> in <code>buildScreenRoute</code>. The
+deleted code is in this branch&#39;s parent commits.</p>
+<p>Removed with it: <code>lib/src/widgets/background.dart</code>,
+<code>lib/src/view/settings/background_theme_choice_screen.dart</code>, the <code>BackgroundColor</code>
+enum, the <code>BackgroundImage</code> sealed class and its JSON converter, <code>setBackground</code>, the
+<code>isForcedDarkMode</code> forced-dark escape hatch in <code>app.dart</code>, and the
+<code>usingCustomBackground</code> branch in <code>game_summary_table.dart</code>. <code>lib/src/theme.dart</code>
+survives at 50 lines holding only <code>CustomTheme</code>, which two explorer views read through
+<code>context.lichessTheme</code>.</p>
+<hr>
+<h2 id="safe-execution-order">Safe execution order</h2>
+<p>Each step is ONE logical change, ONE commit. Gate: <code>fvm flutter analyze</code> (0
+issues) + <code>fvm flutter test</code> (all pass) + <code>fvm flutter run -d linux</code> (app
+launches, manual spot-check) before proceeding to the next step.</p>
+<p><strong>NEVER batch multiple steps into one commit.</strong></p>
+<pre tabindex="0"><code>Step 1  [x]  C9  — Learn tab + coordinate training                  DONE
+Step 2  [x]  UI  — Lichess branding strings from home + more screens DONE
+Step 3  [x]  C7  — Watch tab (TV / tournaments / broadcasts)  DONE (dd996ee74)
+Step 4  [x]  C6  — Puzzles tab                                DONE
+Step 5  [x]  C11 — Over-the-board game &amp; Clock tool             DONE
+Step 6  [x]  C10 — Blog / recap / announce (home carousels + model) DONE
+Step 7  [x]  C4  — Online play: lobby / seek / challenges           DONE
+Step 8  [x]  C5  — Server game lifecycle + correspondence       DONE
+Step 9  [x]  C8  — Social navigation &amp; Home carousel &amp; Message poller DONE
+Step 10 [K]  C17 — WebSocket (KEPT by owner decision for study sync / cloud eval)
+Step 11 [K]  C18 — HTTP network &amp; core repositories (KEPT for auth / study / explorer)
+Step 12 [x]  Tab reduction: clean 2-tab shell (Review + More) — Home tab removed DONE
+Step 13 [x]  C8  — Dead social views &amp; message models (b8664182d)      DONE
+Step 14 [x]  User— Dead leaderboard &amp; online bot screens/providers (b0ad26284) DONE
+Step 15 [x]  C8  — Dead relation repository, following_user &amp; follow/block actions DONE
+Step 16 [x]  C4  — Dead playban dialog, notification model &amp; account service monitoring DONE
+Step 17 [x]  UI/Widgets — Dead orphaned widgets, views &amp; assets (UserContextMenu, ServerOutageDisplay, ExpandedSection, SideIndicator, TextBadge, BrightnessNotifier) DONE
+Step 18 [x]  C5/C6 — Dead Android system gestures exclusion utility &amp; method channel handler DONE
+</code></pre>
+<p>Steps beyond 12 (C12 offline computer, C13 engine) are blocked on owner
+GREY decisions and are not started until explicit approval.</p>
+<hr>
+<h2 id="c1c2-decided-2026-09-29-keep-and-what-quotkeepquot-actually-means-here">C1/C2 decided 2026-09-29 — keep, and what &quot;keep&quot; actually means here</h2>
+<p>Owner decision: keep Firebase, because notifications need it. Recorded here because
+the decision and its consequences are easy to conflate, and only one of the two is
+a decision.</p>
+<p><strong>What is actually running.</strong> The FCM path is live and started at launch
+(<code>lib/src/app.dart:123</code>). It requests permission, listens for token refresh, and
+registers on connectivity regain. It is real code doing real work.</p>
+<p><strong>What it delivers is not SRS reminders.</strong> <code>CUT_PROPOSALS.md</code> C2 was written as
+&quot;may be needed for SRS review reminders (like Anki)&quot;. That feature does not exist.
+There is no <code>zonedSchedule</code> and no topic subscription anywhere in <code>lib/</code>; the only
+display calls initialize the plugin (<code>lib/src/init.dart:71</code>). What the plumbing
+delivers today is Lichess&#39;s own push, registered against Lichess:</p>
+<pre tabindex="0"><code class="language-dart">// lib/src/model/notifications/notification_service.dart:475
+client.post(Uri(path: &#39;/mobile/register/firebase/$token&#39;))
+</code></pre>
+<p>That request also returns early when no user is signed in (<code>:471</code>), so the whole
+notification path is gated behind sign-in — which is why the unreachable account
+menu (fixed in PR #84) was suppressing notifications as well as study import.</p>
+<p><strong>The consequence that is not a decision.</strong> Keeping Firebase keeps
+<code>lib/firebase_options.dart</code> pointed at Lichess&#39;s project — <code>lichessv2</code>,
+<code>org.lichess.mobileV2</code>. So:</p>
+<ul>
+<li>FCM device tokens are registered on <strong>Lichess&#39;s</strong> backend, not one we control.</li>
+<li>Crashlytics non-fatals, including sign-in failures
+(<code>lib/src/model/auth/sign_in_failure_reporter.dart</code>), go to <strong>Lichess&#39;s</strong>
+console.</li>
+</ul>
+<p><code>lib/firebase_options.dart</code> is generated, so this is a console-and-regeneration
+task, not a code edit. It stays open because it is a consequence of the decision,
+not a separate decision.</p>
+<p><strong>What would change the answer.</strong> Building the Anki-style daily review reminder
+that C2 was written for would need a backend we own, and at that point owning the
+Firebase project stops being optional. That is the decision to revisit first if
+notifications are ever built for real.</p>
+<hr>
+<h2 id="detailed-cut-plans">Detailed cut plans</h2>
+<hr>
+<h3 id="step-2-lichess-branding-strings-ui-a-through-ui-e">Step 2 — Lichess branding strings (UI-A through UI-E)</h3>
+<p><strong>Why</strong>: These are Lichess product strings that appear in the ChessSRS UI.
+They confuse users and misrepresent the product.</p>
+<p><strong>What to remove</strong> (surgical edits, no file deletions):</p>
+<ul>
+<li><p><code>lib/src/view/home/home_tab_screen.dart</code></p>
+<ul>
+<li>Remove <code>_WelcomeMessageCard</code> widget render (the &quot;Welcome to the Lichess
+app / not all features available&quot; card shown on first launch).
+The <code>_WelcomeMessageCard</code> class and its state can be deleted.</li>
+<li>Remove the donate (<code>https://lichess.org/patron</code>) <code>FilledButton.tonal</code>
+block in the welcome screen branch.</li>
+<li>Remove the &quot;About Lichess&quot; (<code>https://lichess.org/about</code>) <code>FilledButton.tonal</code>
+block in the welcome screen branch.</li>
+<li>Remove <code>_LichessMessageBanner</code> (the unread Lichess server message banner)
+— this is a Lichess inbox feature that will be removed with C8 anyway;
+safe to remove from the home screen display now.</li>
+<li>Remove <code>LichessMessage</code> widget usage from the welcome branch.</li>
+<li>Keep <code>unreadMessagesProvider</code> watch for now (C8 will clean it up).</li>
+</ul>
+</li>
+<li><p><code>lib/src/view/more/more_tab_screen.dart</code></p>
+<ul>
+<li>Remove the Android-only <code>ListSection</code> containing patron/donate tile and
+&quot;About&quot; tile (lines 184–205).</li>
+<li>Remove <code>LichessMessage</code> widget at the bottom of the More tab list.</li>
+<li>Keep <code>AboutScreen</code> import removal if the tile is the only caller — check
+before deleting.</li>
+</ul>
+</li>
+</ul>
+<p><strong>Shared dependencies that must remain</strong>: <code>LichessMessage</code> widget class in
+<code>widgets/misc.dart</code> — other callers may exist; remove references not the
+widget itself. <code>AboutScreen</code> — check if any other caller exists before
+deciding whether to delete the screen.</p>
+<p><strong>Risk</strong>: LOW — pure UI text/widget removal, no state or routing changes.</p>
+<p><strong>Tests to update</strong>: <code>test/app_test.dart</code> — if it asserts the welcome message
+text, update accordingly.</p>
+<hr>
+<h3 id="step-3-c7-watch-tab">Step 3 — C7: Watch tab</h3>
+<p><strong>Why</strong>: TV, tournaments, broadcasts, and streamers are Lichess server content
+with no relevance to repertoire training.</p>
+<p><strong>Files — FEATURE-SPECIFIC (delete)</strong>:</p>
+<ul>
+<li><code>lib/src/view/watch/</code> (entire directory)</li>
+<li><code>lib/src/model/tv/</code> (entire directory)</li>
+<li><code>lib/src/model/tournament/</code> (entire directory)</li>
+<li><code>lib/src/model/broadcast/</code> (entire directory)</li>
+<li><code>test/view/watch/</code> (if exists)</li>
+<li><code>test/model/tv/</code>, <code>test/model/tournament/</code>, <code>test/model/broadcast/</code> (if exist)</li>
+</ul>
+<p><strong>Files — SHARED (edit only)</strong>:</p>
+<ul>
+<li><code>lib/src/tab_scaffold.dart</code> — remove Watch case, reindex More tab</li>
+<li><code>lib/src/tab_navigation.dart</code> — remove <code>BottomTab.watch</code> + its globals</li>
+<li><code>lib/src/view/home/home_tab_screen.dart</code> — remove
+<code>FeaturedTournamentsWidget</code>, <code>featuredTournamentsProvider</code> usage,
+<code>tournament_list_screen</code> import, <code>tournament_providers</code> import</li>
+<li><code>test/app_test.dart</code> — remove &#39;Watch&#39; bottom-nav assertion</li>
+</ul>
+<p><strong>Shared dependencies to check before deleting</strong>:</p>
+<ul>
+<li><code>model/broadcast/broadcast_preferences.dart</code> — referenced in <code>app.dart</code>
+<code>_screenSizeBasedInitialization</code>; remove that call too.</li>
+<li><code>model/broadcast/broadcast_service.dart</code> — started in <code>app.dart</code>; remove.</li>
+<li>Tournament model types used in home screen — remove those usages first.</li>
+</ul>
+<p><strong>Risk</strong>: MEDIUM — home screen references tournament widgets; must clean those
+before deleting model files.</p>
+<hr>
+<h3 id="step-4-c6-puzzles-tab">Step 4 — C6: Puzzles tab</h3>
+<p><strong>Why</strong>: Tactics training is an explicit non-goal of ChessSRS.</p>
+<p><strong>Files — FEATURE-SPECIFIC (delete)</strong>:</p>
+<ul>
+<li><code>lib/src/view/puzzle/</code> (entire directory)</li>
+<li><code>lib/src/model/puzzle/</code> (entire directory)</li>
+<li><code>test/view/puzzle/</code> (if exists)</li>
+<li><code>test/model/puzzle/</code> (if exists)</li>
+</ul>
+<p><strong>Files — SHARED (edit only)</strong>:</p>
+<ul>
+<li><code>lib/src/tab_scaffold.dart</code> — remove Puzzles case, reindex remaining tabs</li>
+<li><code>lib/src/tab_navigation.dart</code> — remove <code>BottomTab.puzzles</code> + its globals</li>
+<li><code>lib/src/view/home/home_tab_screen.dart</code> — remove any puzzle references
+(home_widgets puzzle entry if present)</li>
+<li><code>lib/src/view/more/more_tab_screen.dart</code> — remove puzzle entry if present</li>
+<li><code>lib/src/app_links_service.dart</code> — remove puzzle deep-link handling</li>
+<li><code>test/app_test.dart</code> — remove &#39;Puzzles&#39; bottom-nav assertion</li>
+<li><code>pubspec.yaml</code> — check if any puzzle-only packages can be removed</li>
+</ul>
+<p><strong>Risk</strong>: MEDIUM — puzzle tab is a whole tab; check home screen home_widgets
+enum for puzzle references.</p>
+<hr>
+<h3 id="step-5-c11-over-the-board-game-amp-clock-tool-completed">Step 5 — C11: Over-the-board game &amp; Clock tool — COMPLETED</h3>
+<p><strong>Why</strong>: Pass-and-play local two-player chess and standalone physical clock simulator are not relevant to local-first SRS.</p>
+<p><strong>Status</strong>: Completed. Removed <code>view/over_the_board</code>, <code>model/over_the_board</code>, <code>over_the_board_game.dart</code>, <code>OverTheBoardGameResultDialog</code>, OTB navigation entries in <code>play_menu.dart</code>, <code>board_editor_screen.dart</code>, and <code>analysis_actions.dart</code>. Removed standalone clock tool <code>view/clock</code>, <code>model/clock/clock_tool_*</code>, <code>clock_tool_controller_test.dart</code>, and More tab entry. All quality gates (<code>./verify</code>) passed with 0 warnings.</p>
+<p><strong>Files — FEATURE-SPECIFIC (deleted)</strong>:</p>
+<ul>
+<li><code>lib/src/view/over_the_board/</code> (entire directory)</li>
+<li><code>lib/src/model/over_the_board/</code> (entire directory)</li>
+<li><code>lib/src/model/game/over_the_board_game.dart</code> + generated files</li>
+<li><code>lib/src/view/clock/</code> (entire directory)</li>
+<li><code>lib/src/model/clock/clock_tool_*</code></li>
+<li><code>test/view/over_the_board/</code></li>
+<li><code>test/model/clock/clock_tool_controller_test.dart</code></li>
+</ul>
+<p><strong>Files — SHARED (edited)</strong>:</p>
+<ul>
+<li><code>lib/src/view/play/play_menu.dart</code> — removed OTB entry + import</li>
+<li><code>lib/src/view/analysis/analysis_actions.dart</code> — removed <code>OverTheBoardScreen.buildRoute()</code> call + import</li>
+<li><code>lib/src/view/board_editor/board_editor_screen.dart</code> — removed OTB &quot;play from position&quot; action + import</li>
+<li><code>lib/src/view/game/game_result_dialog.dart</code> — removed unused <code>OverTheBoardGameResultDialog</code></li>
+<li><code>lib/src/view/more/more_tab_screen.dart</code> — removed Clock tool entry + import</li>
+<li><code>lib/src/model/settings/preferences_storage.dart</code> — removed <code>PrefCategory.clockTool</code></li>
+<li><code>test/model/game/game_test.dart</code>, <code>test/view/board_editor/board_editor_screen_test.dart</code>, <code>test/view/analysis/analysis_screen_test.dart</code> — updated tests</li>
+</ul>
+<p><strong>Game clock stays</strong> (<code>lib/src/model/clock/chess_clock.dart</code> &amp; <code>test/model/clock/chess_clock_test.dart</code> — kept; used by in-game countdown clocks).</p>
+<hr>
+<h3 id="step-6-c10-blog-recap-announce">Step 6 — C10: Blog / recap / announce</h3>
+<p><strong>Why</strong>: Server-pushed content feeds with no relevance to local-first SRS.</p>
+<p><strong>Files — FEATURE-SPECIFIC (delete)</strong>:</p>
+<ul>
+<li><code>lib/src/model/blog/</code> (entire directory — 3 files)</li>
+<li><code>lib/src/model/recap/recap_service.dart</code></li>
+<li><code>lib/src/model/announce/announce_service.dart</code></li>
+<li><code>lib/src/view/home/blog_carousel.dart</code></li>
+</ul>
+<p><strong>Files — SHARED (edit only)</strong>:</p>
+<ul>
+<li><code>lib/src/app.dart</code> — remove <code>recapServiceProvider.start()</code> and
+<code>announceServiceProvider.start()</code> from <code>initState</code>; remove their imports</li>
+<li><code>lib/src/view/home/home_tab_screen.dart</code> — remove <code>blogCarouselProvider</code>
+watch, <code>_BlogCarouselWidget</code> usage, <code>HomeEditableWidget.blogCarousel</code>
+usage, <code>blog_carousel.dart</code> import, <code>blog.dart</code> + <code>blog_repository.dart</code>
+imports</li>
+<li><code>lib/src/model/account/home_widgets.dart</code> — remove <code>blogCarousel</code> from
+<code>HomeEditableWidget</code> enum and its references</li>
+</ul>
+<p><strong>Risk</strong>: MEDIUM — home_tab_screen has multiple blog reference sites; methodical
+line-by-line removal required.</p>
+<hr>
+<h3 id="steps-79-c4-c5-c8-online-play-server-games-social-entries">Steps 7–9 — C4 / C5 / C8: Online play, server games, social entries</h3>
+<p>These are larger cuts with more cross-cutting references. Detailed plans will
+be written immediately before execution. Key constraint: <strong>C3 (auth) stays</strong>,
+so the auth model and HTTP client infrastructure is preserved.</p>
+<p>High-level scope:</p>
+<ul>
+<li>C4: Remove <code>view/play/</code> lobby/seek UI; <code>model/challenge/</code>; <code>model/lobby/</code></li>
+<li>C5: Remove online game lifecycle from <code>view/game/</code> and <code>model/game/</code>;
+remove <code>model/correspondence/</code>; preserve game-frame board widgets</li>
+<li>C8: Remove navigation entry points to friends/inbox/players from More tab;
+model/social code stays for now</li>
+</ul>
+<hr>
+<h3 id="steps-1011-c17-c18-websocket-http-repositories">Steps 10–11 — C17 / C18: WebSocket + HTTP repositories</h3>
+<p>Execute only after C4–C9 are done and confirmed to have no remaining socket
+or HTTP consumers outside auth and study-import paths.</p>
+<hr>
+<h2 id="what-is-explicitly-not-cut">What is explicitly NOT cut</h2>
+<ul>
+<li><code>dartchess</code> + <code>chessground</code> + piece/board assets</li>
+<li><code>model/common/</code> (chess.dart, node.dart, eval, id, uci, perf, etc.)</li>
+<li><code>styles/</code>, <code>widgets/</code> reusable set, <code>db/</code> sqflite, <code>model/settings/</code></li>
+</ul>
+<div class="callout spec">
+<p><strong>Amended by D016:</strong> &quot;not cut&quot; here means these directories are not deleted wholesale; it does not mean
+their <em>visual</em> contents (Lichess colours, Material-styled components, Lichess-specific widgets) are frozen.
+The visual identity in <code>design/docs/</code> supersedes the Lichess-styled parts of <code>styles/</code> and <code>widgets/</code>.
+Structural/non-visual code in these directories (layout math, platform adapters unrelated to look) may still
+be kept and reused where it doesn&#39;t conflict with the new design.</p>
+</div>
+<ul>
+<li>l10n pipeline</li>
+<li><code>model/auth/</code> (C3 kept — optional login for study import)</li>
+<li><code>view/study/</code>, <code>model/study/</code> (D1 — closest to our review scene)</li>
+<li><code>view/analysis/</code>, <code>model/analysis/</code> (C15 grey — shared with study)</li>
+<li><code>view/board_editor/</code>, <code>model/board_editor/</code> (C16 kept)</li>
+<li><code>model/explorer/</code>, <code>view/explorer/</code> (C14 kept)</li>
+<li><code>view/clock/</code>, <code>model/clock/</code> (clock tool kept)</li>
+<li><code>network/http.dart</code> base infra (needed for auth + study import)</li>
+<li>GPL-3.0 LICENSE, COPYING.md, copyright notices — preserved forever</li>
+</ul>
+<hr>
+<h2 id="completed-cuts">Completed cuts</h2>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Step</th>
+<th>Feature</th>
+<th>Commit</th>
+<th>Date</th>
+<th>Tests before → after</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1 / C9</td>
+<td>Learn tab + coordinate training</td>
+<td><code>f74627873</code></td>
+<td>2026-09-14</td>
+<td>1570 → 1564</td>
+</tr>
+<tr>
+<td>2 / UI</td>
+<td>Lichess branding (donate, about, LichessMessage, welcome card)</td>
+<td><code>1af79eab3</code></td>
+<td>2026-09-14</td>
+<td>1564 → 1564</td>
+</tr>
+<tr>
+<td>3 / C7</td>
+<td>Watch tab (TV / tournaments / broadcasts)</td>
+<td><code>dd996ee74</code></td>
+<td>2026-09-15</td>
+<td>—</td>
+</tr>
+<tr>
+<td>4 / C6</td>
+<td>Puzzles tab (model/view, nav, deep links, quick action)</td>
+<td><code>fb4847be2</code></td>
+<td>2026-09-15</td>
+<td>1242 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>5 / C11</td>
+<td>Over-the-board game &amp; Clock tool</td>
+<td><code>4d1c4b211</code> &amp; <code>1b7e18a03</code></td>
+<td>2026-09-14</td>
+<td>—</td>
+</tr>
+<tr>
+<td>6 / C10</td>
+<td>Blog / recap / announce (models, services, home carousel)</td>
+<td><code>156d760fa</code></td>
+<td>2026-09-15</td>
+<td>1242 → 1235 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>7 / C4</td>
+<td>Online play: lobby / seek / challenges</td>
+<td><code>c2094c070</code></td>
+<td>2026-09-15</td>
+<td>1235 → 1182 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>8 / C5</td>
+<td>Server game lifecycle + correspondence</td>
+<td><code>bc7b4dcc4</code></td>
+<td>2026-09-15</td>
+<td>1182 → 1084 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>9 / C8</td>
+<td>Social navigation entries from More tab</td>
+<td><code>790bb99c2</code></td>
+<td>2026-09-15</td>
+<td>1182 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>12 / Home</td>
+<td>Home tab + home widgets/prefs (clean 2-tab shell: Review + More)</td>
+<td><code>29c3db19e</code></td>
+<td>2026-09-16</td>
+<td>1188 → 1158 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>13 / C8-Views</td>
+<td>Dead social views &amp; models (messages, conversations, friend/player screens)</td>
+<td><code>b8664182d</code></td>
+<td>2026-09-18</td>
+<td>1267 → 1252 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>14 / User-Views</td>
+<td>Dead leaderboard &amp; online bot screens, models, and providers</td>
+<td><code>b0ad26284</code></td>
+<td>2026-09-18</td>
+<td>1252 → 1248 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>15 / C8-Relation</td>
+<td>Dead relation repository, following_user model, and follow/block actions</td>
+<td><code>db6409c31</code></td>
+<td>2026-09-24</td>
+<td>1248 → 1246 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>16 / C4-Playban</td>
+<td>Dead playban dialog, notification model &amp; account service monitoring</td>
+<td><code>c3e91b183</code></td>
+<td>2026-09-24</td>
+<td>1246 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>17 / UI-Residue</td>
+<td>Dead orphaned widgets, views &amp; assets (UserContextMenu, ServerOutageDisplay, ExpandedSection, SideIndicator, TextBadge, BrightnessNotifier)</td>
+<td><code>8f0e8f7d3</code></td>
+<td>2026-09-24</td>
+<td>1246 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>18 / Gestures</td>
+<td>Dead Android system gestures exclusion utility &amp; method channel handler</td>
+<td><code>bd4fa6c97</code></td>
+<td>2026-09-24</td>
+<td>1246 passing, analyze 0, linux build ok</td>
+</tr>
+<tr>
+<td>19 / Android-Widgets</td>
+<td>Dead Android broadcast widget (BroadcastWidgetProvider, layouts, preview drawables, strings, receiver)</td>
+<td><code>3ed89a5b7</code></td>
+<td>2026-09-30</td>
+<td>analyze 0</td>
+</tr>
+<tr>
+<td>20 / Home-Widget-Plugin</td>
+<td>Drop home_widget plugin dependency, board preference listener, AGP 9 workarounds</td>
+<td><code>f7ff59df9</code></td>
+<td>2026-09-30</td>
+<td>analyze 0</td>
+</tr>
+<tr>
+<td>21 / iOS-Widgets</td>
+<td>Dead iOS LichessWidgets extension (1830 LOC Swift, targets, schemes, FeedKit/flutter-chessground SPM deps)</td>
+<td><code>b8777bef8</code></td>
+<td>2026-09-30</td>
+<td>pbxproj syntax valid</td>
+</tr>
+<tr>
+<td>22 / Firebase-FCM</td>
+<td>Strip Firebase, Crashlytics, FCM push models &amp; local notifications (Option B)</td>
+<td>pending</td>
+<td>2026-09-30</td>
+<td>analyze 0</td>
+</tr>
+</tbody></table></div>
 
-      <h3>Detailed Responsibilities</h3>
-      <ul>
-        <li><strong>Domain Layer (Pure Dart):</strong> Resides in <code>lib/src/domain/</code>. Encapsulates all chess repertoire tree logic, decision scheduling, memory models, and state transitions. Absolutely zero imports of Flutter UI widgets, Riverpod, or SQLite. Testable without starting a Flutter widget engine.</li>
-        <li><strong>Application Layer:</strong> Riverpod controllers and services (such as <code>ReviewController</code>, <code>StudyController</code>). Orchestrates user actions, translates domain states into view-ready models, and coordinates local storage writes.</li>
-        <li><strong>Presentation Layer:</strong> Flutter widgets implementing the custom "Diagram" aesthetic. Clean typographic hierarchy, zero distraction, responsive layouts adapting seamlessly from mobile phones to tablets and desktops.</li>
-        <li><strong>Infrastructure Layer:</strong> Platform adapters, SQLite database drivers via <code>sqflite</code>, file system I/O, and the Stockfish UCI engine integration.</li>
-      </ul>
-    </section>
-
-    <section id="boundary-invariants">
-      <h2>3. Non-Negotiable Boundary Invariants</h2>
-      <div class="callout spec">
-        <div class="callout-title">INV-PURE-DOMAIN</div>
-        <p>Our domain code contains pure Dart entities and business algorithms. Zero imports of <code>package:flutter/...</code>, <code>chessground</code>, or <code>sqflite</code>. Mechanically enforced by automated static analysis in gate G03 (<code>scripts/gates/banned_apis_check.py</code>).</p>
-      </div>
-
-      <div class="callout spec">
-        <div class="callout-title">INV-SINGLE-CHESS-REP</div>
-        <p><code>dartchess</code> is the sole chess rules and position engine. Do not introduce competing chess libraries or re-implement move generation. The domain consumes dartchess core types (<code>Position</code>, <code>Move</code>, <code>San</code>) through thin adapters; presentation consumes <code>chessground</code>.</p>
-      </div>
-
-      <div class="callout spec">
-        <div class="callout-title">INV-LOCAL-FIRST</div>
-        <p>The entire critical user loop—making a move, validating legality, checking repertoire expectations, updating FSRS memory states, and updating the board—executes in memory and local SQLite. Network access is completely absent from this path.</p>
-      </div>
-    </section>
-
-    <section id="subsystem-cuts">
-      <h2>4. Subsystem Cuts & Retentions</h2>
-      <p>
-        To transform Lichess Mobile into a quiet, focused training sanctuary, non-repertoire systems were cleanly removed per <code>CUT_PROPOSALS.md</code>:
-      </p>
-      <div class="doc-table-wrap">
-        <table class="doc-table">
-          <thead>
-            <tr>
-              <th>Subsystem</th>
-              <th>Status</th>
-              <th>Rationale</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Online multiplayer / matchmaking / lobby</td>
-              <td><strong>Removed</strong></td>
-              <td>Offline repertoire recall does not require real-time games.</td>
-            </tr>
-            <tr>
-              <td>TV, streaming, chat & social feed</td>
-              <td><strong>Removed</strong></td>
-              <td>Eliminates distraction and social anxiety; reinforces calm training.</td>
-            </tr>
-            <tr>
-              <td>Leaderboards, badges & XP gamification</td>
-              <td><strong>Removed</strong></td>
-              <td>Promotes intrinsic recall habit over artificial streak inflation.</td>
-            </tr>
-            <tr>
-              <td>Lichess Puzzles & Puzzle Storm</td>
-              <td><strong>Removed</strong></td>
-              <td>App focuses exclusively on user-curated opening repertoires.</td>
-            </tr>
-            <tr>
-              <td>Chessground board renderer & animations</td>
-              <td><strong>Retained & Adapted</strong></td>
-              <td>World-class touch responsiveness, piece gestures, and board visuals.</td>
-            </tr>
-            <tr>
-              <td>dartchess rules & move validator</td>
-              <td><strong>Retained</strong></td>
-              <td>High-performance, memory-safe chess representation.</td>
-            </tr>
-            <tr>
-              <td>Audio synthesizer & piece sound effects</td>
-              <td><strong>Retained</strong></td>
-              <td>Provides immediate tactile feedback on move recall.</td>
-            </tr>
-            <tr>
-              <td>Stockfish engine integration</td>
-              <td><strong>Retained (Local Analysis)</strong></td>
-              <td>Enables on-device deep exploration without network dependency.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="persistence">
-      <h2>5. Local Persistence (SQLite / Drift)</h2>
-      <p>
-        Repertoire content and review histories are persisted in a local SQLite database (managed via <code>sqflite</code> and drift schema migrations):
-      </p>
-      <ul>
-        <li><strong>Incremental writes (INV-002):</strong> Answering a move writes the updated <code>ReviewState</code> and records a <code>ReviewEvent</code> row only. The repertoire move tree is never serialized or rewritten on every move.</li>
-        <li><strong>Crash consistency (INV-001):</strong> A graded review answer is committed within an atomic database transaction. Closing or killing the process immediately after a move preserves the exact review state.</li>
-        <li><strong>Deduplication on import (INV-003):</strong> PGN trees are hashed canonically. Re-importing the same study updates metadata without duplicating decisions or corrupting existing intervals.</li>
-      </ul>
-    </section>
-  
     
     <nav class="doc-pagination" aria-label="Document pagination">
       <a class="doc-page-card prev" href="domain-model.html">
@@ -318,11 +1278,29 @@
     <aside class="doc-toc-aside" aria-label="Table of contents">
       <div class="doc-toc-title">On This Page</div>
       <div class="doc-toc-list">
-        <div class="doc-toc-item"><a href="#foundation">The Foundation Reset</a></div>
-<div class="doc-toc-item"><a href="#layer-boundaries">Layer Boundaries</a></div>
-<div class="doc-toc-item"><a href="#boundary-invariants">Boundary Invariants</a></div>
-<div class="doc-toc-item"><a href="#subsystem-cuts">Subsystem Cuts & Retentions</a></div>
-<div class="doc-toc-item"><a href="#persistence">Local Persistence (SQLite)</a></div>
+        <div class="doc-toc-item"><a href="#technical-architecture">Technical Architecture</a></div>
+<div class="doc-toc-item"><a href="#1-what-this-application-is">1. What this application is</a></div>
+<div class="doc-toc-item"><a href="#2-layer-boundaries">2. Layer boundaries</a></div>
+<div class="doc-toc-item"><a href="#3-component-responsibilities">3. Component responsibilities</a></div>
+<div class="doc-toc-item"><a href="#4-review-state-machine-preserved-product-semantics">4. Review state machine (preserved product semantics)</a></div>
+<div class="doc-toc-item"><a href="#5-identity-amp-determinism">5. Identity &amp; determinism</a></div>
+<div class="doc-toc-item"><a href="#6-licensing-constraints-binding">6. Licensing constraints (binding)</a></div>
+<div class="doc-toc-item"><a href="#7-related-documents">7. Related documents</a></div>
+<div class="doc-toc-item"><a href="#8-module-map">8. Module map</a></div>
+<div class="doc-toc-item"><a href="#9-data-flow">9. Data flow</a></div>
+<div class="doc-toc-item"><a href="#10-data-model">10. Data model</a></div>
+<div class="doc-toc-item"><a href="#11-external-dependencies-and-integration-points">11. External dependencies and integration points</a></div>
+<div class="doc-toc-item"><a href="#12-design-decisions-and-tradeoffs">12. Design decisions and tradeoffs</a></div>
+<div class="doc-toc-item"><a href="#13-known-limitations-and-technical-debt">13. Known limitations and technical debt</a></div>
+<div class="doc-toc-item"><a href="#appendix-subsystem-cuts-amp-upstream-discipline">Appendix: Subsystem Cuts &amp; Upstream Discipline</a></div>
+<div class="doc-toc-item"><a href="#lichess-mobile-cut-proposals">Lichess Mobile Cut Proposals</a></div>
+<div class="doc-toc-item"><a href="#execution-status-key">Execution status key</a></div>
+<div class="doc-toc-item"><a href="#owner-decisions-recorded-2026-09-14">Owner decisions (recorded 2026-09-14)</a></div>
+<div class="doc-toc-item"><a href="#safe-execution-order">Safe execution order</a></div>
+<div class="doc-toc-item"><a href="#c1c2-decided-2026-09-29-keep-and-what-quotkeepquot-actually-means-here">C1/C2 decided 2026-09-29 — keep, and what &quot;keep&quot; actually means here</a></div>
+<div class="doc-toc-item"><a href="#detailed-cut-plans">Detailed cut plans</a></div>
+<div class="doc-toc-item"><a href="#what-is-explicitly-not-cut">What is explicitly NOT cut</a></div>
+<div class="doc-toc-item"><a href="#completed-cuts">Completed cuts</a></div>
       </div>
     </aside>
 </div>

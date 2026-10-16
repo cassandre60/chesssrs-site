@@ -49,6 +49,7 @@
     <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
       <a href="../index.html">Home</a>
       <a href="index.html">Documentation Hub</a>
+      <a href="product.html">Product Vision</a>
       <a href="architecture.html">Architecture</a>
       <a href="fsrs-algorithm.html">FSRS Algorithm</a>
       <a href="graph-coordinator.html">Graph Coordinator</a>
@@ -69,6 +70,11 @@
         
           <a class="doc-nav-link " href="index.html">
             <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="product.html">
+            <span>Product Definition & Journeys</span>
             
           </a>
 
@@ -147,9 +153,15 @@
     <p class="doc-lede">Multi-chapter PGN parsing, recursive annotation variation (RAV) preservation, move canonicalization, and quality quarantine.</p>
     
     <div class="doc-meta-bar">
+      
       <div class="doc-meta-item">
         <strong>Source in app repo:</strong>
         <a href="https://github.com/cassandre60/ChessSRS/blob/main/docs/pgn-import.md" target="_blank" rel="noopener"><code>docs/pgn-import.md</code></a>
+      </div>
+
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/docs/game-import-and-quality-gate.md" target="_blank" rel="noopener"><code>docs/game-import-and-quality-gate.md</code></a>
       </div>
       <div class="doc-meta-item">
         <strong>App version:</strong> <code>v1.4.0</code>
@@ -158,56 +170,150 @@
         <strong>Licence:</strong> <code>GPL-3.0</code>
       </div>
     </div>
-    
-    <section id="sources">
-      <h2>1. Input Sources & Ingestion</h2>
-      <p>
-        ChessSRS accepts opening material through two primary avenues:
-      </p>
-      <ul>
-        <li><strong>Standard PGN Files & Text:</strong> Direct file picker (<code>.pgn</code>) or clipboard paste supporting multi-game collections, extensive comments, and deeply nested sub-variations.</li>
-        <li><strong>Lichess Study Import:</strong> Enter any public Lichess study URL or 8-character study ID (e.g. <code>https://lichess.org/study/Gg4E2sIS</code>). For private or unlisted studies, users can sign in with their Lichess account via OAuth Bearer token to import their private repertoires.</li>
-      </ul>
-    </section>
+    <h2 id="pgn-import">PGN Import</h2>
+<h2 id="goal">Goal</h2>
+<p>Convert real-world PGN files into a validated internal study tree without flattening away useful structure.</p>
+<h2 id="supported-concepts">Supported concepts</h2>
+<p>MVP importer should support:</p>
+<ul>
+<li>standard PGN headers</li>
+<li>multiple games/chapters in one file</li>
+<li>main lines</li>
+<li>recursive variations</li>
+<li>starting FEN where valid</li>
+<li>SAN move application</li>
+<li>comments/annotations where preservation is useful</li>
+<li>game/chapter boundaries</li>
+</ul>
+<p>Graceful degradation is preferable to silent corruption.</p>
+<h2 id="pipeline">Pipeline</h2>
+<pre tabindex="0"><code class="language-text">file bytes
+ -&gt; PGN parser
+ -&gt; semantic move tree
+ -&gt; legal-position validation
+ -&gt; normalized Study/Chapter/PositionNode data
+ -&gt; Review-item derivation
+ -&gt; local persistence
+</code></pre>
+<p>Do not bind parsing directly to Flutter widget state or database rows.</p>
+<h2 id="validation">Validation</h2>
+<p>Reject or quarantine malformed sections rather than creating invalid chess positions.</p>
+<p>Import errors should identify the nearest useful location, such as chapter and move number.</p>
+<p>Never silently import a partially corrupted tree as if it were complete.</p>
+<h2 id="variations">Variations</h2>
+<p>Variations are first-class repertoire branches.</p>
+<p>Nested variations must remain distinguishable from the main line.</p>
+<p>The internal model should not depend on textual parenthesis nesting after normalization.</p>
+<h2 id="multiple-chapters">Multiple chapters</h2>
+<p>Each logical game/chapter remains identifiable after import. Preserve source order and title/metadata where available.</p>
+<p>A single PGN can therefore produce one Study with many Chapters.</p>
+<h2 id="fen">FEN</h2>
+<p>A chapter may begin from a non-standard starting position. The imported root must use the correct full chess state.</p>
+<h2 id="commentsannotations">Comments/annotations</h2>
+<p>Preserve data that can support future UX, analysis warnings, or study editing. MVP does not need to render every PGN annotation.</p>
+<h2 id="import-result">Import result</h2>
+<p>The importer should return a structured result that can distinguish:</p>
+<ul>
+<li>success</li>
+<li>warnings</li>
+<li>fatal errors</li>
+<li>counts (chapters, branches, decisions) where useful</li>
+</ul>
+<h2 id="future-engine-warning-pass">Future engine warning pass</h2>
+<p>A future import pipeline can insert:</p>
+<pre tabindex="0"><code class="language-text">normalize -&gt; optional user-side engine analysis -&gt; warnings -&gt; import
+</code></pre>
+<p>The warning pass must never reject a study solely because a user-selected move has a poor engine evaluation.</p>
+<h2 id="future-input-sources">Future input sources</h2>
+<p>Lichess should feed the same normalized import model. Do not create a separate Lichess-only Study representation.</p>
+<hr>
+<h2 id="game-import-amp-quality-gate-specification">Game Import &amp; Quality Gate Specification</h2>
+<h2 id="game-import-and-the-import-quality-gate">Game Import and the Import Quality Gate</h2>
+<p>Status: <strong>proposal.</strong> Not in scope. Nothing here is implemented or decided.</p>
+<h2 id="goal">Goal</h2>
+<p>Two related ideas, from the owner:</p>
+<ol>
+<li><strong>Import individual lichess games</strong> as a way to grow opening repertoire. Ten French
+games should give a more complete French opening review than one does.</li>
+<li><strong>Analyse on import by default</strong> (disable-able). The opponent may make as many
+mistakes as they like; the repertoire side may not. Every imported PGN is meant
+for learning, and learning from poor moves is self-defeating. Not &quot;play the
+engine&#39;s first choice every time&quot; — the bar is &quot;not terrible chess, loosely
+defined.&quot;</li>
+</ol>
+<h2 id="what-already-exists">What already exists</h2>
+<p>Verified, so none of this is rebuilt:</p>
+<ul>
+<li><strong>Importing a single game&#39;s PGN already produces one chapter</strong>
+(<code>pgn_importer.dart:278,285</code>). One game in, one chapter out.</li>
+<li><strong>Only the repertoire side&#39;s moves become questions.</strong> <code>_deriveDecisions</code> creates a
+decision where <code>nodeSideToMove == repertoireSide</code>; the opponent&#39;s moves are
+auto-traversed during review rather than drilled. The asymmetry is already the design.</li>
+<li><strong>Divergent imports merge into a wider answer set.</strong> A position&#39;s canonical identity
+covers its <em>complete</em> accepted-move set, not one representative move. Import ten games
+and positions where they agree yield one question with one answer; positions where
+they diverge yield one question with every answer they played. &quot;A more complete
+opening review&quot; is what the model already does — it is not a feature to build.</li>
+<li><strong>Analysis on load already fires.</strong> <code>study_controller.dart:301</code> calls <code>requestEval()</code>
+when the engine is available, gated by <code>alwaysRequestCloudEval</code>, which is currently
+hardcoded <code>false</code>. A past commit set it false deliberately, to avoid delaying local
+analysis.</li>
+</ul>
+<h2 id="open-questions">Open questions</h2>
+<p>These block the design. They are not implementation details.</p>
+<h3 id="1-analysis-results-are-not-persisted-the-load-bearing-one">1. Analysis results are not persisted — the load-bearing one</h3>
+<p><code>repertoireNodeToJson</code> (<code>json_adapters.dart:22</code>) stores id, FEN, FEN key, incoming move,
+comment and children. <strong>No evaluation.</strong> Evals live on the node in memory and are lost
+when the app closes.</p>
+<p>Consequence: analysing on import without persisting results means re-analysing every
+imported game on every launch, which defeats the point of the feature. This question
+comes first because it decides whether idea 2 is pleasant or unusable.</p>
+<h3 id="2-the-engine-is-phone-only">2. The engine is phone-only</h3>
+<p>Native engine support is Android and iOS only; other platforms resolve the engine to
+null and it is no longer offered there. <strong>The quality gate therefore cannot run on
+desktop at all.</strong> If the gate is wanted everywhere, a desktop evaluation backend is a
+separate piece of work that does not exist.</p>
+<h3 id="3-quotterrible-defined-very-looselyquot-needs-a-number">3. &quot;Terrible, defined very loosely&quot; needs a number</h3>
+<p>A shared mainline from a real game is rarely catastrophic, but it happens. The tradeoff
+is real: drop the position and repertoire coverage silently shrinks; keep it and bad
+moves get trained.</p>
+<p>Recommendation: <strong>flag, never drop.</strong> Losing coverage is the worse failure because it
+is invisible — the user cannot tell that a line they expected is gone. A flagged
+position still trains, with a visible marker.</p>
+<p>This should be a written invariant in <code>QUALITY.md</code> rather than a constant chosen during
+implementation.</p>
+<h3 id="4-cost-of-analysing-on-import">4. Cost of analysing on import</h3>
+<p>Ten games is 200+ positions. On-device that is minutes of work and battery; via server
+analysis it is a queued job with its own limits. &quot;On by default&quot; needs a size threshold
+or the feature will be unpleasant in exactly the large-import case it is meant for.</p>
+<h3 id="5-which-side-a-game-is-imported-as">5. Which side a game is imported as</h3>
+<p>Each game must state whether the owner played White or Black, or the importer cannot
+tell the owner&#39;s moves from the opponent&#39;s. The field already exists
+(<code>repertoireSide</code>). For a batch of mixed-colour games this needs a per-game answer or a
+stated default.</p>
+<h3 id="6-how-a-game-gets-into-the-app-at-all">6. How a game gets into the app at all</h3>
+<p>By game id from a link, in principle. That path is currently unreachable: <strong>M20</strong> —
+<code>assetlinks.json</code> and <code>apple-app-site-association</code> still list the upstream
+<code>org.lichess.mobileV2</code> identity, not <code>org.chesssrs.app</code>. Until those records are
+published, a <code>lichess.org/&lt;gameId&gt;</code> link does not hand off to this app.</p>
+<p>M20 is an operations task, not code.</p>
+<h2 id="effect-on-the-audit">Effect on the audit</h2>
+<p><strong>M19 is dissolved by this proposal.</strong> The offline game cache exists because played-game
+<em>viewing</em> was meant to fetch a game on demand. If games are imported as chapters instead,
+their moves are stored like any other repertoire and the cache question disappears.</p>
+<p>The corollary: if the idea is <em>not</em> adopted, the honest alternative is to cut the
+unreachable played-game path — retro screen, game share service, and game-link
+resolution — rather than leave it dormant. <code>AGENTS.md</code> §6 prefers deleting
+unnecessary things.</p>
+<h2 id="what-adopting-this-would-require-updating">What adopting this would require updating</h2>
+<p>Authoritative documents, in hierarchy order. Not edited here, because nothing is decided:</p>
+<ul>
+<li><code>MVP.md</code> — brings game import into active scope.</li>
+<li><code>QUALITY.md</code> — a candidate domain invariant: repertoire-side moves must not be
+indefensible, with the bar written down rather than implied.</li>
+<li><code>IMPLEMENTATION_PLAN.md</code> — phasing, after the scope decision.</li>
+</ul>
 
-    <section id="ast-parsing">
-      <h2>2. AST & Recursive Variation Tree Parsing</h2>
-      <p>
-        A PGN study is parsed into an Abstract Syntax Tree (AST) using <code>dartchess</code>'s streaming parser:
-      </p>
-      <ul>
-        <li><strong>Multi-Game Streams:</strong> Each PGN game block (separated by standard PGN header tags) is mapped to an independent <code>Chapter</code> within the parent <code>Study</code>.</li>
-        <li><strong>Recursive Annotation Variations (RAV - INV-010):</strong> Sibling variations wrapped in parentheses <code>( ... )</code> are preserved down to arbitrary depth. Branches are never flattened or pruned.</li>
-        <li><strong>Numeric Annotation Glyphs (NAGs):</strong> Evaluative symbols ($1 = !, $2 = ?, $3 = !!, $4 = ??, etc.) are parsed into node metadata.</li>
-        <li><strong>Author Annotations:</strong> Explanatory text comments embedded in curly braces <code>{ ... }</code> are stored with the position node and displayed to the user after recall attempts (configurable in Settings).</li>
-      </ul>
-    </section>
-
-    <section id="canonicalization">
-      <h2>3. Move Validation & FEN Normalization</h2>
-      <p>
-        Imported moves must undergo rigorous geometric validation:
-      </p>
-      <ol>
-        <li><strong>Legality Verification:</strong> Every move is executed on an internal <code>dartchess.Position</code> instance. Illegal moves, ambiguous algebraic notation, or invalid castling rights trigger immediate quarantine.</li>
-        <li><strong>Coordinate Conversion:</strong> Standard Algebraic Notation (SAN: e.g. <code>Nf3</code>, <code>O-O</code>) is resolved into canonical UCI coordinates (e.g. <code>g1f3</code>, <code>e1g1</code>).</li>
-        <li><strong>Side Determination:</strong> The parser analyzes branch structures to automatically detect whether the chapter trains White or Black lines.</li>
-      </ol>
-    </section>
-
-    <section id="quarantine">
-      <h2>4. Quality Gates & Error Quarantine</h2>
-      <div class="callout spec">
-        <div class="callout-title">INV-011 Malformed Input Quarantine</div>
-        <p>If a PGN file contains syntax corruption, illegal moves, or truncated bodies, the invalid chapters are quarantined with specific line and character error diagnostics. Valid chapters are cleanly imported; an import is never left in a corrupt, half-applied state.</p>
-      </div>
-
-      <div class="callout spec">
-        <div class="callout-title">INV-003 Duplicate Import Rejection</div>
-        <p>Importing a PGN whose canonical tree hash matches an already imported study switches directly to that study. It never inserts duplicate studies, chapters, or duplicate decision cards in SQLite.</p>
-      </div>
-    </section>
-  
     
     <nav class="doc-pagination" aria-label="Document pagination">
       <a class="doc-page-card prev" href="graph-coordinator.html">
@@ -225,10 +331,25 @@
     <aside class="doc-toc-aside" aria-label="Table of contents">
       <div class="doc-toc-title">On This Page</div>
       <div class="doc-toc-list">
-        <div class="doc-toc-item"><a href="#sources">Input Sources</a></div>
-<div class="doc-toc-item"><a href="#ast-parsing">AST & Variation Tree Parsing</a></div>
-<div class="doc-toc-item"><a href="#canonicalization">Move Validation & FEN Normalization</a></div>
-<div class="doc-toc-item"><a href="#quarantine">Quality Gates & Error Quarantine</a></div>
+        <div class="doc-toc-item"><a href="#pgn-import">PGN Import</a></div>
+<div class="doc-toc-item"><a href="#goal">Goal</a></div>
+<div class="doc-toc-item"><a href="#supported-concepts">Supported concepts</a></div>
+<div class="doc-toc-item"><a href="#pipeline">Pipeline</a></div>
+<div class="doc-toc-item"><a href="#validation">Validation</a></div>
+<div class="doc-toc-item"><a href="#variations">Variations</a></div>
+<div class="doc-toc-item"><a href="#multiple-chapters">Multiple chapters</a></div>
+<div class="doc-toc-item"><a href="#fen">FEN</a></div>
+<div class="doc-toc-item"><a href="#commentsannotations">Comments/annotations</a></div>
+<div class="doc-toc-item"><a href="#import-result">Import result</a></div>
+<div class="doc-toc-item"><a href="#future-engine-warning-pass">Future engine warning pass</a></div>
+<div class="doc-toc-item"><a href="#future-input-sources">Future input sources</a></div>
+<div class="doc-toc-item"><a href="#game-import-amp-quality-gate-specification">Game Import &amp; Quality Gate Specification</a></div>
+<div class="doc-toc-item"><a href="#game-import-and-the-import-quality-gate">Game Import and the Import Quality Gate</a></div>
+<div class="doc-toc-item"><a href="#goal">Goal</a></div>
+<div class="doc-toc-item"><a href="#what-already-exists">What already exists</a></div>
+<div class="doc-toc-item"><a href="#open-questions">Open questions</a></div>
+<div class="doc-toc-item"><a href="#effect-on-the-audit">Effect on the audit</a></div>
+<div class="doc-toc-item"><a href="#what-adopting-this-would-require-updating">What adopting this would require updating</a></div>
       </div>
     </aside>
 </div>

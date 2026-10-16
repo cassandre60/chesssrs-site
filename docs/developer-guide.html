@@ -49,6 +49,7 @@
     <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
       <a href="../index.html">Home</a>
       <a href="index.html">Documentation Hub</a>
+      <a href="product.html">Product Vision</a>
       <a href="architecture.html">Architecture</a>
       <a href="fsrs-algorithm.html">FSRS Algorithm</a>
       <a href="graph-coordinator.html">Graph Coordinator</a>
@@ -69,6 +70,11 @@
         
           <a class="doc-nav-link " href="index.html">
             <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="product.html">
+            <span>Product Definition & Journeys</span>
             
           </a>
 
@@ -147,9 +153,20 @@
     <p class="doc-lede">Prerequisites, FVM setup, worktree-per-task workflow, code generation, and running ChessSRS locally.</p>
     
     <div class="doc-meta-bar">
+      
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/docs/setting_dev_env.md" target="_blank" rel="noopener"><code>docs/setting_dev_env.md</code></a>
+      </div>
+
       <div class="doc-meta-item">
         <strong>Source in app repo:</strong>
         <a href="https://github.com/cassandre60/ChessSRS/blob/main/CLAUDE.md" target="_blank" rel="noopener"><code>CLAUDE.md</code></a>
+      </div>
+
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/AGENTS.md" target="_blank" rel="noopener"><code>AGENTS.md</code></a>
       </div>
       <div class="doc-meta-item">
         <strong>App version:</strong> <code>v1.4.0</code>
@@ -158,85 +175,1135 @@
         <strong>Licence:</strong> <code>GPL-3.0</code>
       </div>
     </div>
-    
-    <section id="prerequisites">
-      <h2>1. Prerequisites & FVM Setup</h2>
-      <p>
-        ChessSRS requires the exact Flutter toolchain pinned via <strong>Flutter Version Management (FVM)</strong>:
-      </p>
-      <div class="code-block">
-        <div class="code-header"><span>Installing FVM & Flutter SDK</span><span>Bash</span></div>
-        <pre tabindex="0"><code># Install fvm (if not already installed)
-dart pub global activate fvm
+    <h2 id="setting-up-the-development-environment">Setting up the development environment</h2>
+<div class="callout spec">
+<p><strong>ChessSRS Environment:</strong> See the repo root <a href="../CLAUDE.md">CLAUDE.md</a> and <a href="../AGENTS.md">AGENTS.md</a>
+for the active toolchain and operating instructions. This file contains inherited setup
+instructions for mobile platforms.</p>
+</div>
+<p>The following instructions outline how to set up your development environment for starting development on Lichess mobile.</p>
+<p>If you get stuck during the installation process the most suitable place to seek help is the <code>#lichess-dev-onboarding</code> channel on Discord (<a href="https://discord.gg/lichess">https://discord.gg/lichess</a>).</p>
+<h2 id="installing-flutter">Installing Flutter</h2>
+<p>This project uses the latest <strong>Flutter stable</strong> release. The minimum required version is defined in <code>pubspec.yaml</code>.</p>
+<ol>
+<li>Follow <a href="https://docs.flutter.dev/get-started/install">the flutter install guide</a>.
+This project is meant to run on iOS and Android, so you need to follow the &quot;Platform setup&quot; section of that guide to
+install the iOS and/or Android platform.
+Make sure to install the latest Flutter stable release.</li>
+</ol>
+<div class="callout warning"><div class="callout-title">Warning</div><p>Installing on Linux using `snapd` might cause some [problems](https://github.com/lichess-org/mobile/issues/123) building stockfish.
+Installing flutter manually is a known workaround.</p></div><ol start="2">
+<li>Ensure Flutter is correctly configured by running <code>flutter doctor</code></li>
+</ol>
+<p>Note that this application is not meant to be run on web platform.</p>
+<h3 id="flutter-version-management">Flutter Version Management</h3>
+<p>If you want to use FVM to manage your Flutter versions effectively, please consult the <a href="https://fvm.app/documentation/getting-started/installation">FVM (Flutter Version Management) guide</a> for comprehensive instructions on installing Flutter on your specific operating system.</p>
+<p>This project is currently using FVM 3.x.</p>
+<p><strong>Pro Tip:</strong> Remember to prepend the &#39;flutter&#39; prefix when using FVM commands, like this: <code>fvm flutter [command]</code>.</p>
+<h2 id="lila-server">Lila Server</h2>
+<p>By default, the app will target the <a href="https://lichess.dev/">Lichess dev server</a>,
+so you can start developing without setting up a local server.</p>
+<p>During development, you may need a local <a href="https://github.com/lichess-org/lila">lila</a> (lichess server scala app)
+instance to work on this project.</p>
+<p>If you work with a local lila, you will also need to setup <a href="https://github.com/lichess-org/lila-ws">lila-ws</a> (websocket server).</p>
+<h3 id="lila-gitpod">lila-gitpod</h3>
+<p>The fastest and most straight-forward way to run your own lila is <a href="https://github.com/lichess-org/lila-gitpod">lila-gitpod</a>.</p>
+<h3 id="lila-docker">lila-docker</h3>
+<p>If you have Docker installed on your system, you will probably prefer to use <a href="https://github.com/lichess-org/lila-docker">lila-docker</a>.</p>
+<h3 id="local-lila-server-manual-installation">Local lila server (manual installation)</h3>
+<p>Instructions to install both <code>lila</code> and <code>lila-ws</code> locally can be found in <a href="https://github.com/lichess-org/lila/wiki/Lichess-Development-Onboarding">the lila wiki</a>.</p>
+<h2 id="setting-up-a-device">Setting up a device</h2>
+<h3 id="real-device">Real device</h3>
+<h4 id="android">Android</h4>
+<p>To use a real device you will need to <a href="https://developer.android.com/studio/debug/dev-options">enable developer options</a> on it and have <a href="https://developer.android.com/tools/adb">adb</a> installed on your computer.</p>
+<p>Once that done, you can <a href="https://developer.android.com/studio/run/device">connect your device</a> either with USB or with Wi-Fi.</p>
+<h5 id="connect-with-usb">Connect with USB</h5>
+<p>Enable USB debugging and connect your phone with USB.</p>
+<p>Run <code>adb devices</code> to check that your device is connected.</p>
+<h5 id="connect-with-wi-fi">Connect with Wi-Fi</h5>
+<p>On your Android phone:</p>
+<ol>
+<li>Connect your phone to the same wifi network as your host machine</li>
+<li>In Developer Options, toggle Wireless Debugging to ON</li>
+<li>Tap &quot;Wireless Debugging&quot; to enter its menu</li>
+<li>Select <strong>Pair device with pairing code</strong></li>
+</ol>
+<p>On your computer:</p>
+<ol>
+<li>Pair your phone with <code>adb pair [phone_ip_address]:[pair_port] [pairing_code]</code>.</li>
+<li>Connect your phone with <code>adb connect [phone_ip_address]:[connection_port]</code>.
+Your phone IP address and connection port should be written on the wireless debugging menu.</li>
+<li>Check that your device is connected with <code>adb devices</code></li>
+</ol>
+<h3 id="emulators">Emulators</h3>
+<h4 id="ios">iOS</h4>
+<p>Simply follow the instructions in the flutter guide to install Xcode and the iOS
+simulator.</p>
+<h4 id="android">Android</h4>
+<h5 id="troubleshooting">Troubleshooting</h5>
+<ul>
+<li><p>If Chrome crashes, it is likely you need to disable Vulkan in emulator settings:</p>
+<pre tabindex="0"><code class="language-bash">$ emulator -avd &lt;YourAVD&gt; -feature -Vulkan
+</code></pre>
+<p>You can read more about this issue <a href="https://issuetracker.google.com/issues/277651135">here</a>.</p>
+</li>
+<li><p>If you cannot access internet you can try launching the emulator with a DNS address:</p>
+<pre tabindex="0"><code class="language-bash">$ emulator -avd &lt;YourAVD&gt; -dns-server 1.1.1.1
+</code></pre>
+<p>If you are on Linux it seems that the emulator will try to read <code>/etc/resolv.conf</code> to find DNS servers.
+You might want to check that your <code>/etc/resolv.conf</code> is configured properly rather than using the emulator <code>dns-server</code> flag first.
+If you use systemd-resolved, the recommended mode of handling <code>/etc/resolv.conf</code> is to symlink <code>/etc/resolv.conf</code> to <code>/run/systemd/resolve/stub-resolv.conf</code>.</p>
+</li>
+<li><p>If you experience high lags or freezes, check the memory settings and be sure to enable hardware acceleration (<code>-gpu host</code>).</p>
+<p>Also disabling the snapshot storage may help:</p>
+<pre tabindex="0"><code class="language-bash">$ emulator -avd &lt;YourAVD&gt; -no-snapshot-load -no-snapstorage -no-snapshot -no-snapshot-save
+</code></pre>
+</li>
+<li><p>If you use Wayland, the emulator will not work. You can try to use Xwayland instead. The issue is tracked <a href="https://issuetracker.google.com/issues/378421876">here</a>.</p>
+</li>
+</ul>
+<h2 id="code-generation">Code generation</h2>
+<p>This project uses code generation to generate data classes with <a href="https://pub.dev/packages/freezed">freezed</a> among other things.</p>
+<p>We don&#39;t commit generated code to the repository, so you need to run it before anything else otherwise the project won&#39;t
+compile:</p>
+<pre tabindex="0"><code class="language-bash">flutter pub get
+dart run build_runner build
+</code></pre>
+<p>While developing you can use the watch command:</p>
+<pre tabindex="0"><code class="language-bash">dart run build_runner watch
+</code></pre>
+<h2 id="static-analysis">Static analysis</h2>
+<p>Flutter comes with an <code>analyze</code> command to run static analysis. While developing you can run:</p>
+<pre tabindex="0"><code class="language-bash">flutter analyze --watch
+</code></pre>
+<p>It will run analysis continuously, watching the filesystem for changes. It is important to always check for analysis errors.</p>
+<h2 id="run">Run</h2>
+<p>Use the <code>flutter run</code> command to run the app on an emulator or a real device. If you need to change the lichess host you can do it like so:</p>
+<pre tabindex="0"><code class="language-bash">flutter run \
+  --dart-define=LICHESS_HOST=lichess.org \
+  --dart-define=LICHESS_WS_HOST=socket.lichess.org
+</code></pre>
+<div class="callout warning"><div class="callout-title">Warning</div><p>Do not use any scheme (https:// or ws://) in url in host, since it's already handled by URI helper method</p></div><div class="callout note"><div class="callout-title">Note</div><p>If you use the production server, note that you will not be able to log in.</p></div><h3 id="android">Android</h3>
+<h4 id="when-using-lila-gitpod">When using lila-gitpod</h4>
+<p>To access the lila instance from your device, you will need to make the port 8080 public. You can do so by running this command in your Gitpod workspace:</p>
+<pre tabindex="0"><code class="language-bash">./lila-docker public
+</code></pre>
+<p>Then you can run the application with:</p>
+<pre tabindex="0"><code class="language-bash">flutter run \
+  --dart-define=LICHESS_HOST=[lila_gitpod_host] \
+  --dart-define=LICHESS_WS_HOST=[lila_gitpod_host]
+</code></pre>
+<p>To find the host of your lila Gitpod instance, use the command <code>gp url 8080</code>. Just be careful to not include the full url in the hosts variables, you need to remove the https:// from the url.</p>
+<h4 id="when-using-lila-docker">When using lila-docker</h4>
+<p>When using <a href="https://github.com/lichess-org/lila-docker">lila-docker</a>, the easiest solution is to use the adb reverse command:</p>
+<pre tabindex="0"><code class="language-bash">adb reverse tcp:8080 tcp:8080
+</code></pre>
+<p>You can then run the app with the following hosts:</p>
+<pre tabindex="0"><code class="language-bash">flutter run \
+  --dart-define=LICHESS_HOST=localhost:8080 \
+  --dart-define=LICHESS_WS_HOST=localhost:8080
+</code></pre>
+<p>Another option is to use the <code>./lila-docker hostname</code> command and select your computer&#39;s IP address.</p>
+<p>You can then run the app with the following hosts:</p>
+<pre tabindex="0"><code class="language-bash">flutter run \
+  --dart-define=LICHESS_HOST=[your_computer_ip]:8080 \
+  --dart-define=LICHESS_WS_HOST=[your_computer_ip]:8080
+</code></pre>
+<h4 id="when-using-a-manually-installed-lila-server">When using a manually installed lila server</h4>
+<p>If you are working with a local <code>lila</code> server, you need to map some ports from the remote device to the local lila server.
+Once your device is available, you can do this by running the following command (you can check if your device is available with <code>adb devices</code>):</p>
+<pre tabindex="0"><code class="language-bash">adb reverse tcp:9663 tcp:9663
+adb reverse tcp:9664 tcp:9664
+</code></pre>
+<p>This will allow the app to communicate with the local server. 9663 is for <code>http</code>
+and 9664 is for <code>websocket</code>.</p>
+<p>To run the application with the local server, you can use the following command:</p>
+<pre tabindex="0"><code class="language-bash">flutter run \
+  --dart-define=LICHESS_HOST=localhost:9663 \
+  --dart-define=LICHESS_WS_HOST=localhost:9664
+</code></pre>
+<div class="callout note"><div class="callout-title">Note</div><p>The ports above are the default ones for lila, if you have changed them, you</p></div><p>will need to adjust the commands accordingly.</p>
+<h3 id="logging">Logging</h3>
+<pre tabindex="0"><code class="language-bash">dart devtools
+</code></pre>
+<p>Then run the app with the <code>flutter run</code> command above, and a link to the logging page will be printed in the console.</p>
+<hr>
+<h2 id="repository-conventions-amp-style-claudemd">Repository Conventions &amp; Style (CLAUDE.md)</h2>
+<h2 id="claudemd">CLAUDE.md</h2>
+<p>This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.</p>
+<h2 id="project-overview">Project Overview</h2>
+<p>Lichess Mobile is a Flutter-based mobile application (iOS/Android) for lichess.org. The app uses:</p>
+<ul>
+<li><strong>Flutter</strong>: Cross-platform UI framework (Flutter 3.38.0+, Dart 3.10.0+)</li>
+<li><strong>Riverpod</strong>: State management with providers</li>
+<li><strong>Freezed</strong>: Immutable data classes</li>
+<li><strong>Code generation</strong>: For data classes, JSON serialization, and localization</li>
+<li><strong>Firebase</strong>: Crashlytics and messaging</li>
+<li><strong>Stockfish</strong>: Chess engine integration via <code>multistockfish</code> package</li>
+</ul>
+<h2 id="development-setup">Development Setup</h2>
+<h3 id="initial-setup">Initial Setup</h3>
+<pre tabindex="0"><code class="language-bash">## Install dependencies
+flutter pub get
 
-# Inside the ChessSRS repository root:
-fvm install
-fvm flutter --version</code></pre>
-      </div>
-      <p>
-        Always prefix commands with <code>fvm</code> (e.g. <code>fvm flutter pub get</code>, <code>fvm flutter run</code>).
-      </p>
-    </section>
+## Generate code (required before first run)
+dart run build_runner build
 
-    <section id="worktree-workflow">
-      <h2>2. Worktree-per-Task Workflow</h2>
-      <p>
-        To prevent dirty state contamination across agents and branches, every engineering task takes place inside its own Git worktree:
-      </p>
-      <div class="code-block">
-        <div class="code-header"><span>Creating a Task Worktree</span><span>Bash</span></div>
-        <pre tabindex="0"><code># Create branch and isolated worktree
-git worktree add ../chesssrs-feature-slug -b feat/area-feature-slug origin/main
-cd ../chesssrs-feature-slug
+## For continuous development
+dart run build_runner watch &amp;
+flutter analyze --watch &amp;
+</code></pre>
+<h3 id="running-the-app">Running the App</h3>
+<pre tabindex="0"><code class="language-bash">## Run on all devices (uses lichess.dev server by default)
+flutter run -d all
 
-# Bootstrap dependencies and codegen
+## Run with custom server
+flutter run \
+  --dart-define=LICHESS_HOST=localhost:8080 \
+  --dart-define=LICHESS_WS_HOST=localhost:8080
+</code></pre>
+<p><strong>Note</strong>: Do not include scheme (https:// or ws://) in host values.</p>
+<h3 id="for-android-with-local-lila-docker">For Android with local lila-docker</h3>
+<pre tabindex="0"><code class="language-bash">## Map ports
+adb reverse tcp:8080 tcp:8080
+
+## Run app
+flutter run --dart-define=LICHESS_HOST=localhost:8080 --dart-define=LICHESS_WS_HOST=localhost:8080
+</code></pre>
+<h2 id="testing-amp-quality">Testing &amp; Quality</h2>
+<h3 id="run-tests">Run Tests</h3>
+<pre tabindex="0"><code class="language-bash">## All tests
+flutter test
+
+## Single test file
+flutter test test/model/engine/engine_test.dart
+
+## Specific test
+flutter test test/model/engine/engine_test.dart --name &quot;test name&quot;
+</code></pre>
+<h3 id="testing-strategy-prefer-http-mocking-over-provider-overrides">Testing Strategy: Prefer HTTP Mocking Over Provider Overrides</h3>
+<p><strong>Always mock at the HTTP layer</strong> (override <code>httpClientFactoryProvider</code>) rather than overriding Riverpod providers directly. Reasons:</p>
+<ol>
+<li><p><strong><code>autoDispose</code> + <code>ref.read</code> interaction</strong>: Many providers are <code>FutureProvider.autoDispose</code> and use <code>ref.withClientCacheFor</code> which calls <code>keepAlive()</code> to prevent premature disposal. Overriding the provider directly bypasses <code>keepAlive()</code>, so the provider can be disposed before its future resolves — causing silent test failures where navigation never happens.</p>
+</li>
+<li><p><strong>Tests provider logic, not mocks</strong>: Most providers contain real logic (caching, fallback, data transformation) that should be exercised in tests. Replacing a provider with <code>(_) async =&gt; fakeValue</code> skips all that logic.</p>
+</li>
+</ol>
+<p><strong>Pattern to use:</strong></p>
+<pre tabindex="0"><code class="language-dart">overrides: {
+  httpClientFactoryProvider: httpClientFactoryProvider.overrideWith((ref) {
+    return FakeHttpClientFactory(
+      () =&gt; MockClient((request) async {
+        if (request.url.path == &#39;/api/puzzle/daily&#39;) {
+          return http.Response(mockDailyPuzzleResponse, 200);
+        }
+        return http.Response(&#39;&#39;, 404);
+      }),
+    );
+  }),
+},
+</code></pre>
+<p>Direct provider overrides are acceptable for <strong>non-network providers</strong> (repositories backed by mocks, services with no HTTP, etc.) where the provider has no <code>keepAlive</code> dependency and the override doesn&#39;t skip meaningful logic.</p>
+<h3 id="chessboard-testing-patterns">Chessboard Testing Patterns</h3>
+<p>Since chessground v10, pieces and highlights are rendered by <code>CustomPainter</code>s, not as individual widgets. <strong>Do not use <code>find.byKey(Key(&#39;e2-whitepawn&#39;))</code> or <code>find.byKey(ValueKey(&#39;${sq}-highlight&#39;))</code> — those keys no longer exist.</strong></p>
+<p>Use the helpers in <code>test/test_helpers.dart</code> instead:</p>
+<pre tabindex="0"><code class="language-dart">// Check pieces on any Chessboard (interactive or Chessboard.fixed)
+getBoardPieces(tester)                             // Map&lt;Square, Piece&gt;
+boardHasPiece(tester, Square.f3, Piece.whiteKnight) // bool
+
+// Check premove highlight
+boardHasPremove(tester, move)                      // bool
+
+// Tap/move at a board square
+squareOffset(square, tester.getRect(find.byType(Chessboard)))
+</code></pre>
+<p>For <code>ChessboardEditor</code> (board editor screen), read pieces directly from the widget:</p>
+<pre tabindex="0"><code class="language-dart">tester.widget&lt;ChessboardEditor&gt;(find.byType(ChessboardEditor)).pieces
+</code></pre>
+<h3 id="analysis-rules-critical">Analysis Rules (CRITICAL)</h3>
+<p><strong>Always run <code>flutter analyze</code> on every file you edit, including test files, before finishing.</strong></p>
+<p>Two rules the analyzer enforces that are easy to miss:</p>
+<ul>
+<li><strong><code>const</code> constructors</strong>: use <code>const</code> (not <code>final</code>) when constructing a const-capable class. The analyzer will flag <code>prefer_const_constructors</code>. This applies everywhere, including test files. When the enclosing expression is not <code>const</code> (e.g. a non-const record or class), constructor calls inside it still need their own explicit <code>const</code> — e.g. <code>(time: const Duration(minutes: 3), increment: const Duration(seconds: 2))</code>.</li>
+<li><strong>No leading underscores for local identifiers</strong>: local variables and functions must not start with <code>_</code>. Reserve <code>_</code> for library-private top-level or class members.</li>
+</ul>
+<h3 id="code-quality-checks">Code Quality Checks</h3>
+<pre tabindex="0"><code class="language-bash">## Static analysis
+flutter analyze
+
+## Format check (files to format)
+dart format --output=none --set-exit-if-changed $(find lib/src -name &quot;*.dart&quot; -not \( -name &quot;*.*freezed.dart&quot; -o -name &quot;*.*g.dart&quot; -o -name &quot;*lichess_icons.dart&quot; \) )
+dart format --output=none --set-exit-if-changed $(find test -name &quot;*.dart&quot; -not \( -name &quot;*.*freezed.dart&quot; -o -name &quot;*.*g.dart&quot; \) )
+
+## Format all code
+dart format lib/src test
+</code></pre>
+<h3 id="formatting-rules-critical">Formatting Rules (CRITICAL)</h3>
+<p><strong>Always run <code>dart format</code> on every file you edit before finishing.</strong> CI will fail if formatting is wrong.</p>
+<pre tabindex="0"><code class="language-bash">dart format path/to/file.dart
+</code></pre>
+<p>The formatter is configured via <code>analysis_options.yaml</code> (<code>formatter: page_width: 100</code>) and <code>dart format</code> picks this up automatically. Key rules enforced by the formatter:</p>
+<ul>
+<li><strong>Page width: 100 characters</strong> — lines exceeding 100 chars will be reflowed</li>
+<li><strong>Trailing commas drive formatting</strong>: a trailing comma after the last argument/parameter forces the formatter to expand the list to one-item-per-line; omitting it allows the formatter to keep items on one line if they fit within 100 chars</li>
+<li><strong>Do not manually wrap lines</strong> — let the formatter decide based on trailing commas and line length; hand-wrapping without trailing commas will be reformatted by the tool</li>
+<li>The formatter may reformat code you didn&#39;t touch in the same expression if you change surrounding structure</li>
+</ul>
+<p><strong>Comments are the exception: the formatter never reflows them, so they are yours to wrap.</strong>
+Wrap comments and doc comments (<code>//</code> and <code>///</code>) to the same 100 character page width, not to
+80. <code>dart format</code> leaves prose untouched, so a comment wrapped at 80 will simply stay that way
+and look inconsistent with the code around it. Fill each line before wrapping to the next.</p>
+<h2 id="translations-i18n">Translations (i18n)</h2>
+<p><strong>CRITICAL</strong>: Never manually edit <code>lib/l10n/app_*.arb</code> files - they are generated.</p>
+<h3 id="adding-new-translations">Adding New Translations</h3>
+<ol>
+<li>Edit <code>translation/source/mobile.xml</code> for mobile-specific strings</li>
+<li>Regenerate everything:</li>
+</ol>
+<pre tabindex="0"><code class="language-bash">./scripts/gen-translations.sh
+</code></pre>
+<p>This runs <code>gen-arb.mjs</code>, <code>flutter gen-l10n</code>, and <code>gen-widget-strings.mjs</code> in order.</p>
+<p>Mobile-specific translations get a <code>mobile</code> prefix (e.g., &quot;foo&quot; becomes <code>mobileFoo</code> in Dart).</p>
+<h2 id="architecture">Architecture</h2>
+<h3 id="directory-structure">Directory Structure</h3>
+<pre tabindex="0"><code>lib/src/
+├── model/          # Business logic, state management (Riverpod providers)
+│   ├── account/
+│   ├── analysis/
+│   ├── auth/
+│   ├── challenge/
+│   ├── common/     # Shared models and utilities
+│   ├── engine/     # Stockfish integration
+│   ├── game/
+│   ├── puzzle/
+│   ├── settings/
+│   └── ...
+├── view/           # UI screens and pages
+│   ├── account/
+│   ├── analysis/
+│   ├── game/
+│   ├── home/
+│   ├── play/
+│   ├── puzzle/
+│   ├── settings/
+│   └── ...
+├── widgets/        # Reusable UI components
+├── network/        # HTTP client, WebSocket, connectivity
+├── utils/          # Helper functions and utilities
+├── styles/         # Theme, colors, icons
+├── db/             # Local database (sqflite)
+├── app.dart        # Main app widget
+├── binding.dart    # Plugin/API abstraction layer
+└── constants.dart  # App-wide constants
+</code></pre>
+<h3 id="key-architectural-patterns">Key Architectural Patterns</h3>
+<p><strong>State Management</strong>: Riverpod providers throughout <code>lib/src/model/</code>. Controllers, repositories, and services are implemented as providers. State is immutable and managed with Freezed data classes.</p>
+<p><strong>Riverpod version: 3.x — API differences from 2.x (CRITICAL)</strong></p>
+<p>This project uses <code>flutter_riverpod 3.x</code> / <code>riverpod 3.x</code>. Several APIs changed from 2.x:</p>
+<ul>
+<li><strong><code>AsyncValue.value</code></strong> (not <code>valueOrNull</code>): In 3.x, <code>AsyncValue&lt;T&gt;.value</code> returns <code>T?</code> (null while loading/error). <code>valueOrNull</code> no longer exists.</li>
+<li><strong><code>ProviderListenable</code> is not exported</strong>: Do not use <code>ProviderListenable&lt;T&gt;</code> as a type annotation — it is an internal interface. The return type of <code>.select()</code> is also internal (<code>_ProviderSelector</code>). <code>ProviderListenableSelect</code> is exported but is an <em>extension</em> on <code>ProviderListenable</code>, not a class — it cannot be used as a type.<ul>
+<li>When you need to pass a provider or select result to <code>ref.watch</code>/<code>ref.read</code>/<code>ref.listenManual</code>, just pass it directly without naming the type. If a return type annotation is required (e.g. an abstract method), use two concrete methods (<code>readCurrentState()</code> + <code>listenToStateChanges()</code>) instead of trying to name the provider type.</li>
+</ul>
+</li>
+<li><strong><code>ref.listenManual</code> type inference</strong>: When the selected type is nullable (e.g. <code>provider.select((v) =&gt; v.value)</code> → <code>T?</code>), Dart cannot infer <code>StateT</code> because the callback signature is <code>void Function(StateT?, StateT)</code>. Always add an explicit type: <code>ref.listenManual&lt;T?&gt;(provider.select(...), listener)</code>.</li>
+<li><strong><code>listenManual</code> in <code>ConsumerState</code></strong>: Subscriptions set up in <code>initState()</code> via <code>ref.listenManual</code> are automatically cancelled when the widget is disposed. No need to store or cancel manually.</li>
+</ul>
+<p><strong>Binding Layer</strong>: <code>LichessBinding</code> (in <code>binding.dart</code>) provides a testable abstraction for plugins and external APIs:</p>
+<ul>
+<li>SharedPreferences</li>
+<li>Firebase (messaging, crashlytics)</li>
+<li>Stockfish factory</li>
+</ul>
+<p>Use <code>AppLichessBinding.ensureInitialized()</code> in production, <code>TestLichessBinding</code> in tests.</p>
+<p><strong>Network Layer</strong>:</p>
+<ul>
+<li>HTTP: <code>lib/src/network/http.dart</code> - Platform-specific clients (Cronet for Android, Cupertino for iOS) with authentication, caching, and retry logic</li>
+<li>WebSocket: <code>lib/src/network/socket.dart</code> - Handles ping/pong, message acks, auto-reconnection, event versioning</li>
+<li>Helper: <code>lichessUri(path, queryParams)</code> for HTTP, <code>lichessWSUri(path, queryParams)</code> for WebSocket</li>
+</ul>
+<p><strong>Services</strong>: Long-running background services initialized in <code>app.dart</code>:</p>
+<ul>
+<li><code>AccountService</code>, <code>NotificationService</code>, <code>MessageService</code>, <code>ChallengeService</code>, <code>CorrespondenceService</code></li>
+<li>Start in <code>_AppState.initState()</code></li>
+</ul>
+<p><strong>Navigation</strong>: Uses Flutter&#39;s Navigator with custom route resolution via <code>app_links.dart</code> for deep linking.</p>
+<h2 id="dart-event-loop-execution-model">Dart Event Loop Execution Model</h2>
+<p>Understanding Dart&#39;s event loop is critical for this codebase due to heavy async operations (network requests, WebSocket communication, Stockfish engine interaction).</p>
+<h3 id="event-loop-basics">Event Loop Basics</h3>
+<p>Dart is single-threaded and uses an event loop with two queues:</p>
+<ol>
+<li><p><strong>Microtask Queue</strong> (higher priority)</p>
+<ul>
+<li>Executed before the event queue</li>
+<li>Scheduled with <code>scheduleMicrotask()</code> or via <code>Future</code> completions</li>
+<li>Used internally by <code>Future.then()</code>, <code>async</code>/<code>await</code></li>
+</ul>
+</li>
+<li><p><strong>Event Queue</strong> (lower priority)</p>
+<ul>
+<li>I/O events, timers, user interactions</li>
+<li>Scheduled with <code>Future()</code>, <code>Timer</code>, <code>Stream</code> events</li>
+<li>UI rendering happens between event queue items</li>
+</ul>
+</li>
+</ol>
+<p><strong>Execution order</strong>:</p>
+<pre tabindex="0"><code>1. Execute current synchronous code
+2. Process ALL microtasks (until microtask queue is empty)
+3. Process ONE event from event queue
+4. Repeat from step 2
+</code></pre>
+<h3 id="asyncawait-behavior">Async/Await Behavior</h3>
+<pre tabindex="0"><code class="language-dart">// This does NOT block the event loop
+Future&lt;void&gt; fetchData() async {
+  final response = await http.get(uri);  // Yields to event loop
+  // Resumes here when response completes
+  processData(response);
+}
+</code></pre>
+<p>When <code>await</code> is encountered:</p>
+<ol>
+<li>Current function execution pauses</li>
+<li>Control returns to event loop</li>
+<li>Function resumes as a microtask when Future completes</li>
+</ol>
+<h3 id="common-patterns-in-this-codebase">Common Patterns in This Codebase</h3>
+<p><strong>Riverpod AsyncNotifier</strong>: State updates are async but don&#39;t block UI:</p>
+<pre tabindex="0"><code class="language-dart">class MyController extends AsyncNotifier&lt;Data&gt; {
+  @override
+  Future&lt;Data&gt; build() async {
+    // Fetches async, UI shows loading state
+    return await repository.getData();
+  }
+}
+</code></pre>
+<p><strong>WebSocket Message Handling</strong> (see <code>lib/src/network/socket.dart</code>):</p>
+<ul>
+<li>Messages arrive as events</li>
+<li>Processed in event queue</li>
+<li>Microtasks schedule state updates</li>
+</ul>
+<p><strong>Stockfish Engine Communication</strong>:</p>
+<ul>
+<li>Engine runs in isolate (separate event loop)</li>
+<li>Communication via <code>SendPort</code>/<code>ReceivePort</code> (event queue)</li>
+</ul>
+<h3 id="important-gotchas">Important Gotchas</h3>
+<p><strong>Microtask Queue Starvation</strong>: Never create infinite microtask loops - they block the event queue and freeze the UI:</p>
+<pre tabindex="0"><code class="language-dart">// BAD - Starves event queue
+void badLoop() {
+  scheduleMicrotask(() {
+    doWork();
+    badLoop();  // Immediately schedules another microtask
+  });
+}
+
+// GOOD - Allows event queue processing
+void goodLoop() {
+  Future(() {  // Uses event queue
+    doWork();
+    goodLoop();
+  });
+}
+</code></pre>
+<p><strong>Future vs Future.microtask</strong>:</p>
+<ul>
+<li><code>Future(callback)</code> → event queue</li>
+<li><code>Future.microtask(callback)</code> → microtask queue</li>
+<li>Prefer event queue for non-critical work</li>
+</ul>
+<p><strong>Stream Subscriptions</strong>: Always cancel to prevent memory leaks:</p>
+<pre tabindex="0"><code class="language-dart">// In StatefulWidget or Riverpod
+final subscription = stream.listen(onData);
+
+@override
+void dispose() {
+  subscription.cancel();  // Critical!
+  super.dispose();
+}
+</code></pre>
+<p><strong>Testing with fake_async</strong>: Use <code>FakeAsync</code> for tests involving timers and microtasks to control time progression.</p>
+<h2 id="coding-standards">Coding Standards</h2>
+<h3 id="immutability-required">Immutability (Required)</h3>
+<p>All data structures must be immutable (all fields <code>final</code> or <code>late final</code>):</p>
+<ul>
+<li>Use <strong>Freezed</strong> for data classes</li>
+<li>Use <strong>fast_immutable_collections</strong> for collections in public APIs</li>
+<li>Standard Dart collections (<code>List</code>, <code>Map</code>) are forbidden in public APIs but allowed in local scopes</li>
+</ul>
+<h3 id="strong-typing">Strong Typing</h3>
+<p>Prefer strong types over primitives (e.g., <code>Duration</code> instead of <code>int</code>).</p>
+<h3 id="dot-shorthand-syntax-dart-310">Dot Shorthand Syntax (Dart 3.10+)</h3>
+<p>Use dot shorthand syntax (<code>.foo</code>) to write more concise code when the type can be inferred from context. This is especially useful for enums, named constructors, and static members.</p>
+<pre tabindex="0"><code class="language-dart">// Enums - use shorthand
+Status current = .running;           // Good
+Status current = Status.running;     // Verbose
+
+// Switch statements
+switch (status) {
+  case .running: ...
+  case .stopped: ...
+}
+
+// Named constructors
+Point p = .origin();                 // Good
+Point p = Point.origin();            // Verbose
+
+// Widget properties
+MainAxisAlignment: .center,          // Good
+MainAxisAlignment: MainAxisAlignment.center,  // Verbose
+
+// Equality checks (shorthand on right side)
+if (color == .red) ...               // Good
+if (.red == color) ...               // Won&#39;t work
+</code></pre>
+<p><strong>Note</strong>: Shorthand requires clear context type inference and cannot start expression statements.</p>
+<h3 id="functional-style">Functional Style</h3>
+<p>Prefer functional constructs over imperative:</p>
+<pre tabindex="0"><code class="language-dart">// Good
+return [
+  if (check) Text(&#39;conditional&#39;),
+  for (el in items) Text(el.name),
+];
+
+// Bad
+final widgets = &lt;Widget&gt;[];
+if (check) widgets.add(Text(&#39;conditional&#39;));
+for (el in items) widgets.add(Text(el.name));
+</code></pre>
+<h3 id="widget-guidelines">Widget Guidelines</h3>
+<ul>
+<li>Avoid functions returning widgets (use <code>StatelessWidget</code> for reusables)</li>
+<li>Don&#39;t create private widgets used only once - inline them</li>
+<li>Write reusable widgets as classes even if single-screen scope</li>
+</ul>
+<h3 id="analysis">Analysis</h3>
+<ul>
+<li>Strict mode enabled: <code>strict-casts</code>, <code>strict-inference</code>, <code>strict-raw-types</code></li>
+<li>Use single quotes for strings</li>
+<li>Always use package imports (no relative imports)</li>
+<li>Page width: 100 characters</li>
+<li>Generated files (<code>*.g.dart</code>, <code>*.freezed.dart</code>) are excluded from analysis</li>
+</ul>
+<h2 id="code-generation">Code Generation</h2>
+<p>This project heavily uses code generation. Always run <code>dart run build_runner build</code> (or <code>watch</code>) after:</p>
+<ul>
+<li>Modifying Freezed classes</li>
+<li>Adding JSON serialization</li>
+<li>Changing models with code generation annotations</li>
+</ul>
+<p>Generated files are NOT committed to git.</p>
+<h2 id="common-gotchas">Common Gotchas</h2>
+<ul>
+<li><strong>Don&#39;t edit generated files</strong>: Anything ending in <code>.g.dart</code>, <code>.freezed.dart</code>, or in <code>lib/l10n/</code></li>
+<li><strong>Translations</strong>: Start with hardcoded English text for new features. Add translations after the feature is stable and in use</li>
+<li><strong>Error messages</strong>: Don&#39;t translate non-critical error messages (e.g., &quot;could not load XY&quot;)</li>
+<li><strong>Brand names</strong>: Don&#39;t translate names like &quot;Puzzle Storm&quot; or &quot;Puzzle Streak&quot;</li>
+<li><strong>FVM users</strong>: Remember to prefix commands with <code>fvm</code> (e.g., <code>fvm flutter test</code>)</li>
+</ul>
+<h2 id="ios-home-screen-widgets-widgetkit-extension">iOS Home Screen Widgets (WidgetKit Extension)</h2>
+<p>The app includes a native iOS WidgetKit extension (<code>ios/LichessWidgets/</code>) providing home screen widgets. See <code>ios/EXTENSIONS.md</code> for contributor setup instructions (requires Apple Developer account configuration).</p>
+<h3 id="architecture">Architecture</h3>
+<ul>
+<li><strong><code>LichessWidgetsBundle.swift</code></strong> — <code>@main</code> entry point registering all 4 widgets.</li>
+<li><strong><code>LichessAppGroup.swift</code></strong> — Reads shared <code>UserDefaults</code> from App Group <code>group.org.chesssrs.app.LichessWidgets</code>:<ul>
+<li><code>lichessHost</code>, <code>boardTheme</code>, <code>pieceSet</code>, <code>isKidMode</code></li>
+</ul>
+</li>
+<li><strong><code>Deeplinks.swift</code></strong> — Custom URI scheme encoding for opening URLs in the in-app browser.</li>
+<li><strong>Dependencies</strong>: WidgetKit, ChessgroundAssets (Swift Package, shared with Dart), FeedKit, XMLKit.</li>
+</ul>
+<h3 id="flutter-integration">Flutter Integration</h3>
+<p>The Flutter app (via <code>home_widget</code> package) writes to the shared App Group from <code>app.dart</code>:</p>
+<ul>
+<li><code>lichessHost</code> — server URL</li>
+<li><code>boardTheme</code> / <code>pieceSet</code> — board appearance (triggers <code>DailyPuzzleWidget</code> reload)</li>
+<li><code>isKidMode</code> — hides blog widgets when active (triggers blog widget reload)</li>
+</ul>
+<p>When modifying widget-related settings or board theme/piece set preferences in Dart, ensure the corresponding <code>HomeWidget.saveWidgetData</code> call and <code>HomeWidget.updateWidget</code> are kept in sync in <code>lib/src/app.dart</code>.</p>
+<p>Widget UI strings are translated via <code>ios/LichessWidgets/Localizable.xcstrings</code> (a String Catalog). To add a new translatable string, register it under <code>WIDGET_KEYS</code> in <code>scripts/gen-widget-strings.mjs</code> and run <code>./scripts/gen-translations.sh</code>.</p>
+<h3 id="code-signing">Code Signing</h3>
+<p>The extension has its own bundle ID (<code>org.lichess.mobileV2.LichessWidgets</code>) and App Group entitlement. fastlane <code>sync_code_signing</code> handles provisioning for both targets (see <code>ios/fastlane/Matchfile</code>).</p>
+<h2 id="debugging">Debugging</h2>
+<pre tabindex="0"><code class="language-bash">## Start DevTools for logging
+dart devtools
+
+## Then run app and follow printed link
+flutter run
+</code></pre>
+<hr>
+<h2 id="agent-operating-guidelines-amp-authority-hierarchy-agentsmd">Agent Operating Guidelines &amp; Authority Hierarchy (AGENTS.md)</h2>
+<h2 id="agent-operating-guidelines-amp-authority-hierarchy">Agent Operating Guidelines &amp; Authority Hierarchy</h2>
+<h2 id="0-foundation-context-read-first">0. Foundation context (read first)</h2>
+<p>This application is a <strong>fork of Lichess Mobile</strong> (GPL-3.0) rebuilt as a
+<strong>local-first chess repertoire + spaced-repetition trainer</strong>. The previous
+standalone implementation is archived at git tag <code>legacy/pre-reset</code> — it is
+reference material only. Never resurrect old <code>lib/</code> code because class names
+look familiar; the domain <em>contracts</em> are specified in the Markdown documents
+and must be reimplemented cleanly inside the Lichess Mobile architecture.</p>
+<p>Before doing anything in the codebase, read:</p>
+<ol>
+<li><code>ARCHITECTURE.md</code> (layer boundaries, licensing constraints)</li>
+<li><code>CUT_PROPOSALS.md</code> (what Lichess functionality is removed/kept, and status)</li>
+<li><code>docs/INTEGRATION_MAP.md</code> (how Listudy/chessrs concepts are integrated)</li>
+<li><code>CLAUDE.md</code> in the repo root — the Lichess Mobile contributor guide
+(Riverpod 3.x patterns, Freezed, code generation, formatting, testing
+patterns). It remains authoritative for the foundation&#39;s conventions.</li>
+</ol>
+<h2 id="1-the-authority-hierarchy">1. The Authority Hierarchy</h2>
+<pre tabindex="0"><code class="language-text">PRODUCT.md
+    ↓ (product vision, user journeys, functional &amp; UX requirements)
+MVP.md
+    ↓ (current active scope, included/excluded capabilities)
+ARCHITECTURE.md
+    ↓ (Lichess foundation, layer boundaries, licensing)
+QUALITY.md
+    ↓ (non-negotiable engineering, domain, performance invariants)
+TEST_STRATEGY.md
+    ↓ (how invariants are mechanically proven)
+IMPLEMENTATION_PLAN.md
+    ↓ (phases, tasks, execution status)
+AGENTS.md  ← you are here
+</code></pre>
+<p><strong>Rule</strong>: Code implements specifications. Code is not the specification. If
+requirements or architectural boundaries change, update the authoritative
+specification documents accordingly.</p>
+<h2 id="2-development-phases-beta-first">2. Development phases (beta-first)</h2>
+<p>The strategy is: <strong>foundation → minimal vertical slice → beta → feedback →
+refinement → additional modules</strong>. See <code>IMPLEMENTATION_PLAN.md</code> for the live
+phase status. The owner is the beta tester. Do not gold-plate before the core
+review loop is in the owner&#39;s hands.</p>
+<p>Do NOT start Listudy/chessrs integration work until the foundation is stable
+and the vertical slice exists (unless the task explicitly says otherwise).</p>
+<h2 id="3-the-development-loop">3. The Development Loop</h2>
+<p>Every engineering task must follow:</p>
+<pre tabindex="0"><code class="language-text">1. SELECT READY TASK from IMPLEMENTATION_PLAN.md (dependencies complete).
+2. READ THE SPEC: PRODUCT/MVP/ARCHITECTURE/QUALITY sections that apply.
+3. DEFINE A SMALL CONTRACT: testable, incremental brick.
+4. WRITE TESTS with the contract (dart test, widget test, or integration
+   test as appropriate).
+5. IMPLEMENT minimally, following Lichess Mobile conventions (CLAUDE.md).
+6. TARGETED VERIFICATION: run the specific test file — once, and on a budget
+   (see §3.1). The owner&#39;s machine heats up under repeated local runs; every
+   local run you skip is a run CI does for you on merge.
+7. STATIC CHECK: `flutter analyze` on the files you touched.
+   The full suite is CI&#39;s job — see the note on ./verify below. Do not run
+   `./verify` as part of the inner loop.
+8. RUNTIME VALIDATION (see §4) for anything user-visible.
+9. FIX ROOT CAUSES; add permanent regression tests.
+10. UPDATE IMPLEMENTATION_PLAN.md / spec docs if boundaries changed.
+11. ATOMIC COMMIT matching repository conventions.
+</code></pre>
+<h3 id="31-local-test-budget-the-machine-is-not-a-build-server">3.1 Local test budget (the machine is not a build server)</h3>
+<p>CI runs the full suite on every push. Local runs exist only to answer &quot;does
+my change do what I claim&quot; — one answer, minimum heat:</p>
+<ul>
+<li>Iterate with <code>fvm flutter test &lt;file&gt; --plain-name &#39;&lt;test name&gt;&#39;</code>: one test,
+not the file. The full file runs exactly once, at the end.</li>
+<li>Never run neighbouring files, whole directories, or <code>./verify</code> locally to
+&quot;be safe&quot; — that safety is what the PR&#39;s CI run is for. If you have a
+concrete reason to suspect cross-file breakage, state it in the PR instead
+of running it.</li>
+<li>The fail-on-old-code check (stash + rerun) counts as the second run of the
+file: pass run + fail run, then stop. No third run.</li>
+<li>One <code>flutter analyze</code> per task, on the files touched, after the last edit —
+not after every edit.</li>
+<li>Never run two heavy commands at once (no test run beside build_runner, no
+parallel worktrees verifying simultaneously). The per-worktree
+<code>build_runner build</code> (~85s) is the one unavoidable cost; everything else is
+negotiable.</li>
+<li><code>fvm flutter run -d linux</code> for runtime validation is exempt from the
+budget but stays bounded: launch, exercise, quit. No release builds, ever
+(§4).</li>
+</ul>
+<h3 id="isolation-one-worktree-per-task-main-only-by-merged-pr">Isolation: one worktree per task, <code>main</code> only by merged PR</h3>
+<p>More than one agent works in this repository at a time. Each task gets its own
+git worktree and its own branch, so no two agents share a working tree. <code>main</code>
+is updated only by merging a PR that CI has passed — never pushed to directly.</p>
+<p><strong>The repository is <code>cassandre60/ChessSRS</code>. Nothing else.</strong> A second repository,
+<code>cassandre60/chess-repertoire-srs</code>, held all 195 PRs until 2026-10-07 and is now
+an archived read-only fork. It was created four days <em>later</em> than ChessSRS and so
+looked newer, which is how every PR kept landing in the wrong place. Nothing has
+landed there since. Do not open a PR against it, do not push a branch to it, do
+not clone it, and if a remote resolves to <code>chess-repertoire-srs</code>, fix it before
+doing anything else.</p>
+<pre tabindex="0"><code class="language-bash">## once per task, from anywhere
+git remote set-url origin https://github.com/cassandre60/ChessSRS.git
+git worktree add ../chesssrs-&lt;slug&gt; -b &lt;type&gt;/&lt;area&gt;-&lt;slug&gt; origin/main
+cd ../chesssrs-&lt;slug&gt;
+
+## required before anything will compile: generated files are gitignored, so they
+## are per-worktree. Without this every test fails with &quot;No such file or directory&quot;
+## on a *.freezed.dart or *.g.dart import. ~85s.
 fvm flutter pub get
-fvm dart run build_runner build --delete-conflicting-outputs</code></pre>
-      </div>
-      <div class="callout spec">
-        <div class="callout-title">Worktree Isolation Invariant</div>
-        <p>Never run git commands that write outside your worktree. Never run <code>git add -A</code> blindly. Stage touched files explicitly by name.</p>
-      </div>
-    </section>
-
-    <section id="codegen">
-      <h2>3. Code Generation (build_runner)</h2>
-      <p>
-        ChessSRS uses <code>Freezed</code> for immutable data classes, <code>Riverpod</code> generators for dependency injection, and <code>drift</code> for SQLite queries. Generated files (<code>*.freezed.dart</code>, <code>*.g.dart</code>) are gitignored:
-      </p>
-      <div class="code-block">
-        <div class="code-header"><span>Running Codegen</span><span>Bash</span></div>
-        <pre tabindex="0"><code># Run one-off build
 fvm dart run build_runner build --delete-conflicting-outputs
 
-# Format generated l10n files if touched
-dart format lib/l10n/</code></pre>
-      </div>
-    </section>
+## ... work, stage BY NAME, commit, push
+git push -u origin &lt;branch&gt;
+gh pr create -R cassandre60/ChessSRS
 
-    <section id="style-rules">
-      <h2>4. Coding Conventions</h2>
-      <ul>
-        <li><strong>Riverpod 3.x:</strong> Prefer <code>.value</code> over <code>valueOrNull</code>. Avoid obsolete <code>ProviderListenable</code> type annotations. Prefer HTTP-layer mocking over global provider overrides.</li>
-        <li><strong>Formatting:</strong> Page width 100, single quotes, strict casts and inference (<code>analysis_options.yaml</code>).</li>
-        <li><strong>Translations:</strong> Hardcoded English initially during prototyping; migrate to <code>lib/l10n/app_en.arb</code> once stabilized.</li>
-      </ul>
-    </section>
+## after the PR is green and merged
+git worktree remove ../chesssrs-&lt;slug&gt; &amp;&amp; git worktree prune
+</code></pre>
+<p>Branch names are <code>&lt;type&gt;/&lt;area&gt;-&lt;slug&gt;</code> — <code>fix/review-redirects</code>,
+<code>feat/design-tokens</code>. Not <code>agent1/…</code>: the branch should describe the change, so
+it reads the same whoever picks it up.</p>
+<p><strong>A docs-only PR gets no CI run at all, and that is deliberate.</strong> The workflow&#39;s
+<code>paths</code> filter lists what the job actually reads — <code>lib/</code>, <code>test/</code>, the build and
+lint configuration, <code>assets/</code>, <code>scripts/</code> — and Markdown is not among them,
+because no step in the job reads it. So for a change touching only <code>.md</code> files,
+&quot;CI is green&quot; means <em>no checks were reported</em>, not <em>checks passed</em>. Say so in the
+PR rather than leaving a reviewer to wonder whether it ran. If a docs change ever
+does need a check, add a small dedicated workflow triggered on <code>**.md</code>; do not
+widen the test job&#39;s filter just to make a doc edit look verified.</p>
+<p>Four rules, each of which exists because breaking it has cost real work:</p>
+<ul>
+<li><strong>Never run a git command that writes outside your own worktree.</strong> No
+<code>git -C &lt;other-path&gt; reset</code>, <code>checkout --</code>, <code>clean</code>, or <code>stash</code>. A <code>git reset --hard</code> or <code>git checkout -- .</code> in a <em>shared</em> tree silently destroys every
+uncommitted change another agent has made, and there is no undo for it:
+unstaged content is never written to the object store, so <code>git fsck</code> cannot
+recover it. This has happened here once already.</li>
+<li><strong>Never <code>git add -A</code>.</strong> Stage by name. It is the same failure by another route,
+and it survives into a commit.</li>
+<li><strong>Never delete a worktree you did not create.</strong> <code>git worktree list</code> first.</li>
+<li><strong>Check <code>git status</code> before and after anything that touches the tree</strong>, so you
+can tell what you changed from what someone else changed.</li>
+<li><strong>Never push to, merge, or close a branch or PR you did not create without
+re-reading its live state first.</strong> More than one agent pushes here: <code>git fetch origin &lt;branch&gt;</code> and compare tips before pushing (a rejected push means
+someone else moved it — integrate, don&#39;t force), and re-read the PR&#39;s state
+and head-sha immediately before merging or closing it. A reading minutes old
+has closed, merged, or moved under you before. Verified 2026-10-08: one
+rejected push, one close overridden by reopen, one merge raced, all on
+shared branches.</li>
+</ul>
+<p>Isolation makes conflicts <em>visible</em> — two agents editing one file become a merge
+conflict instead of a silent overwrite. It does not make them <em>agree</em>. When two
+tasks touch the same subsystem, say so before starting; the worktree will not
+resolve a disagreement about what the code should do.</p>
+<p><strong>Recovery is faster than prevention, but it is not guaranteed.</strong> If another
+agent&#39;s uncommitted work is at risk, it exists only in their working tree.
+Commit early and often on your own branch, and take a filesystem snapshot if
+you have one.</p>
+<h3 id="lichess-mobile-conventions-that-always-apply">Lichess Mobile conventions that always apply</h3>
+<ul>
+<li>Riverpod 3.x (<code>.value</code>, not <code>valueOrNull</code>; no <code>ProviderListenable</code> type
+annotations). Prefer HTTP-layer mocking over provider overrides in tests.</li>
+<li>Freezed + fast_immutable_collections for data classes; generated files are
+never committed; run <code>dart run build_runner build</code> after model changes.</li>
+<li><code>flutter analyze</code> on every edited file (including tests) — zero warnings.</li>
+<li><code>dart format</code> every edited file (page width 100, from <code>analysis_options.yaml</code> —
+so run <code>fvm flutter pub get</code> first: with unresolved includes the formatter
+silently falls back to width 80 and rewrites hundreds of lines).</li>
+<li>Package imports, single quotes, strict-casts/inference/raw-types.</li>
+<li>Translations: hardcoded English first; l10n pipeline only after stability.</li>
+</ul>
+<h3 id="visual-work">Visual work</h3>
+<p>For anything touching layout, colour, typography, iconography, motion, or
+component choice, follow <code>design/docs/</code> (see <code>design/README.md</code>), not Lichess
+Mobile&#39;s visual conventions in the inherited <code>CLAUDE.md</code>. Lichess Mobile
+conventions still apply to non-visual engineering practices (testing,
+architecture, commit hygiene) inherited via <code>CLAUDE.md</code>.</p>
+<p>Screenshot evidence is required for visual PRs (this was already the rule; it
+now also applies against the design package): capture the affected screens at
+phone, tablet and desktop widths, light and dark, and compare them against
+<code>design/reference/index.html</code> shown at the same sizes/themes.</p>
+<h2 id="4-runtime-validation-is-mandatory">4. Runtime validation is mandatory</h2>
+<p>Past sessions produced green <code>./verify</code> runs while the real app had runtime
+errors or looked nothing like the intended UI. Therefore, for every
+user-visible milestone:</p>
+<ol>
+<li>The suite is green — from CI, or <code>./verify</code> when working offline.</li>
+<li><strong>Launch the real application</strong> (Linux desktop or attached device) and
+manually exercise the affected feature.</li>
+<li>Visually inspect the UI. For UI work, screenshot/runtime inspection is
+required — &quot;tests pass&quot; is not evidence of &quot;visual pass&quot;.</li>
+<li>Only then declare the milestone complete and record it in
+<code>IMPLEMENTATION_PLAN.md</code>.</li>
+</ol>
+<p>Record what step 2 cannot cover in <code>docs/manual-test-log.md</code>, in the same PR
+that ships the change — not afterwards, when the context is gone. Sound and
+haptics are the standing case: <code>FakeSoundService</code> returns <code>Future.value()</code>, so
+every audio test in this repo passes identically whether the volume is at zero
+or the audio session is dead. A green suite is not evidence that a speaker
+produced anything.</p>
+<p>Decisions engineering cannot make for the owner go in <code>docs/open-questions.md</code>
+with what is known, what is not, and what is needed to settle it — rather than in
+a PR comment or a chat that scrolls away. Measurement that needs no decision does
+not belong there.</p>
+<p>Commands (FVM-pinned toolchain):</p>
+<pre tabindex="0"><code class="language-bash">fvm flutter pub get
+dart run build_runner build      # after model/codegen changes
+fvm flutter analyze
+fvm flutter test
+fvm flutter run -d linux          # runtime validation
+</code></pre>
+<p><code>./verify</code> runs <code>flutter analyze</code> followed by <code>flutter test</code> over the whole
+suite — around 1400 tests, with no path filter. That saturates the machine
+and takes minutes, so it is a <strong>pre-push and milestone gate, not an
+inner-loop step.</strong></p>
+<ul>
+<li><strong>Per change:</strong> <code>flutter analyze</code> on the files you touched, plus the one
+test file covering the change. That is the loop.</li>
+<li><strong>Per push / before declaring a milestone:</strong> let GitHub Actions do it. CI
+runs <code>flutter test</code> on every push and is the authority on whether the suite
+is green, so a local full-suite run before that push is duplicate work, not
+extra safety. Run <code>./verify</code> locally only when CI is unavailable or you
+specifically need the answer before pushing. Wait on a run with
+<code>gh run watch &lt;id&gt; --exit-status</code>, not sleep-and-poll loops.</li>
+</ul>
+<p>Say plainly in the commit message when a change was verified only by
+targeted tests, so nobody mistakes it for a full-suite result.</p>
+<p><strong>Release builds never run on a dev machine.</strong> <code>flutter build appbundle/apk --release</code>
+(R8 + native engines) OOM-killed a 15GB desktop mid-build, and Gradle&#39;s Groovy compiler cannot
+run on that machine&#39;s Java 27 at all. Release artifacts come only from the <code>release-proof</code>
+workflow on GitHub runners (dispatch it, or touch its file in a PR). Never attempt a local
+release build to &quot;prove&quot; anything — the proof already has a home, and the crash it risks is the
+owner&#39;s working machine, not a throwaway VM.</p>
+<h2 id="5-quality-gates-and-invariants">5. Quality gates and invariants</h2>
+<ul>
+<li><code>QUALITY.md</code> invariants are binding: pure domain layer, single chess
+representation (dartchess), local-first critical path, variation
+preservation, position identity, incremental persistence, deterministic
+clocks.</li>
+<li><code>TEST_STRATEGY.md</code> defines the enforcement matrix; update it when the
+enforcement mechanism changes (not just when tests move).</li>
+<li>Old legacy tests (tag <code>legacy/pre-reset</code>) are <em>contract references</em>: mine
+them for intended behavior, then translate valuable cases into new tests.
+Never copy old tests that merely encode the old architecture.</li>
+</ul>
+<h2 id="6-feature-creep-policy">6. Feature-creep policy</h2>
+<p>Default answer to new features is <strong>no</strong>. No achievements, gamification,
+dashboards, social features, analytics, cloud sync, or accounts unless
+explicitly justified by the product specs or later beta feedback (clustered
+and reviewed first). When uncertain: prefer deleting unnecessary things.</p>
+<h2 id="7-licensing-discipline">7. Licensing discipline</h2>
+<ul>
+<li>We are a GPL-3.0 fork: preserve <code>LICENSE</code>/<code>COPYING.md</code> and copyright
+notices whenever trimming Lichess code.</li>
+<li>chessrs (GPL): attribution if adapting; prefer reimplementation.</li>
+<li>listudy (AGPL): behavior only, never code.</li>
+</ul>
+<h2 id="8-chess-domain-references">8. Chess-domain references</h2>
+<p>When solving PGN-tree, repertoire-training, or SRS problems, inspect the
+reference repositories first (see <code>docs/INTEGRATION_MAP.md</code> for what to take
+and what to ignore):</p>
+<ul>
+<li><a href="https://github.com/ZackMurry/chessrs">https://github.com/ZackMurry/chessrs</a> (SRS scheduling, review queues)</li>
+<li><a href="https://github.com/ArneVogel/listudy">https://github.com/ArneVogel/listudy</a> (study trees, training variations)</li>
+</ul>
+<p>Do not invent a third architecture when proven behavior exists. Also check
+Lichess Mobile&#39;s own <code>model/study/</code> and <code>model/common/node.dart</code> — the
+foundation already contains study-tree and game-tree prior art.</p>
+<h2 id="9-cut-discipline-phase-1-and-beyond">9. Cut discipline (Phase 1 and beyond)</h2>
+<ul>
+<li>Follow <code>CUT_PROPOSALS.md</code>; do not silently make controversial cuts.</li>
+<li>One subsystem per commit; after each cut: targeted tests + launch + smoke
+run. Run the full gate once at the end of a batch, not per cut.</li>
+<li>Trace dependencies before deleting: a removed feature may leave a reusable
+primitive (filter widget, avatar, sheet) that other survivors need.</li>
+<li>Keep GPL notices of any removed-origin code that still shares files.</li>
+</ul>
+<h2 id="10-quality-gates-rules-for-any-agent-or-contributor-working-here">10. Quality gates: rules for any agent or contributor working here</h2>
+<p>This repository is gated. Your job is to get a change accepted by the gates
+honestly, not to make the gates go green. Before editing, read <code>SPEC.md</code>
+(invariants with stable IDs), <code>GATES.md</code> (everything that can reject you),
+<code>GATES_PLAN.md</code> (what is deliberately not gated), and <code>.gates/</code>.</p>
+<ol>
+<li>Classify your change (bugfix, perf, refactor, feature, test-only,
+dependency, docs, gate-change, spec-change) and gather the evidence that
+class requires — see <code>.github/PULL_REQUEST_TEMPLATE.md</code> and <code>GATES.md</code>.
+A bugfix starts with a test that fails on the current code.</li>
+<li>Never edit the referee to get a pass: <code>SPEC.md</code>, <code>GATES.md</code>,
+<code>GATES_PLAN.md</code>, <code>QUALITY.md</code>, <code>TEST_STRATEGY.md</code>, <code>CODEOWNERS</code>, <code>.gates/</code>,
+<code>redteam/</code>, <code>scripts/gates*</code>, CI config, <code>analysis_options.yaml</code>,
+<code>pubspec.yaml</code>, ratchet baselines, <code>AGENTS.md</code>/<code>CLAUDE.md</code>, the PR
+template. If you think a gate is wrong, stop and propose a separate
+gate-change PR with evidence — never bundle it with product code.</li>
+<li>Never weaken a check: no deleted or loosened assertions, no
+skip/ignore/xfail, no new suppressions, no widened tolerances, no mocking
+the subject under test, no hardcoded expected values, no catch-all error
+handling. The tripwire (G08) diffs for exactly this.</li>
+<li>When a gate fails, fix the code. Reproduce with the printed command, and
+address the root cause. After 3 failed attempts on the same gate, stop and
+report what you learned instead of iterating blindly.</li>
+<li>Run <code>./scripts/gates.sh t1</code> (needs <code>BASE_REF</code>, defaults to <code>origin/main</code>)
+before pushing — <strong>after committing</strong>, because the diff-based gates read
+<code>origin/main...HEAD</code> and see nothing at all while your work is still in the
+working tree. A pre-commit run that reports G08 &quot;clean&quot; is not evidence; run
+the same command again on the committed branch. The full suite stays CI&#39;s job
+per §3.1.</li>
+<li>New tests cite their invariant (<code>// SPEC INV-xxx.</code>); G05 rejects
+orphaned invariants and unknown IDs.</li>
+<li>Fixing a bug the gates missed? Follow <code>docs/ESCAPE_TO_GATE.md</code> —
+regression test, SPEC invariant, red-team case, escapes-log row, in
+that order. The flywheel only turns if you turn it.</li>
+<li>Report honestly: what you ran, what passed, what you could not run, and
+what remains unverified.</li>
+</ol>
+<h2 id="11-releases-when-to-cut-one-agent-decides-owner-doesn39t">11. Releases: when to cut one (agent decides, owner doesn&#39;t)</h2>
+<p>The release workflow (<code>.github/workflows/release.yml</code>) is the executable
+truth. Tags (<code>git tag vX.Y.Z &amp;&amp; git push origin vX.Y.Z</code>) trigger automatic
+build + publish (see <code>docs/releases.md</code> for full policy). The agent
+evaluates after every merged green batch and cuts a release when ALL hold:</p>
+<ul>
+<li>Something the owner can feel changed (feature, fix, copy). Gate/CI/
+refactor/test-only/docs-only deltas ride silently.</li>
+<li>The work&#39;s PR went in green (T1 + Unit tests) with evidence intact.</li>
+<li>Nothing known-broken is pending; no unverified claims in release notes.</li>
+</ul>
+<p>Not worth releasing: invisible delta, same batch already tagged, or red tree.</p>
+<p>Versioning: patch (<code>x.y.Z</code>) fixes/copy, minor (<code>x.Y.0</code>) features/settings.
+Major stays <code>0</code> until owner declares otherwise. Watch Release workflow
+to green; report download link. Tags publish — never push casually,
+never move/delete a published tag.</p>
+<h2 id="lessons-learned">Lessons Learned</h2>
+<h3 id="where-the-open-threads-live-2026-10-14">Where the open threads live (2026-10-14)</h3>
+<p>Start here before asking what is outstanding. This section is the map; the files
+it names hold the detail.</p>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Thread</th>
+<th>File</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Anything needing an owner decision</td>
+<td><code>docs/open-questions.md</code></td>
+<td>Q1-Q5 answered, Q6 fixed 2026-10-14</td>
+</tr>
+<tr>
+<td>Performance work</td>
+<td><code>docs/performance-handoff.md</code></td>
+<td>mandate set, ~13 ms still unattributed</td>
+</tr>
+<tr>
+<td>Why performance is blocked</td>
+<td><code>docs/tasks/PERF-FIX-24-real-library-measurement.md</code></td>
+<td><strong>the benchmark is unreliable</strong>; fix the instrument before optimising</td>
+</tr>
+<tr>
+<td>Claims the suite cannot verify</td>
+<td><code>docs/manual-test-log.md</code></td>
+<td>one open item, needs a human</td>
+</tr>
+<tr>
+<td>Work queue</td>
+<td><code>docs/tasks/README.md</code></td>
+<td>claims marked in the brief banners</td>
+</tr>
+</tbody></table></div>
+<p>Two things that are <em>not</em> outstanding and should not be reopened without new
+information: the review move sound (#93) was confirmed audible by the owner, and
+<code>getDueReviewStates</code> was deleted on the owner&#39;s authorisation (#123).</p>
+<ul>
+<li><p>[2026-10-07, Space Bunny Free] <code>./scripts/gates.sh t1</code> run <em>before</em> committing is a
+green light that means nothing: the diff-based gates read <code>origin/main...HEAD</code>, so
+while the work is uncommitted HEAD is still the base and the diff is empty. Two
+reskin PRs (#186, #187) both reported <code>no test-weakening patterns found</code> locally and
+both failed CI&#39;s G08 with 8 and 13 findings respectively. Run the gate after the
+commit, or run <code>python3 scripts/gates/test_weakening_check.py --base origin/main</code>
+directly, which reads the same committed range and cannot be fooled by a dirty tree.
+Verified by: <code>gates.sh t1</code> printing &quot;clean&quot; with six modified files unstaged, then
+the same script run directly on the identical tree printing the findings CI did.</p>
+</li>
+<li><p>[2026-09-25, Space Bunny Free] The full suite is a pre-push gate, not a
+per-commit one; this file used to mandate the opposite, and an agent following
+it saturated the machine on every change. Do not restore per-commit
+<code>./verify</code> without measuring it. Verified by: the owner reporting 100% CPU
+and full-speed fans after repeated full-suite runs.</p>
+</li>
+<li><p>[2026-09-26, Space Bunny Free] A shared working tree is not survivable with more
+than one agent: <code>git reset --hard</code> run to sync with a squash-merge destroyed
+17 files of another agent&#39;s uncommitted work, ~10 of it recoverable from no ref
+at all. Unstaged content is never written to the object store, so <code>git fsck</code>
+cannot bring it back — recovery depends on editor history or a filesystem
+snapshot. Hence the worktree-per-task rule in §3. Verified by: <code>git status</code>
+going from 23 dirty files to 7, and by <code>git diff --quiet</code> against every branch
+showing the lost files identical to <code>main</code>.</p>
+</li>
+<li><p>[2026-09-26, Space Bunny Free] A fresh worktree cannot run a single test until
+<code>dart run build_runner build</code> has run in it — <code>*.freezed.dart</code> and <code>*.g.dart</code>
+are gitignored, so codegen output is per-worktree, not shared. The symptom is a
+wall of <code>No such file or directory</code> on generated imports that looks like a
+broken checkout. Costs ~85s per new worktree. Verified by: <code>flutter test</code>
+failing in a new worktree, then passing after build_runner.</p>
+</li>
+<li><p>[2026-09-26, Space Bunny Free] Audit&#39;s &quot;High confidence&quot; ratings do not
+predict whether a finding is a live defect in this fork. Of the findings
+checked line-by-line against upstream, five collapsed: M23 was 1 of 3 claims
+in scope, M4 was already fixed, H1&#39;s evidence was stale, M18 was not a defect
+(<code>ref.onDispose</code> fires on rebuild as well as on disposal, which is what clears
+the accumulator), and M17 was inherited unchanged <em>and</em> unreachable because
+nothing writes the table it reads. What correlated with a real, in-scope defect
+was file-level evidence pointing at fork-introduced code. Verified by: CI logs
+and <code>git diff upstream/main</code> on each claim before acting.</p>
+</li>
+<li><p>[2026-09-26, Space Bunny Free] <code>makeTestProviderScope</code> stubs
+<code>preloadedDataProvider</code>, which is the only code that reads the stored token and
+fires <code>/api/token/test</code> on startup. So no app-level test can ever observe the
+token check: the request cannot be issued by anything. A test asserting it was
+skipped for days and blamed on a CI/machine difference; it failed identically
+locally. Before debugging a missing startup request, check whether the harness
+replaced the provider that makes it. Verified by: counting HTTP client
+constructions in the test — the app built one, for FCM, and none for the token
+check. Full account in <code>docs/audit-disposition.md</code>.</p>
+</li>
+<li><p>[2026-09-27, Space Bunny Free] A test earns its place only if it fails when the
+code is <strong>wrong</strong>, not when it is merely <strong>different</strong>. The qualifying cases
+are: a defect just fixed, a contract that has already bitten us (44px targets,
+a tap actually reaching its row, a viewport not clipping its content), or an
+invariant in <code>QUALITY.md</code>. Of 18 tests added across the four settings
+reskin batches, 5 met that bar, 4 were reasonable, and 3 asserted only that a
+widget was absent -- so they would fail once the reskin deleted the type and
+would have to be deleted by hand. Mechanical renames get no per-item test: a
+reskin PR tests the defects it finds, not one assertion per file it converts.
+Verified by: removing the row count and the value text from the engine slider
+and watching both new tests fail, then pruning the three absent-type asserts
+and finding the suite unchanged.</p>
+</li>
+<li><p>[2026-09-28, Space Bunny Free] Several review tests are load-sensitive and will
+flake in a large run, because <code>pumpAsync</code> waits a fixed 80ms of <em>real</em> time for
+the controller&#39;s database futures and then pumps the fake clock by fixed amounts.
+Under CPU contention less real work fits inside that window, so the controller has
+not reloaded when the assertions run and they fail on absent data. <code>flutter test</code>
+gives each file its own isolate, so this is timing and not shared state: the same
+four directories failed three tests on one run and passed all 128 on the next,
+unchanged. Before blaming a change for one of these, re-run the file alone, and
+expect a large parallel run to be the trigger. The real fix is polling on a
+condition instead of sleeping a fixed interval, across the shared helpers.
+Verified by: <code>review_controller_test.dart</code> failing inside a 128-test run and
+passing 30/30 in isolation, with <code>pumpAsync</code>&#39;s <code>Future.delayed</code> as the only
+wall-clock wait in the path.</p>
+</li>
+<li><p>[2026-09-29, Muse Spark] &quot;Run the specific test file&quot; is not a budget: across
+eight phone-feedback PRs the agent ran each file 3-5 times (new-test-only,
+full file, stash fail-check, neighbouring files, repeat analyzes), plus a
+62-test engine file and a 15-test account batch locally — all work CI repeats
+on every push anyway. The owner&#39;s PC heated up for zero extra safety. Hence
+§3.1: iterate with --plain-name, one full-file run at the end, fail-check
+counts as run two, neighbours and ./verify are CI&#39;s job. Verified by: the
+owner reporting the heat and asking for the rule, against a history of green
+CI runs that had already covered every locally re-run file.</p>
+</li>
+<li><p>[2026-09-28, Space Bunny Free] <code>build_runner</code> writes <code>lib/l10n/*.dart</code> with
+different line wrapping than what is committed, so a fresh worktree shows 52
+files and ~38,000 changed lines that are pure formatting. Run
+<code>dart format lib/l10n/</code> after codegen and the diff disappears entirely.
+Do not commit the churn, and do not read a non-empty <code>git status</code> as real
+work: check whether <code>git diff lib/l10n/</code> is a formatting-only rewrite before
+concluding anything about what a worktree has changed. Verified by: 52 files
+/ 13,844 insertions / 24,106 deletions before the format, empty after, with
+the test suite green either way.</p>
+</li>
+<li><p>[2026-09-29, Space Bunny Free] Merging a batch of PRs is not delivering it: the
+owner&#39;s own <code>fvm flutter run</code> in the primary checkout is the acceptance gate for
+user-visible work, and that checkout stayed at <code>ea1d09678</code> while seven PRs merged
+to <code>388b38f3e</code>. A whole session was spent on &quot;the Account section is missing from
+Settings&quot; — a feature that arrived in PR #84, <em>after</em> the frozen commit — plus a
+second app window from a worktree, so two windows with different features produced
+contradictory observations that were chased in the wrong direction each time. After
+merging, pull <code>main</code> in the primary checkout and tell the owner it is current;
+verify with <code>git log --oneline -1</code> there against <code>origin/main</code>. Verified by: the
+Account section being unconditional in <code>SrsSettingsScreen</code> and present in
+<code>388b38f3e</code> but absent from <code>ea1d09678</code>, and the checkout log showing the stale
+commit throughout.</p>
+</li>
+<li><p>[2026-09-29, Space Bunny Free] <em>&quot;We couldn&#39;t find any user by this name&quot;</em> blames
+the user&#39;s typing and sends you auditing a regex and a repository that are
+byte-identical to upstream. <strong>Superseded 2026-10-02:</strong> the host default is now
+<code>lichess.org</code> (#124), so <code>--dart-define=LICHESS_HOST=lichess.org</code> is a no-op,
+and sign-in is verified working — that symptom had five separate causes, not
+one. Two parts of the original note still hold: no Lichess client accepts a
+password, so a &quot;user + password&quot; request is not implementable; and the
+ruled-out suspects (<code>_emailRegExp</code>, <code>AuthRepository</code>, <code>AuthController</code>,
+<code>UserRepository.usernameExists</code> are byte-identical to upstream) stay ruled out.
+Current state, the five-defect chain, and what is still unverified:
+<code>docs/open-email-login-handoff.md</code>. Verified by: the owner signing in through
+the browser on Linux desktop, and <code>GET /api/study/Gg4E2sIS.pgn → 200</code> in the
+app&#39;s <code>http_log</code>.</p>
+</li>
+<li><p>[2026-09-29, Space Bunny Free] A worktree is not a working directory, it is
+the <em>only</em> place you may write, and the isolation rule is easy to break by
+inattention rather than by a <code>git reset</code>. Editing two docs in the shared main
+tree while a worktree sat idle put the edits among another agent&#39;s in-flight
+l10n churn, where they would have been committed as part of unrelated work or
+reverted with it. Nothing was lost because the diff was saved first, but it
+had to be extracted, checked line by line to confirm it contained only those
+two files&#39; changes, reverted, and redone in a worktree. Do all editing inside
+the worktree and branch from <code>origin/main</code>, not local <code>main</code>: local main was
+1 commit ahead of origin with another agent&#39;s unpushed work, so a branch cut
+from it would have carried their commit into the PR. Verified by: diffing the
+two files to confirm 29 added lines and 0 deletions before reverting, then
+re-applying the same patch on a fresh branch off <code>ea1d09678</code>.</p>
+</li>
+<li><p>[2026-09-30, Space Bunny Free] <code>e57fcb411</code> is NOT an ancestor of <code>HEAD</code>, so
+<code>git log HEAD..upstream/main</code> overstates the upstream gap: fixes reach this fork
+only as hand-squashed cherry-picks, and at least five are already applied under
+different hashes (<code>a99dad8a1</code>→<code>bcb66ad5b</code>, <code>25cf0fae5</code>→<code>a0d9ed580</code>,
+<code>60309eb8d</code>→<code>0fad2d1e3</code>, <code>c60a0edd8</code>→<code>7f2a0c4e7</code>, <code>498ce10a7</code>→<code>02d91a23f</code>).
+Never attempt <code>git merge upstream/main</code> — it conflicts on files that are already
+correct. Realign subsystem-by-subsystem per <code>docs/upstream-realign.md</code>; current
+state and Take ranking in <code>docs/upstream-audit-2026-09-30.md</code>. Verified by:
+<code>git merge-base --is-ancestor e57fcb411 HEAD</code> returning non-zero with 167
+upstream-only commits, and each pair confirmed against both diffs.</p>
+</li>
+<li><p>[2026-09-30, Space Bunny Free] &quot;387 surviving upstream files have no per-file
+GPL header&quot; is a false positive: upstream puts no per-file headers in those same
+files either, and licensing here is file-level <code>LICENSE</code> + <code>COPYING.md</code> exactly
+as upstream does it. Do not re-raise it in a future audit without first
+checking the same files at <code>upstream/main</code>. Verified by: header grep scoring 0
+for both fork and upstream on <code>study_controller.dart</code>, <code>network/http.dart</code>,
+<code>analysis_screen.dart</code>, <code>board.dart</code>, <code>game.dart</code>, with <code>LICENSE</code> and
+<code>COPYING.md</code> present in both trees.</p>
+</li>
+<li><p>[2026-10-13, Space Bunny Free] The real suite&#39;s check is named <strong>&quot;Tests&quot;</strong>, not
+&quot;Unit tests on ubuntu-latest&quot;. Two collisions came out of the old name, both found
+by tripping over them: docs-check.yml reported the <em>same</em> name from a job that
+runs only an <code>echo</code>, so branch protection — which matches required checks by name
+— could be satisfied by a check that ran no tests; and renaming it in #95 silently
+broke every PR touching <code>IMPLEMENTATION_PLAN.md</code>, a file gates.yml watches and
+test.yml did not, so those PRs stopped reporting any required check and blocked
+permanently. Fixes: #95 renamed the fake to &quot;Docs check&quot;, #106 added
+IMPLEMENTATION_PLAN.md to test.yml&#39;s paths, #107 renamed the real job. <strong>Verify
+with <code>git grep -n &#39;Unit tests on ubuntu-latest&#39;</code> returning nothing</strong> before
+renaming a check again, and update the required contexts in the repo settings in
+the same commit. Verified by: #106 being unmergeable with <code>Required status check</code>
+while its suite was green, and by diffing both workflows&#39; <code>paths</code> lists, which
+showed IMPLEMENTATION_PLAN.md was the only file in the gap.</p>
+</li>
+<li><p>[2026-10-13, Space Bunny Free] A clean <code>flutter analyze</code> covers the file <em>as it was when
+you ran it</em>. Adding code afterwards and re-running only the test meant CI caught an
+escaped quote I had introduced after the analyse, and took a full-suite run red over a
+string I could not see. Analyse after the LAST edit, not before it. Verified by: CI&#39;s
+<code>Unnecessary escape of &#39;&#39;&#39;</code> on a file that had analysed clean minutes earlier.</p>
+</li>
+<li><p>[2026-10-13, Space Bunny Free] A wrapper that reports a verdict must be checked against
+the source of truth once, before you trust it. A landing script read the newest CI run
+without checking the run matched the current head, so it reported &quot;SUITE FAILED&quot; twice
+for a commit it had never evaluated. The same shape bit twice more: a <code>Tests</code> check
+whose real name turned out to be <code>Tests (ubuntu-latest)</code>, and a &quot;control&quot; measurement
+fed 66 ids and read as evidence about 347 rows. Verified by: the script reporting a
+failure while <code>gh run list</code> showed the new run still in progress.</p>
+</li>
+<li><p>[2026-10-13, Space Bunny Free] Optimising against a noisy benchmark is worse than not
+optimising: the change lands, the number looks halved, and nothing improved. Here the
+same call measured 16 ms, 29 ms and 36 ms purely by harness and measurement order, so
+two earlier &quot;this is the bottleneck&quot; claims were both noise. Report spread, not just a
+median, and check a method&#39;s figure across two harnesses before building on it. Verified
+by: three harnesses disagreeing on <code>getAllReviewStates()</code> on an unchanged database.</p>
+</li>
+<li><p>[2026-10-01, antigravity/gemini-3.8-flash-tiered] GitHub branch protection
+requires both &#39;T1 fast gates&#39; and (as of #107) &#39;Tests&#39;. When a PR touches
+only files in docs/**, gates.yml does not trigger, leaving &#39;T1 fast gates&#39;
+unreported and blocking merge even with --admin. Verified by: PR #119 failing
+merge with &#39;GraphQL: Required status check &quot;T1 fast gates&quot; is expected&#39;, while
+PR #112 merged cleanly because touching AGENTS.md triggered gates.yml.</p>
+</li>
+</ul>
 
-    <section id="running-app">
-      <h2>5. Running & Runtime Validation</h2>
-      <p>
-        To run the application locally on Linux desktop:
-      </p>
-      <div class="code-block">
-        <div class="code-header"><span>Running Desktop App</span><span>Bash</span></div>
-        <pre tabindex="0"><code>fvm flutter run -d linux</code></pre>
-      </div>
-      <p>
-        <strong>Runtime validation is mandatory for user-visible work:</strong> automated unit tests can pass while layout is visually clipped or sound synthesis fails. Exercise the feature interactively before opening a pull request.
-      </p>
-    </section>
-  
     
     <nav class="doc-pagination" aria-label="Document pagination">
       <a class="doc-page-card prev" href="pgn-pipeline.html">
@@ -251,11 +1318,41 @@ dart format lib/l10n/</code></pre>
     <aside class="doc-toc-aside" aria-label="Table of contents">
       <div class="doc-toc-title">On This Page</div>
       <div class="doc-toc-list">
-        <div class="doc-toc-item"><a href="#prerequisites">Prerequisites & FVM</a></div>
-<div class="doc-toc-item"><a href="#worktree-workflow">Worktree-per-Task Workflow</a></div>
-<div class="doc-toc-item"><a href="#codegen">Code Generation (build_runner)</a></div>
-<div class="doc-toc-item"><a href="#style-rules">Coding Conventions</a></div>
-<div class="doc-toc-item"><a href="#running-app">Running & Validation</a></div>
+        <div class="doc-toc-item"><a href="#setting-up-the-development-environment">Setting up the development environment</a></div>
+<div class="doc-toc-item"><a href="#installing-flutter">Installing Flutter</a></div>
+<div class="doc-toc-item"><a href="#lila-server">Lila Server</a></div>
+<div class="doc-toc-item"><a href="#setting-up-a-device">Setting up a device</a></div>
+<div class="doc-toc-item"><a href="#code-generation">Code generation</a></div>
+<div class="doc-toc-item"><a href="#static-analysis">Static analysis</a></div>
+<div class="doc-toc-item"><a href="#run">Run</a></div>
+<div class="doc-toc-item"><a href="#repository-conventions-amp-style-claudemd">Repository Conventions &amp; Style (CLAUDE.md)</a></div>
+<div class="doc-toc-item"><a href="#claudemd">CLAUDE.md</a></div>
+<div class="doc-toc-item"><a href="#project-overview">Project Overview</a></div>
+<div class="doc-toc-item"><a href="#development-setup">Development Setup</a></div>
+<div class="doc-toc-item"><a href="#testing-amp-quality">Testing &amp; Quality</a></div>
+<div class="doc-toc-item"><a href="#translations-i18n">Translations (i18n)</a></div>
+<div class="doc-toc-item"><a href="#architecture">Architecture</a></div>
+<div class="doc-toc-item"><a href="#dart-event-loop-execution-model">Dart Event Loop Execution Model</a></div>
+<div class="doc-toc-item"><a href="#coding-standards">Coding Standards</a></div>
+<div class="doc-toc-item"><a href="#code-generation">Code Generation</a></div>
+<div class="doc-toc-item"><a href="#common-gotchas">Common Gotchas</a></div>
+<div class="doc-toc-item"><a href="#ios-home-screen-widgets-widgetkit-extension">iOS Home Screen Widgets (WidgetKit Extension)</a></div>
+<div class="doc-toc-item"><a href="#debugging">Debugging</a></div>
+<div class="doc-toc-item"><a href="#agent-operating-guidelines-amp-authority-hierarchy-agentsmd">Agent Operating Guidelines &amp; Authority Hierarchy (AGENTS.md)</a></div>
+<div class="doc-toc-item"><a href="#agent-operating-guidelines-amp-authority-hierarchy">Agent Operating Guidelines &amp; Authority Hierarchy</a></div>
+<div class="doc-toc-item"><a href="#0-foundation-context-read-first">0. Foundation context (read first)</a></div>
+<div class="doc-toc-item"><a href="#1-the-authority-hierarchy">1. The Authority Hierarchy</a></div>
+<div class="doc-toc-item"><a href="#2-development-phases-beta-first">2. Development phases (beta-first)</a></div>
+<div class="doc-toc-item"><a href="#3-the-development-loop">3. The Development Loop</a></div>
+<div class="doc-toc-item"><a href="#4-runtime-validation-is-mandatory">4. Runtime validation is mandatory</a></div>
+<div class="doc-toc-item"><a href="#5-quality-gates-and-invariants">5. Quality gates and invariants</a></div>
+<div class="doc-toc-item"><a href="#6-feature-creep-policy">6. Feature-creep policy</a></div>
+<div class="doc-toc-item"><a href="#7-licensing-discipline">7. Licensing discipline</a></div>
+<div class="doc-toc-item"><a href="#8-chess-domain-references">8. Chess-domain references</a></div>
+<div class="doc-toc-item"><a href="#9-cut-discipline-phase-1-and-beyond">9. Cut discipline (Phase 1 and beyond)</a></div>
+<div class="doc-toc-item"><a href="#10-quality-gates-rules-for-any-agent-or-contributor-working-here">10. Quality gates: rules for any agent or contributor working here</a></div>
+<div class="doc-toc-item"><a href="#11-releases-when-to-cut-one-agent-decides-owner-doesn39t">11. Releases: when to cut one (agent decides, owner doesn&#39;t)</a></div>
+<div class="doc-toc-item"><a href="#lessons-learned">Lessons Learned</a></div>
       </div>
     </aside>
 </div>

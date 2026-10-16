@@ -49,6 +49,7 @@
     <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
       <a href="../index.html">Home</a>
       <a href="index.html">Documentation Hub</a>
+      <a href="product.html">Product Vision</a>
       <a href="architecture.html">Architecture</a>
       <a href="fsrs-algorithm.html">FSRS Algorithm</a>
       <a href="graph-coordinator.html">Graph Coordinator</a>
@@ -69,6 +70,11 @@
         
           <a class="doc-nav-link " href="index.html">
             <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="product.html">
+            <span>Product Definition & Journeys</span>
             
           </a>
 
@@ -147,9 +153,15 @@
     <p class="doc-lede">The complete catalog of 30+ formal system invariants governing persistence, memory models, graph traversal, and UX.</p>
     
     <div class="doc-meta-bar">
+      
       <div class="doc-meta-item">
         <strong>Source in app repo:</strong>
         <a href="https://github.com/cassandre60/ChessSRS/blob/main/SPEC.md" target="_blank" rel="noopener"><code>SPEC.md</code></a>
+      </div>
+
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/QUALITY.md" target="_blank" rel="noopener"><code>QUALITY.md</code></a>
       </div>
       <div class="doc-meta-item">
         <strong>App version:</strong> <code>v1.4.0</code>
@@ -158,871 +170,651 @@
         <strong>Licence:</strong> <code>GPL-3.0</code>
       </div>
     </div>
-    
-    <section id="spec-philosophy">
-      <h2>1. The SPEC Contract Philosophy</h2>
-      <p>
-        In ChessSRS, <strong>specifications precede code</strong>. Code is not the specification.
-        Every non-negotiable property is recorded in <code>SPEC.md</code> as an invariant with a permanent identifier
-        (<code>INV-001</code> through <code>INV-072</code>).
-      </p>
-      <ul>
-        <li><strong>Permanent IDs:</strong> Invariants are never renumbered or silently reused. When an invariant is superseded, it is marked <code>RETIRED (reason, date)</code>.</li>
-        <li><strong>Falsifiable Oracles:</strong> Every invariant specifies an oracle: an exact test assertion proving that a violation is caught mechanically.</li>
-        <li><strong>Traceability Check (G05):</strong> Automated gate <code>scripts/gates/spec_trace_check.py</code> checks that every active invariant is explicitly referenced in unit and integration test code (<code>// SPEC INV-xxx</code>).</li>
-      </ul>
-    </section>
-
-    <section id="tier-0">
-      <h2>2. Tier 0 Invariants: Data Loss, Corruption & Security</h2>
-      <p>Violations of Tier 0 invariants represent catastrophic data loss, silent corruption, or security leaks. They block any merge unconditionally:</p>
-      
-    <article class="inv-card" id="inv-001">
-      <div class="inv-header">
-        <span class="inv-id">INV-001</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">An acknowledged review answer survives process restart</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        A graded move persisted by `ReviewService` is present with identical state
-after the database is closed and reopened.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: durability test closing and reopening the sqflite store.</span>
-<span>• Gates: persistence suite, G05 traceability.</span>
-<span>• Tier: T0. Covering: `test/persistence/sqlite_study_repository_test.dart`.</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-002">
-      <div class="inv-header">
-        <span class="inv-id">INV-002</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">Review writes are incremental</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Answering a move writes review state and the review event only; the study
-tree blob is never rewritten per move.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: write-scope assertion on the repository.</span>
-<span>• Gates: review service suite, persistence suite.</span>
-<span>• Tier: T0. Covering: `test/review/review_service_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-003">
-      <div class="inv-header">
-        <span class="inv-id">INV-003</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">Re-importing identical repertoire material creates nothing new</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Importing a PGN whose canonical tree hash matches an existing study switches
-to that study without inserting duplicate studies, chapters, or decisions.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: duplicate-import tests incl. header-rename and FEN-start cases.</span>
-<span>• Gates: import suite, persistence `getStudyByPgnHash` tests.</span>
-<span>• Tier: T0. Covering: `test/import/pgn_importer_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-004">
-      <div class="inv-header">
-        <span class="inv-id">INV-004</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">Deleting a study never removes memory shared with survivors</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        `deleteStudy` cascades to its own decisions, states, and events, but keeps
+    <h2 id="spec-what-must-always-be-true">SPEC: what must always be true</h2>
+<p>Human-owned. Protected path: edits need a dedicated <code>spec-change</code> PR and human
+review. Gates verify the code conforms to this spec; they cannot tell you the
+spec is right, so read every line as a contract.</p>
+<p>How to use</p>
+<ul>
+<li>One invariant = one falsifiable sentence with a stable ID (<code>INV-001</code>, never
+renumbered or reused). Retire with <code>RETIRED (reason, date)</code>, never delete.</li>
+<li>Every invariant names its oracle (how a violation is detected) and its gates.</li>
+<li>Tests cite the ID (<code>// SPEC INV-012.</code>) so <code>spec_trace_check.py</code> verifies
+coverage. The check proves coverage of intent, not test quality.</li>
+<li>Tier legend: T0 = loss/corruption/security, T1 = wrong behavior,
+T2 = degraded UX/perf.</li>
+</ul>
+<p>The T0/T1 invariants below transcribe <code>QUALITY.md</code> (already
+owner-authoritative) and mined regressions (see GATES_PLAN.md §1 and the
+<code>History</code> notes). Merging this file is the owner&#39;s confirmation.</p>
+<hr>
+<h2 id="a-persistence-and-integrity-t0">A. Persistence and integrity (T0)</h2>
+<div class="inv-card"><h3 id="inv-001" class="doc-inv-heading"><span class="inv-id">INV-001</span> An acknowledged review answer survives process restart</h3>
+<p>A graded move persisted by <code>ReviewService</code> is present with identical state
+after the database is closed and reopened.</p>
+<ul>
+<li>Oracle: durability test closing and reopening the sqflite store.</li>
+<li>Gates: persistence suite, G05 traceability.</li>
+<li>Tier: T0. Covering: <code>test/persistence/sqlite_study_repository_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-002" class="doc-inv-heading"><span class="inv-id">INV-002</span> Review writes are incremental</h3>
+<p>Answering a move writes review state and the review event only; the study
+tree blob is never rewritten per move.</p>
+<ul>
+<li>Oracle: write-scope assertion on the repository.</li>
+<li>Gates: review service suite, persistence suite.</li>
+<li>Tier: T0. Covering: <code>test/review/review_service_test.dart</code>,
+<code>test/persistence/sqlite_study_repository_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-003" class="doc-inv-heading"><span class="inv-id">INV-003</span> Re-importing identical repertoire material creates nothing new</h3>
+<p>Importing a PGN whose canonical tree hash matches an existing study switches
+to that study without inserting duplicate studies, chapters, or decisions.</p>
+<ul>
+<li>Oracle: duplicate-import tests incl. header-rename and FEN-start cases.</li>
+<li>Gates: import suite, persistence <code>getStudyByPgnHash</code> tests.</li>
+<li>Tier: T0. Covering: <code>test/import/pgn_importer_test.dart</code>,
+<code>test/review/review_controller_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-004" class="doc-inv-heading"><span class="inv-id">INV-004</span> Deleting a study never removes memory shared with survivors</h3>
+<p><code>deleteStudy</code> cascades to its own decisions, states, and events, but keeps
 canonical knowledge states and events still referenced by other studies
-(transpositions) and cleans chapter deletes the same way.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: cross-study delete tests with transposed positions.</span>
-<span>• Gates: persistence suite.</span>
-<span>• Tier: T0. Covering: `test/persistence/sqlite_study_repository_test.dart`.</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-005">
-      <div class="inv-header">
-        <span class="inv-id">INV-005</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">Every shipped schema version upgrades without data loss</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Migrations from each shipped version preserve all rows and derived
-identities (`canonicalStateId`, difficulty, orientation, `pgnHash`).
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: migration tests per shipped version plus rekey/backfill tests.</span>
-<span>• Gates: persistence suite (tier-2 on schema changes).</span>
-<span>• Tier: T0. Covering:</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-006">
-      <div class="inv-header">
-        <span class="inv-id">INV-006</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">Authentication secrets never travel in URLs or logs</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Email login code, email, and username are sent in the POST body, never as
-query parameters, so they cannot land in proxy logs or the `http_log` table.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: repository tests asserting request construction.</span>
-<span>• Gates: auth suite.</span>
-<span>• Tier: T0. History: PR #94 (query-string leak into 7-day log table).</span>
-<span>• Covering: `test/model/auth/auth_repository_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-007">
-      <div class="inv-header">
-        <span class="inv-id">INV-007</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">The startup session check only ever clears its own session</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        The `/api/token/test` result is fenced on controller generation and session
+(transpositions) and cleans chapter deletes the same way.</p>
+<ul>
+<li>Oracle: cross-study delete tests with transposed positions.</li>
+<li>Gates: persistence suite.</li>
+<li>Tier: T0. Covering: <code>test/persistence/sqlite_study_repository_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-005" class="doc-inv-heading"><span class="inv-id">INV-005</span> Every shipped schema version upgrades without data loss</h3>
+<p>Migrations from each shipped version preserve all rows and derived
+identities (<code>canonicalStateId</code>, difficulty, orientation, <code>pgnHash</code>).</p>
+<ul>
+<li>Oracle: migration tests per shipped version plus rekey/backfill tests.</li>
+<li>Gates: persistence suite (tier-2 on schema changes).</li>
+<li>Tier: T0. Covering:
+<code>test/persistence/sqlite_study_repository_test.dart</code>,
+<code>test/persistence/canonical_rekey_migration_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-006" class="doc-inv-heading"><span class="inv-id">INV-006</span> Authentication secrets never travel in URLs or logs</h3>
+<p>Email login code, email, and username are sent in the POST body, never as
+query parameters, so they cannot land in proxy logs or the <code>http_log</code> table.</p>
+<ul>
+<li>Oracle: repository tests asserting request construction.</li>
+<li>Gates: auth suite.</li>
+<li>Tier: T0. History: PR #94 (query-string leak into 7-day log table).</li>
+<li>Covering: <code>test/model/auth/auth_repository_test.dart</code>,
+<code>test/view/auth/email_login_screen_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-007" class="doc-inv-heading"><span class="inv-id">INV-007</span> The startup session check only ever clears its own session</h3>
+<p>The <code>/api/token/test</code> result is fenced on controller generation and session
 identity: a response that arrives after sign-in never signs out the newer
-session, and in-memory auth state is cleared together with storage.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: identity-fencing tests incl. sign-in-during-flight.</span>
-<span>• Gates: auth suite.</span>
-<span>• Tier: T0. History: unfenced startup check signed users straight back out.</span>
-<span>• Covering: `test/model/auth/auth_identity_fencing_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-008">
-      <div class="inv-header">
-        <span class="inv-id">INV-008</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">Only the configured host is treated as first-party</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        App links whose host merely shares a prefix with the Lichess host are not
-handled as trusted navigation.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: hostile-prefix link tests.</span>
-<span>• Gates: app-links suite.</span>
-<span>• Tier: T0. Covering: `test/app_links_service_test.dart`.</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-010">
-      <div class="inv-header">
-        <span class="inv-id">INV-010</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">Variations are preserved as first-class branches</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Recursive annotation variations become sibling children under their parent
-node; import never flattens or silently drops a branch at any depth.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: variation-structure tests (children counts, order, subtrees).</span>
-<span>• Gates: import suite, exporter round-trip.</span>
-<span>• Tier: T0. Covering: `test/import/pgn_importer_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-011">
-      <div class="inv-header">
-        <span class="inv-id">INV-011</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">Malformed input is quarantined, never half-applied</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        An illegal move or bad FEN yields a typed error naming chapter title and move
+session, and in-memory auth state is cleared together with storage.</p>
+<ul>
+<li>Oracle: identity-fencing tests incl. sign-in-during-flight.</li>
+<li>Gates: auth suite.</li>
+<li>Tier: T0. History: unfenced startup check signed users straight back out.</li>
+<li>Covering: <code>test/model/auth/auth_identity_fencing_test.dart</code>,
+<code>test/model/auth/startup_token_check_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-008" class="doc-inv-heading"><span class="inv-id">INV-008</span> Only the configured host is treated as first-party</h3>
+<p>App links whose host merely shares a prefix with the Lichess host are not
+handled as trusted navigation.</p>
+<ul>
+<li>Oracle: hostile-prefix link tests.</li>
+<li>Gates: app-links suite.</li>
+<li>Tier: T0. Covering: <code>test/app_links_service_test.dart</code>.</li>
+</ul>
+</div><h2 id="b-import-pipeline-t0t1">B. Import pipeline (T0/T1)</h2>
+<div class="inv-card"><h3 id="inv-010" class="doc-inv-heading"><span class="inv-id">INV-010</span> Variations are preserved as first-class branches</h3>
+<p>Recursive annotation variations become sibling children under their parent
+node; import never flattens or silently drops a branch at any depth.</p>
+<ul>
+<li>Oracle: variation-structure tests (children counts, order, subtrees).</li>
+<li>Gates: import suite, exporter round-trip.</li>
+<li>Tier: T0. Covering: <code>test/import/pgn_importer_test.dart</code>,
+<code>test/domain/entities_test.dart</code>, <code>test/import/pgn_exporter_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-011" class="doc-inv-heading"><span class="inv-id">INV-011</span> Malformed input is quarantined, never half-applied</h3>
+<p>An illegal move or bad FEN yields a typed error naming chapter title and move
 index, truncates only the affected chapter, and leaves later valid chapters
-imported; empty or non-PGN input is refused outright.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: malformed-PGN and empty-input tests.</span>
-<span>• Gates: import suite, controller import tests.</span>
-<span>• Tier: T0. Covering: `test/import/pgn_importer_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-014">
-      <div class="inv-header">
-        <span class="inv-id">INV-014</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">Export then re-import preserves repertoire identity</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Serializing a study or chapter to PGN and importing it back keeps chapters
-distinguishable with their titles, openings, orientations, and variations.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: exporter round-trip tests.</span>
-<span>• Gates: import/export suites.</span>
-<span>• Tier: T0. History: titles collapsed to one name, `[Opening]` dropped.</span>
-<span>• Covering: `test/import/pgn_exporter_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-015">
-      <div class="inv-header">
-        <span class="inv-id">INV-015</span>
-        <span class="inv-badge t0">Tier 0 (Integrity)</span>
-      </div>
-      <div class="inv-statement">Position identity is the normalized 4-field FEN</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Placement, side to move, castling rights, and en-passant square define a
-position; clocks and move counters do not.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: `fenKey` stripping tests and canonical-key determinism tests.</span>
-<span>• Gates: domain suite, import suite.</span>
-<span>• Tier: T0. Covering: `test/import/pgn_importer_test.dart`,</span>
-      </div>
-    </article>
-  
-    </section>
-
-    <section id="tier-1">
-      <h2>3. Tier 1 Invariants: Behavioral & Domain Correctness</h2>
-      <p>Violations of Tier 1 invariants represent incorrect chess logic, scheduler drift, or variation loss:</p>
-      
-    <article class="inv-card" id="inv-012">
-      <div class="inv-header">
-        <span class="inv-id">INV-012</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Custom starting positions are honored and normalized</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        `SetUp`/`FEN` headers set the chapter root; the root identity is the
-dartchess-normalized FEN and legality is judged from that position.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: custom-FEN import tests.</span>
-<span>• Gates: import suite.</span>
-<span>• Tier: T1. Covering: `test/import/pgn_importer_test.dart`.</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-013">
-      <div class="inv-header">
-        <span class="inv-id">INV-013</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Each chapter trains from its own side</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Orientation resolves per chapter: explicit `Orientation` header first, then
+imported; empty or non-PGN input is refused outright.</p>
+<ul>
+<li>Oracle: malformed-PGN and empty-input tests.</li>
+<li>Gates: import suite, controller import tests.</li>
+<li>Tier: T0. Covering: <code>test/import/pgn_importer_test.dart</code>,
+<code>test/review/review_controller_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-012" class="doc-inv-heading"><span class="inv-id">INV-012</span> Custom starting positions are honored and normalized</h3>
+<p><code>SetUp</code>/<code>FEN</code> headers set the chapter root; the root identity is the
+dartchess-normalized FEN and legality is judged from that position.</p>
+<ul>
+<li>Oracle: custom-FEN import tests.</li>
+<li>Gates: import suite.</li>
+<li>Tier: T1. Covering: <code>test/import/pgn_importer_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-013" class="doc-inv-heading"><span class="inv-id">INV-013</span> Each chapter trains from its own side</h3>
+<p>Orientation resolves per chapter: explicit <code>Orientation</code> header first, then
 title keywords, then player tags with placeholder opponents, defaulting to
-White; an explicit side choice overrides the heuristic.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: orientation matrix tests plus multi-chapter mixed-side import.</span>
-<span>• Gates: import suite.</span>
-<span>• Tier: T1. Covering: `test/import/chapter_orientation_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-016">
-      <div class="inv-header">
-        <span class="inv-id">INV-016</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Transpositions share one memory</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Two studies reaching the same position with the same accepted replies review
+White; an explicit side choice overrides the heuristic.</p>
+<ul>
+<li>Oracle: orientation matrix tests plus multi-chapter mixed-side import.</li>
+<li>Gates: import suite.</li>
+<li>Tier: T1. Covering: <code>test/import/chapter_orientation_test.dart</code>,
+<code>test/import/pgn_importer_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-014" class="doc-inv-heading"><span class="inv-id">INV-014</span> Export then re-import preserves repertoire identity</h3>
+<p>Serializing a study or chapter to PGN and importing it back keeps chapters
+distinguishable with their titles, openings, orientations, and variations.</p>
+<ul>
+<li>Oracle: exporter round-trip tests.</li>
+<li>Gates: import/export suites.</li>
+<li>Tier: T0. History: titles collapsed to one name, <code>[Opening]</code> dropped.</li>
+<li>Covering: <code>test/import/pgn_exporter_test.dart</code>,
+<code>test/import/pgn_importer_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-015" class="doc-inv-heading"><span class="inv-id">INV-015</span> Position identity is the normalized 4-field FEN</h3>
+<p>Placement, side to move, castling rights, and en-passant square define a
+position; clocks and move counters do not.</p>
+<ul>
+<li>Oracle: <code>fenKey</code> stripping tests and canonical-key determinism tests.</li>
+<li>Gates: domain suite, import suite.</li>
+<li>Tier: T0. Covering: <code>test/import/pgn_importer_test.dart</code>,
+<code>test/domain/position_knowledge_state_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-016" class="doc-inv-heading"><span class="inv-id">INV-016</span> Transpositions share one memory</h3>
+<p>Two studies reaching the same position with the same accepted replies review
 a single canonical state: progress in one is visible in the other and the
-all-studies queue asks it once.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: cross-study transposition sharing tests.</span>
-<span>• Gates: domain suite, review service suite.</span>
-<span>• Tier: T1. Covering: `test/domain/position_knowledge_state_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-067">
-      <div class="inv-header">
-        <span class="inv-id">INV-067</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">An opening hub is a family name, not a title that mentions one</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        An opening family either leads its name or closes it behind a category noun.
+all-studies queue asks it once.</p>
+<ul>
+<li>Oracle: cross-study transposition sharing tests.</li>
+<li>Gates: domain suite, review service suite.</li>
+<li>Tier: T1. Covering: <code>test/domain/position_knowledge_state_test.dart</code>,
+<code>test/review/review_service_test.dart</code>,
+<code>test/review/review_engine_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-067" class="doc-inv-heading"><span class="inv-id">INV-067</span> An opening hub is a family name, not a title that mentions one</h3>
+<p>An opening family either leads its name or closes it behind a category noun.
 A stored opening that merely mentions a family — a study title such as
-`White vs French` — is never presented as an opening hub, and a name this build
-does not recognise is left alone rather than erased.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: classification tests plus the repair-migration tests, including one</span>
-<span>• Gates: import suite, persistence suite, G05 traceability.</span>
-<span>• Tier: T1. Covering: `test/persistence/opening_name_repair_migration_test.dart`,</span>
-<span>• History: 2026-10-05, a study title appeared as an opening hub (owner report</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-017">
-      <div class="inv-header">
-        <span class="inv-id">INV-017</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Accepted-reply sets distinguish memories</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        The same position with different expected replies is a different question
+<code>White vs French</code> — is never presented as an opening hub, and a name this build
+does not recognise is left alone rather than erased.</p>
+<ul>
+<li>Oracle: classification tests plus the repair-migration tests, including one
+asserting every family the ECO fallback can produce survives the repair.</li>
+<li>Gates: import suite, persistence suite, G05 traceability.</li>
+<li>Tier: T1. Covering: <code>test/persistence/opening_name_repair_migration_test.dart</code>,
+<code>test/import/pgn_importer_test.dart</code>.</li>
+<li>History: 2026-10-05, a study title appeared as an opening hub (owner report
+2026-10-05). P-OPENNAME had already stopped the importer creating these; the
+rows it created before that fix were still in the database.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-017" class="doc-inv-heading"><span class="inv-id">INV-017</span> Accepted-reply sets distinguish memories</h3>
+<p>The same position with different expected replies is a different question
 with independent history; scheduling follows the asked question, never a
-colliding single-move lookup.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: accepted-set separation and scheduled-against-asked tests.</span>
-<span>• Gates: domain suite, review engine suite.</span>
-<span>• Tier: T1. History: shared history last-write-wins across two questions.</span>
-<span>• Covering: `test/domain/position_knowledge_state_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-020">
-      <div class="inv-header">
-        <span class="inv-id">INV-020</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Correctness means matching the repertoire</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        A played move is correct exactly when it matches a repertoire child of the
+colliding single-move lookup.</p>
+<ul>
+<li>Oracle: accepted-set separation and scheduled-against-asked tests.</li>
+<li>Gates: domain suite, review engine suite.</li>
+<li>Tier: T1. History: shared history last-write-wins across two questions.</li>
+<li>Covering: <code>test/domain/position_knowledge_state_test.dart</code>,
+<code>test/domain/graph_aware_review_coordinator_test.dart</code>,
+<code>test/review/review_engine_test.dart</code>.</li>
+</ul>
+</div><h2 id="c-review-engine-and-srs-t1">C. Review engine and SRS (T1)</h2>
+<div class="inv-card"><h3 id="inv-020" class="doc-inv-heading"><span class="inv-id">INV-020</span> Correctness means matching the repertoire</h3>
+<p>A played move is correct exactly when it matches a repertoire child of the
 prompt position (castling forms equivalent per INV-033); engine-optimality
-never judges, and opponent inaccuracies remain valid content.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: correct/incorrect grading tests against repertoire trees.</span>
-<span>• Gates: review engine suite, controller suite.</span>
-<span>• Tier: T1. Covering: `test/review/review_engine_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-021">
-      <div class="inv-header">
-        <span class="inv-id">INV-021</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">A lapse is recoverable in place</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        A wrong move records a lapse, reveals the expected move and comment, keeps
+never judges, and opponent inaccuracies remain valid content.</p>
+<ul>
+<li>Oracle: correct/incorrect grading tests against repertoire trees.</li>
+<li>Gates: review engine suite, controller suite.</li>
+<li>Tier: T1. Covering: <code>test/review/review_engine_test.dart</code>,
+<code>test/review/review_controller_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-021" class="doc-inv-heading"><span class="inv-id">INV-021</span> A lapse is recoverable in place</h3>
+<p>A wrong move records a lapse, reveals the expected move and comment, keeps
 the board interactive for an immediate reguess, and requeues the item; the
-item is not dropped at lapse or at retry-correct, only on re-test pass.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: lapse/reguess/re-test lifecycle tests.</span>
-<span>• Gates: review engine suite, controller suite.</span>
-<span>• Tier: T1. Covering: `test/review/review_engine_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-022">
-      <div class="inv-header">
-        <span class="inv-id">INV-022</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Traversal is never exclusion</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Learned non-due moves auto-traversed during review become active questions
+item is not dropped at lapse or at retry-correct, only on re-test pass.</p>
+<ul>
+<li>Oracle: lapse/reguess/re-test lifecycle tests.</li>
+<li>Gates: review engine suite, controller suite.</li>
+<li>Tier: T1. Covering: <code>test/review/review_engine_test.dart</code>,
+<code>test/review/review_controller_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-022" class="doc-inv-heading"><span class="inv-id">INV-022</span> Traversal is never exclusion</h3>
+<p>Learned non-due moves auto-traversed during review become active questions
 again once due; due-aware opponent-branch choice steers toward due material
-without starving any branch.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: auto-traversal and due-aware-branch tests with a fixed clock.</span>
-<span>• Gates: review engine suite.</span>
-<span>• Tier: T1. Covering: `test/review/review_engine_test.dart`.</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-023">
-      <div class="inv-header">
-        <span class="inv-id">INV-023</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Practice mode writes nothing</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Review in practice (rehearsal) mode grades and traverses identically to SRS
-mode but performs zero writes to review states and logs zero events.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: practice-mode no-mutation tests at engine and controller level.</span>
-<span>• Gates: review engine suite, controller suite.</span>
-<span>• Tier: T1. Covering: `test/review/review_engine_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-024">
-      <div class="inv-header">
-        <span class="inv-id">INV-024</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Scheduling is a pure function of state, event, and time</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        The same review history replayed through a scheduler yields byte-identical
-state; schedulers never read the wall clock or unseeded randomness.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: FixedClock replay tests; G03 clock rule; boundary test.</span>
-<span>• Gates: scheduler suites, G03, G02 boundary test.</span>
-<span>• Tier: T1. Covering: `test/domain/scheduler_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-025">
-      <div class="inv-header">
-        <span class="inv-id">INV-025</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Success grows the interval, lapses restart it</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Successful recalls lengthen the interval along the scheduler curve; a lapse
-resets the streak and schedules a short-interval retry with recovery.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: interval-ladder and lapse-recovery tests.</span>
-<span>• Gates: scheduler suites.</span>
-<span>• Tier: T1. Covering: `test/domain/scheduler_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-026">
-      <div class="inv-header">
-        <span class="inv-id">INV-026</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Intervals stay within configured bounds</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        No interval exceeds `maxInterval`; ChessFSRS parameters compare by value so
-settings changes reload the active session.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: clamp tests and params-equality tests.</span>
-<span>• Gates: scheduler suites, controller scheduler-reload test.</span>
-<span>• Tier: T1. History: `ChessFsrsScheduler==` ignored params, reload never fired.</span>
-<span>• Covering: `test/domain/scheduler_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-027">
-      <div class="inv-header">
-        <span class="inv-id">INV-027</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Lapse contagion is bounded and skips the unlearned</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        An incorrect move softens stability of learned descendants along the line
-only, by a decaying factor; cold or never-reviewed nodes are untouched.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: contagion scope tests.</span>
-<span>• Gates: coordinator suite, engine suite.</span>
-<span>• Tier: T1. Covering:</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-028">
-      <div class="inv-header">
-        <span class="inv-id">INV-028</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Traversal credit is micro, throttled, and never for due items</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Auto-traversed moves earn at most a bounded micro-stability bump, at most
-once per calendar day, and already-due items are refused outright.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: credit/throttle/refusal tests.</span>
-<span>• Gates: coordinator suite, engine suite.</span>
-<span>• Tier: T1. Covering:</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-029">
-      <div class="inv-header">
-        <span class="inv-id">INV-029</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Siblings couple only on genuine confusion</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        A wrong move that matches an alternative repertoire continuation raises that
-sibling's difficulty; other wrong moves cause no coupling.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: confusable-sibling tests.</span>
-<span>• Gates: coordinator suite, engine suite.</span>
-<span>• Tier: T1. Covering:</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-030">
-      <div class="inv-header">
-        <span class="inv-id">INV-030</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Scopes filter exactly</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        `all()` and the due count see active studies only; `opening()` aggregates
-across studies with name normalization; `chapter()` isolates one chapter;
-`white()` and `black()` aggregate across active studies by the repertoire side
+without starving any branch.</p>
+<ul>
+<li>Oracle: auto-traversal and due-aware-branch tests with a fixed clock.</li>
+<li>Gates: review engine suite.</li>
+<li>Tier: T1. Covering: <code>test/review/review_engine_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-023" class="doc-inv-heading"><span class="inv-id">INV-023</span> Practice mode writes nothing</h3>
+<p>Review in practice (rehearsal) mode grades and traverses identically to SRS
+mode but performs zero writes to review states and logs zero events.</p>
+<ul>
+<li>Oracle: practice-mode no-mutation tests at engine and controller level.</li>
+<li>Gates: review engine suite, controller suite.</li>
+<li>Tier: T1. Covering: <code>test/review/review_engine_test.dart</code>,
+<code>test/review/review_controller_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-024" class="doc-inv-heading"><span class="inv-id">INV-024</span> Scheduling is a pure function of state, event, and time</h3>
+<p>The same review history replayed through a scheduler yields byte-identical
+state; schedulers never read the wall clock or unseeded randomness.</p>
+<ul>
+<li>Oracle: FixedClock replay tests; G03 clock rule; boundary test.</li>
+<li>Gates: scheduler suites, G03, G02 boundary test.</li>
+<li>Tier: T1. Covering: <code>test/domain/scheduler_test.dart</code>,
+<code>test/domain/chess_fsrs_scheduler_test.dart</code>,
+<code>test/gates/domain_boundary_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-025" class="doc-inv-heading"><span class="inv-id">INV-025</span> Success grows the interval, lapses restart it</h3>
+<p>Successful recalls lengthen the interval along the scheduler curve; a lapse
+resets the streak and schedules a short-interval retry with recovery.</p>
+<ul>
+<li>Oracle: interval-ladder and lapse-recovery tests.</li>
+<li>Gates: scheduler suites.</li>
+<li>Tier: T1. Covering: <code>test/domain/scheduler_test.dart</code>,
+<code>test/domain/chess_fsrs_scheduler_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-026" class="doc-inv-heading"><span class="inv-id">INV-026</span> Intervals stay within configured bounds</h3>
+<p>No interval exceeds <code>maxInterval</code>; ChessFSRS parameters compare by value so
+settings changes reload the active session.</p>
+<ul>
+<li>Oracle: clamp tests and params-equality tests.</li>
+<li>Gates: scheduler suites, controller scheduler-reload test.</li>
+<li>Tier: T1. History: <code>ChessFsrsScheduler==</code> ignored params, reload never fired.</li>
+<li>Covering: <code>test/domain/scheduler_test.dart</code>,
+<code>test/domain/chess_fsrs_scheduler_test.dart</code>,
+<code>test/review/review_controller_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-027" class="doc-inv-heading"><span class="inv-id">INV-027</span> Lapse contagion is bounded and skips the unlearned</h3>
+<p>An incorrect move softens stability of learned descendants along the line
+only, by a decaying factor; cold or never-reviewed nodes are untouched.</p>
+<ul>
+<li>Oracle: contagion scope tests.</li>
+<li>Gates: coordinator suite, engine suite.</li>
+<li>Tier: T1. Covering:
+<code>test/domain/graph_aware_review_coordinator_test.dart</code>,
+<code>test/review/review_engine_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-028" class="doc-inv-heading"><span class="inv-id">INV-028</span> Traversal credit is micro, throttled, and never for due items</h3>
+<p>Auto-traversed moves earn at most a bounded micro-stability bump, at most
+once per calendar day, and already-due items are refused outright.</p>
+<ul>
+<li>Oracle: credit/throttle/refusal tests.</li>
+<li>Gates: coordinator suite, engine suite.</li>
+<li>Tier: T1. Covering:
+<code>test/domain/graph_aware_review_coordinator_test.dart</code>,
+<code>test/review/review_engine_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-029" class="doc-inv-heading"><span class="inv-id">INV-029</span> Siblings couple only on genuine confusion</h3>
+<p>A wrong move that matches an alternative repertoire continuation raises that
+sibling&#39;s difficulty; other wrong moves cause no coupling.</p>
+<ul>
+<li>Oracle: confusable-sibling tests.</li>
+<li>Gates: coordinator suite, engine suite.</li>
+<li>Tier: T1. Covering:
+<code>test/domain/graph_aware_review_coordinator_test.dart</code>,
+<code>test/review/review_engine_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-030" class="doc-inv-heading"><span class="inv-id">INV-030</span> Scopes filter exactly</h3>
+<p><code>all()</code> and the due count see active studies only; <code>opening()</code> aggregates
+across studies with name normalization; <code>chapter()</code> isolates one chapter;
+<code>white()</code> and <code>black()</code> aggregate across active studies by the repertoire side
 their chapters train, counting a position as belonging to the side it is queued
-for; inactive studies stay openable directly.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: scope-filter and normalization tests.</span>
-<span>• Gates: review service suite, scope suite, controller toggle tests.</span>
-<span>• Tier: T1. Covering: `test/review/review_service_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-031">
-      <div class="inv-header">
-        <span class="inv-id">INV-031</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">The daily quota counts positions, not guesses</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Distinct positions reviewed today (local-midnight boundary) count once each
-toward `maxDailyReviews`; mistakes and reguesses add nothing further, while
-an in-flight lapse may always conclude.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: quota-counting and midnight-edge tests.</span>
-<span>• Gates: review engine suite, persistence suite, controller cap test.</span>
-<span>• Tier: T1. Covering: `test/review/review_engine_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-032">
-      <div class="inv-header">
-        <span class="inv-id">INV-032</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Stale sessions never take over</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        A session whose scope changed or whose generation was superseded mid-flight
-resolves without activating and without writing another scope's dues.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: generation/staleness tests.</span>
-<span>• Gates: controller suite, service ownership tests.</span>
-<span>• Tier: T1. History: one scope's dues written onto another after a switch.</span>
-<span>• Covering: `test/review/review_controller_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-033">
-      <div class="inv-header">
-        <span class="inv-id">INV-033</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Castling notations are equivalent</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Standard UCI (`e1g1`, `e1c1`, …) and king-takes-rook (`e1h1`, `e1a1`, …) forms
-of the same castling match each other in grading and tree lookup.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: castling-equivalence and on-board O-O acceptance tests.</span>
-<span>• Gates: entities suite, engine suite, controller suite.</span>
-<span>• Tier: T1. Covering: `test/domain/entities_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-065">
-      <div class="inv-header">
-        <span class="inv-id">INV-065</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">A repertoire move played out of line is accepted when its position is in scope</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        A legal move that matches no expected continuation is still graded correct
-when the position it reaches exists in the active scope's repertoire tree;
+for; inactive studies stay openable directly.</p>
+<ul>
+<li>Oracle: scope-filter and normalization tests.</li>
+<li>Gates: review service suite, scope suite, controller toggle tests.</li>
+<li>Tier: T1. Covering: <code>test/review/review_service_test.dart</code>,
+<code>test/domain/review_scope_test.dart</code>,
+<code>test/review/review_controller_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-031" class="doc-inv-heading"><span class="inv-id">INV-031</span> The daily quota counts positions, not guesses</h3>
+<p>Distinct positions reviewed today (local-midnight boundary) count once each
+toward <code>maxDailyReviews</code>; mistakes and reguesses add nothing further, while
+an in-flight lapse may always conclude.</p>
+<ul>
+<li>Oracle: quota-counting and midnight-edge tests.</li>
+<li>Gates: review engine suite, persistence suite, controller cap test.</li>
+<li>Tier: T1. Covering: <code>test/review/review_engine_test.dart</code>,
+<code>test/persistence/sqlite_study_repository_test.dart</code>,
+<code>test/review/review_controller_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-032" class="doc-inv-heading"><span class="inv-id">INV-032</span> Stale sessions never take over</h3>
+<p>A session whose scope changed or whose generation was superseded mid-flight
+resolves without activating and without writing another scope&#39;s dues.</p>
+<ul>
+<li>Oracle: generation/staleness tests.</li>
+<li>Gates: controller suite, service ownership tests.</li>
+<li>Tier: T1. History: one scope&#39;s dues written onto another after a switch.</li>
+<li>Covering: <code>test/review/review_controller_test.dart</code>,
+<code>test/review/review_service_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-033" class="doc-inv-heading"><span class="inv-id">INV-033</span> Castling notations are equivalent</h3>
+<p>Standard UCI (<code>e1g1</code>, <code>e1c1</code>, …) and king-takes-rook (<code>e1h1</code>, <code>e1a1</code>, …) forms
+of the same castling match each other in grading and tree lookup.</p>
+<ul>
+<li>Oracle: castling-equivalence and on-board O-O acceptance tests.</li>
+<li>Gates: entities suite, engine suite, controller suite.</li>
+<li>Tier: T1. Covering: <code>test/domain/entities_test.dart</code>,
+<code>test/review/review_engine_test.dart</code>,
+<code>test/review/review_controller_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-065" class="doc-inv-heading"><span class="inv-id">INV-065</span> A repertoire move played out of line is accepted when its position is in scope</h3>
+<p>A legal move that matches no expected continuation is still graded correct
+when the position it reaches exists in the active scope&#39;s repertoire tree;
 review continues from the transposed line. Out-of-scope targets and illegal
-moves stay incorrect, exactly as before. The `Transposed moves` setting
-narrows this to the same study, or off to strict expected-line grading.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: transposition acceptance tests in</span>
-<span>• Gates: review engine suite, G05 traceability.</span>
-<span>• Tier: T1. Covering: `test/review/review_transposition_test.dart`.</span>
-<span>• History: 2026-10-03, owner-requested review-time transposition support</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-066">
-      <div class="inv-header">
-        <span class="inv-id">INV-066</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">By-line review order presents the same due set in line order</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        With `ReviewOrder.byLine`, consecutive prompts follow study, then chapter,
+moves stay incorrect, exactly as before. The <code>Transposed moves</code> setting
+narrows this to the same study, or off to strict expected-line grading.</p>
+<ul>
+<li>Oracle: transposition acceptance tests in
+<code>test/review/review_transposition_test.dart</code>.</li>
+<li>Gates: review engine suite, G05 traceability.</li>
+<li>Tier: T1. Covering: <code>test/review/review_transposition_test.dart</code>.</li>
+<li>History: 2026-10-03, owner-requested review-time transposition support
+(P-TRANSPOSE); memory sharing across transpositions already existed (R2),
+grading did not.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-066" class="doc-inv-heading"><span class="inv-id">INV-066</span> By-line review order presents the same due set in line order</h3>
+<p>With <code>ReviewOrder.byLine</code>, consecutive prompts follow study, then chapter,
 then tree order over the due set selected by urgency — no position is added
 or dropped by the ordering, and the daily quota still cuts the most overdue
-first. `ReviewOrder.dueDate` keeps most-overdue-first; `ReviewOrder.random`
-shuffles the same set deterministically per session seed.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: queue-order tests in `test/review/review_order_test.dart`.</span>
-<span>• Gates: review engine suite, G05 traceability.</span>
-<span>• Tier: T1. Covering: `test/review/review_order_test.dart`.</span>
-<span>• History: 2026-10-03, owner-reported scattered jumps across unrelated lines</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-040">
-      <div class="inv-header">
-        <span class="inv-id">INV-040</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">The domain layer is pure Dart</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        `lib/src/domain/` imports no Flutter, chessground, sqflite, or I/O
-libraries; dartchess core types arrive through thin adapters only.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: import-boundary scan (G03) plus the in-suite boundary test.</span>
-<span>• Gates: G03, G02 boundary test, analyzer.</span>
-<span>• Tier: T1. Covering: `test/gates/domain_boundary_test.dart`.</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-041">
-      <div class="inv-header">
-        <span class="inv-id">INV-041</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Scheduling and review paths take time only through Clock</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        No `DateTime.now` appears in schedulers, the graph coordinator, review
-state, or the review session; production time enters via `Clock`.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: clock-rule scan (G03) plus FixedClock tests.</span>
-<span>• Gates: G03, scheduler suites.</span>
-<span>• Tier: T1. Covering: `test/gates/domain_boundary_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-042">
-      <div class="inv-header">
-        <span class="inv-id">INV-042</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">The domain layer performs no I/O</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        No `dart:io`, HTTP, or socket import appears in `lib/src/domain/`; the
-domain computes, adapters persist and fetch.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: import-boundary scan plus the in-suite boundary test.</span>
-<span>• Gates: G03, G02 boundary test.</span>
-<span>• Tier: T1. Covering: `test/gates/domain_boundary_test.dart`.</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-064">
-      <div class="inv-header">
-        <span class="inv-id">INV-064</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Every socket handshake carries the session sri</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        `SocketClient` appends the session `sri` to the connect URL as a query
+first. <code>ReviewOrder.dueDate</code> keeps most-overdue-first; <code>ReviewOrder.random</code>
+shuffles the same set deterministically per session seed.</p>
+<ul>
+<li>Oracle: queue-order tests in <code>test/review/review_order_test.dart</code>.</li>
+<li>Gates: review engine suite, G05 traceability.</li>
+<li>Tier: T1. Covering: <code>test/review/review_order_test.dart</code>.</li>
+<li>History: 2026-10-03, owner-reported scattered jumps across unrelated lines
+(P-ORDER); researched against Listudy line-walking and chessrs due queues.</li>
+</ul>
+</div><h2 id="d-architecture-and-determinism-t1">D. Architecture and determinism (T1)</h2>
+<div class="inv-card"><h3 id="inv-040" class="doc-inv-heading"><span class="inv-id">INV-040</span> The domain layer is pure Dart</h3>
+<p><code>lib/src/domain/</code> imports no Flutter, chessground, sqflite, or I/O
+libraries; dartchess core types arrive through thin adapters only.</p>
+<ul>
+<li>Oracle: import-boundary scan (G03) plus the in-suite boundary test.</li>
+<li>Gates: G03, G02 boundary test, analyzer.</li>
+<li>Tier: T1. Covering: <code>test/gates/domain_boundary_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-041" class="doc-inv-heading"><span class="inv-id">INV-041</span> Scheduling and review paths take time only through Clock</h3>
+<p>No <code>DateTime.now</code> appears in schedulers, the graph coordinator, review
+state, or the review session; production time enters via <code>Clock</code>.</p>
+<ul>
+<li>Oracle: clock-rule scan (G03) plus FixedClock tests.</li>
+<li>Gates: G03, scheduler suites.</li>
+<li>Tier: T1. Covering: <code>test/gates/domain_boundary_test.dart</code>,
+<code>test/domain/scheduler_test.dart</code>,
+<code>test/review/review_engine_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-042" class="doc-inv-heading"><span class="inv-id">INV-042</span> The domain layer performs no I/O</h3>
+<p>No <code>dart:io</code>, HTTP, or socket import appears in <code>lib/src/domain/</code>; the
+domain computes, adapters persist and fetch.</p>
+<ul>
+<li>Oracle: import-boundary scan plus the in-suite boundary test.</li>
+<li>Gates: G03, G02 boundary test.</li>
+<li>Tier: T1. Covering: <code>test/gates/domain_boundary_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-064" class="doc-inv-heading"><span class="inv-id">INV-064</span> Every socket handshake carries the session sri</h3>
+<p><code>SocketClient</code> appends the session <code>sri</code> to the connect URL as a query
 parameter on every connection attempt, so the server attributes the socket
-to the session instead of refusing the handshake.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: `connects with the sri in the query string` in</span>
-<span>• Gates: network suite (G04), G05 traceability.</span>
-<span>• Tier: T1. Covering: `test/network/socket_test.dart`.</span>
-<span>• History: 2026-10-02, every handshake refused with HTTP 400 while the suite</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-063">
-      <div class="inv-header">
-        <span class="inv-id">INV-063</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">Comment shapes never leak during recall</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        PGN arrows and circles are withheld from the board while the prompt is open
-and appear only after grading (or never, when annotations are disabled).
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: pre-guess empty-shapes and post-lapse shape assertions.</span>
-<span>• Gates: review screen suite.</span>
-<span>• Tier: T1. Covering: `test/view/review/review_screen_test.dart`.</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-068">
-      <div class="inv-header">
-        <span class="inv-id">INV-068</span>
-        <span class="inv-badge t1">Tier 1 (Behavior)</span>
-      </div>
-      <div class="inv-statement">A position is due only once it has been presented</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        A position counts as due only if it holds a review state whose scheduled date
+to the session instead of refusing the handshake.</p>
+<ul>
+<li>Oracle: <code>connects with the sri in the query string</code> in
+<code>test/network/socket_test.dart</code>, which records requested URLs — the fake
+channels key on path alone and cannot see a missing query string.</li>
+<li>Gates: network suite (G04), G05 traceability.</li>
+<li>Tier: T1. Covering: <code>test/network/socket_test.dart</code>.</li>
+<li>History: 2026-10-02, every handshake refused with HTTP 400 while the suite
+stayed green (#129); the invariant itself was blocked until G-BASEINV was
+fixed (#135/#137).</li>
+</ul>
+</div><h2 id="e-performance-budgets-t2">E. Performance budgets (T2)</h2>
+<div class="inv-card"><h3 id="inv-050" class="doc-inv-heading"><span class="inv-id">INV-050</span> A graded move settles within one frame</h3>
+<p>Move legality, repertoire lookup, grading, and persistence apply inside a
+single display frame on the reference path.</p>
+<ul>
+<li>Oracle: wall-clock assertion over a graded-move batch.</li>
+<li>Gates: latency suite; future pinned-benchmark ratchet.</li>
+<li>Tier: T2. Covering: <code>test/review/move_latency_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-051" class="doc-inv-heading"><span class="inv-id">INV-051</span> Bulk lookups stay bounded</h3>
+<p>Review-state reads and deletes are chunked (400-item SQLite batches) and the
+due queue prefetches in bounded batches with refill thresholds, so startup
+and session build do not deserialize the whole database.</p>
+<ul>
+<li>Oracle: chunked-delete, targeted-loading, and prefetch/refill tests.</li>
+<li>Gates: persistence suite, review engine suite.</li>
+<li>Tier: T2. Covering:
+<code>test/persistence/sqlite_study_repository_test.dart</code>,
+<code>test/review/review_service_test.dart</code>,
+<code>test/review/review_engine_test.dart</code>.</li>
+</ul>
+</div><h2 id="f-review-ux-contract-t1t2">F. Review UX contract (T1/T2)</h2>
+<div class="inv-card"><h3 id="inv-060" class="doc-inv-heading"><span class="inv-id">INV-060</span> Every verdict is announced to screen readers</h3>
+<p>Correct answers announce <code>Correct. {san}.</code> and lapses announce
+<code>Not this move. The repertoire move is {san}.</code>; silence holds before grading
+and the announcement clears on advance.</p>
+<ul>
+<li>Oracle: live-region widget tests for both verdicts, silence, and clearing.</li>
+<li>Gates: review screen suite.</li>
+<li>Tier: T2. History: correct answers announced nothing at all.</li>
+<li>Covering: <code>test/view/review/review_screen_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-061" class="doc-inv-heading"><span class="inv-id">INV-061</span> Feedback stays readable in both themes</h3>
+<p>Filled controls render label ink readable on their fill, and board light/dark
+squares keep their ordering in dark mode.</p>
+<ul>
+<li>Oracle: contrast and square-order widget tests.</li>
+<li>Gates: design suites.</li>
+<li>Tier: T2. History: ink-on-ink pill label; swapped dark-mode squares.</li>
+<li>Covering: <code>test/design/design_primitives_test.dart</code>,
+<code>test/design/board_squares_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-062" class="doc-inv-heading"><span class="inv-id">INV-062</span> Interactive targets stay tappable</h3>
+<p>Controls meet the 44px minimum and survive narrow viewports without clipping
+(e.g. the practice-exit target, pill heights, action sheets scroll).</p>
+<ul>
+<li>Oracle: size/viewport widget tests.</li>
+<li>Gates: design suites, review screen suite.</li>
+<li>Tier: T2. History: 12px exit label, 23px pills, clipped delete action.</li>
+<li>Covering: <code>test/design/practice_exit_test.dart</code>,
+<code>test/design/design_primitives_test.dart</code>,
+<code>test/view/review/review_screen_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-063" class="doc-inv-heading"><span class="inv-id">INV-063</span> Comment shapes never leak during recall</h3>
+<p>PGN arrows and circles are withheld from the board while the prompt is open
+and appear only after grading (or never, when annotations are disabled).</p>
+<ul>
+<li>Oracle: pre-guess empty-shapes and post-lapse shape assertions.</li>
+<li>Gates: review screen suite.</li>
+<li>Tier: T1. Covering: <code>test/view/review/review_screen_test.dart</code>.</li>
+</ul>
+</div><div class="inv-card"><h3 id="inv-068" class="doc-inv-heading"><span class="inv-id">INV-068</span> A position is due only once it has been presented</h3>
+<p>A position counts as due only if it holds a review state whose scheduled date
 has arrived. A position with no review state has never been shown, so it is
 fresh: excluded from every due figure, and introduced to the session at a capped
 rate after due work. The three states — fresh, due, scheduled — are disjoint and
-partition each scope's positions, so reported counts of the three sum to the
-total. Practice mode is exempt and still surfaces fresh positions.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: fresh-vs-due classification tests, fresh-cap session tests, and a</span>
-<span>• Gates: domain suite, review engine suite, service suite.</span>
-<span>• Tier: T1. History: 2026-10-15, owner-reported on first launch after bulk</span>
-<span>• Covering: `test/domain/due_status_test.dart`,</span>
-<span>•--</span>
-      </div>
-    </article>
-  
-    </section>
+partition each scope&#39;s positions, so reported counts of the three sum to the
+total. Practice mode is exempt and still surfaces fresh positions.</p>
+<ul>
+<li>Oracle: fresh-vs-due classification tests, fresh-cap session tests, and a
+segment-partition assertion over a freshly imported scope.</li>
+<li>Gates: domain suite, review engine suite, service suite.</li>
+<li>Tier: T1. History: 2026-10-15, owner-reported on first launch after bulk
+importing 63 studies — the due figure read in the thousands for positions
+never presented once (MVP §4 AC3 reversed).</li>
+<li>Covering: <code>test/domain/due_status_test.dart</code>,
+<code>test/review/review_engine_test.dart</code>,
+<code>test/review/review_service_test.dart</code>,
+<code>test/domain/repertoire_progress_test.dart</code>.</li>
+</ul>
+<hr>
+</div><h2 id="change-log">Change log</h2>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Date</th>
+<th>Invariant</th>
+<th>Change</th>
+<th>Reviewer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2026-10-01</td>
+<td>all</td>
+<td>Initial SPEC transcribed from QUALITY.md + mined regressions</td>
+<td>(owner, on merge)</td>
+</tr>
+<tr>
+<td>2026-10-03</td>
+<td>INV-064</td>
+<td>Added: socket handshake carries session sri (escape #129)</td>
+<td>(owner, on merge)</td>
+</tr>
+<tr>
+<td>2026-10-03</td>
+<td>INV-065</td>
+<td>Added: out-of-line repertoire moves accepted when in scope (P-TRANSPOSE)</td>
+<td>(owner, on merge)</td>
+</tr>
+<tr>
+<td>2026-10-03</td>
+<td>INV-066</td>
+<td>Added: by-line queue order over the urgency-selected due set (P-ORDER)</td>
+<td>(owner, on merge)</td>
+</tr>
+<tr>
+<td>2026-10-04</td>
+<td>INV-065</td>
+<td>Amended: transposition scope Off/Within study/In scope (owner options)</td>
+<td>(owner, on merge)</td>
+</tr>
+<tr>
+<td>2026-10-04</td>
+<td>INV-066</td>
+<td>Amended: Random order over the same due set (owner options)</td>
+<td>(owner, on merge)</td>
+</tr>
+<tr>
+<td>2026-10-05</td>
+<td>INV-030</td>
+<td>Amended: <code>white()</code>/<code>black()</code> side scopes aggregate by chapter orientation</td>
+<td>(owner, on merge)</td>
+</tr>
+<tr>
+<td>2026-10-05</td>
+<td>INV-067</td>
+<td>Added: an opening hub is a family name, not a title that mentions one (spurious hubs)</td>
+<td>(owner, on merge)</td>
+</tr>
+<tr>
+<td>2026-10-15</td>
+<td>INV-068</td>
+<td>Added: due requires a prior presentation; fresh is introduced under its own cap</td>
+<td>(owner, on merge)</td>
+</tr>
+</tbody></table></div>
+<hr>
+<h2 id="appendix-quality-invariants-baseline">Appendix: Quality Invariants Baseline</h2>
+<h2 id="quality-amp-engineering-invariants">Quality &amp; Engineering Invariants</h2>
+<p>This document defines the <strong>non-negotiable properties, constraints, and
+invariants</strong> that must be maintained across all implementations, refactorings,
+and feature additions in Chess Repertoire SRS.</p>
+<div class="callout spec">
+<p>Layer names refer to the Lichess-Mobile-foundation architecture described in
+<code>ARCHITECTURE.md</code> (presentation / application / our domain / infrastructure).
+The invariants themselves are implementation-agnostic and carried over
+verbatim from the product reset.</p>
+</div>
+<hr>
+<h2 id="1-architectural-invariants">1. Architectural Invariants</h2>
+<ol>
+<li><strong>Layer Independence</strong>:<ul>
+<li>The Presentation layer (Lichess <code>view/</code> + our review scene) must never
+directly interact with database tables, raw storage blobs, or chess
+library internals; it talks to application providers only.</li>
+<li>Our Domain layer must remain pure Dart with <strong>zero imports</strong> of Flutter
+widget libraries (<code>package:flutter/...</code>), chessground, or sqflite.</li>
+</ul>
+</li>
+<li><strong>Single Chess Representation</strong>:<ul>
+<li><code>dartchess</code> is the only chess rules engine. Never introduce a competing
+chess library or a second internal representation of moves, positions, or
+games. chessground is a presentation consumer of dartchess state.</li>
+</ul>
+</li>
+<li><strong>Local-First Zero-Latency Review</strong>:<ul>
+<li>The critical review loop (<code>user move submission -&gt; move validation -&gt; SRS update -&gt; board update</code>) must execute entirely in memory and locally.</li>
+<li>Network calls are strictly forbidden on the critical path of move
+submission and board rendering.</li>
+</ul>
+</li>
+<li><strong>Advisory Engine Isolation</strong>:<ul>
+<li>If an engine analysis pass is introduced (e.g. at import), it must run
+asynchronously outside the review loop and remain purely advisory. An
+engine evaluation must never veto or block the user&#39;s repertoire import.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="2-domain-amp-chess-invariants">2. Domain &amp; Chess Invariants</h2>
+<ol>
+<li><strong>Repertoire Correctness over Engine Truth</strong>:<ul>
+<li>Correctness during Review is strictly defined by the user&#39;s repertoire
+material, not engine evaluation.</li>
+<li>Opponent inaccuracies and mistakes are valid repertoire content (intended
+to teach prepared punishments).</li>
+</ul>
+</li>
+<li><strong>Variation Preservation</strong>:<ul>
+<li>PGN import must preserve recursive annotation variations (RAVs) as
+first-class sibling branches under their respective parent nodes.</li>
+<li>Variations must never be flattened or silently deleted during parsing or
+conversion.</li>
+</ul>
+</li>
+<li><strong>Position Identity Integrity</strong>:<ul>
+<li>A position&#39;s identity must account for piece placement, active side to
+move, castling availability, and en-passant target square (normalized
+4-field FEN; the &quot;clean FEN&quot;).</li>
+</ul>
+</li>
+<li><strong>Long-Term Retrieval (No Permanent Exclusion)</strong>:<ul>
+<li>A learned move that is auto-traversed during non-due intervals is <strong>never
+permanently excluded</strong> from review. It must become an active question
+again once its scheduled due date arrives.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="3-reliability-amp-error-invariants">3. Reliability &amp; Error Invariants</h2>
+<ol>
+<li><strong>Graceful Degradation over Silent Corruption</strong>:<ul>
+<li>Malformed PGN moves or invalid headers must be quarantined with
+structured error messages (containing chapter title and move index)
+rather than crashing the importer or silently creating broken position
+graphs.</li>
+</ul>
+</li>
+<li><strong>Deterministic Time Testing</strong>:<ul>
+<li>All time-dependent domain logic (SRS scheduling, due item queries) must
+accept an abstract <code>Clock</code> instance so test suites can run
+deterministically without depending on system wall-clock time.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="4-performance-invariants">4. Performance Invariants</h2>
+<ol>
+<li><strong>Move Response Time</strong>: Local move legality validation and repertoire
+lookup must complete in <strong>&lt; 16 milliseconds</strong> (within a single display
+frame).</li>
+<li><strong>Incremental State Writes</strong>: Review state updates must be persisted
+incrementally without rewriting the entire study tree on every move.</li>
+</ol>
 
-    <section id="tier-2">
-      <h2>4. Tier 2 Invariants: Presentation, UX & Performance</h2>
-      <p>Violations of Tier 2 invariants represent UI clipping, missing accessibility labels, or performance latency regressions:</p>
-      
-    <article class="inv-card" id="inv-050">
-      <div class="inv-header">
-        <span class="inv-id">INV-050</span>
-        <span class="inv-badge t2">Tier 2 (UX/Perf)</span>
-      </div>
-      <div class="inv-statement">A graded move settles within one frame</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Move legality, repertoire lookup, grading, and persistence apply inside a
-single display frame on the reference path.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: wall-clock assertion over a graded-move batch.</span>
-<span>• Gates: latency suite; future pinned-benchmark ratchet.</span>
-<span>• Tier: T2. Covering: `test/review/move_latency_test.dart`.</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-051">
-      <div class="inv-header">
-        <span class="inv-id">INV-051</span>
-        <span class="inv-badge t2">Tier 2 (UX/Perf)</span>
-      </div>
-      <div class="inv-statement">Bulk lookups stay bounded</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Review-state reads and deletes are chunked (400-item SQLite batches) and the
-due queue prefetches in bounded batches with refill thresholds, so startup
-and session build do not deserialize the whole database.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: chunked-delete, targeted-loading, and prefetch/refill tests.</span>
-<span>• Gates: persistence suite, review engine suite.</span>
-<span>• Tier: T2. Covering:</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-060">
-      <div class="inv-header">
-        <span class="inv-id">INV-060</span>
-        <span class="inv-badge t2">Tier 2 (UX/Perf)</span>
-      </div>
-      <div class="inv-statement">Every verdict is announced to screen readers</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Correct answers announce `Correct. {san}.` and lapses announce
-`Not this move. The repertoire move is {san}.`; silence holds before grading
-and the announcement clears on advance.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: live-region widget tests for both verdicts, silence, and clearing.</span>
-<span>• Gates: review screen suite.</span>
-<span>• Tier: T2. History: correct answers announced nothing at all.</span>
-<span>• Covering: `test/view/review/review_screen_test.dart`.</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-061">
-      <div class="inv-header">
-        <span class="inv-id">INV-061</span>
-        <span class="inv-badge t2">Tier 2 (UX/Perf)</span>
-      </div>
-      <div class="inv-statement">Feedback stays readable in both themes</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Filled controls render label ink readable on their fill, and board light/dark
-squares keep their ordering in dark mode.
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: contrast and square-order widget tests.</span>
-<span>• Gates: design suites.</span>
-<span>• Tier: T2. History: ink-on-ink pill label; swapped dark-mode squares.</span>
-<span>• Covering: `test/design/design_primitives_test.dart`,</span>
-      </div>
-    </article>
-  
-
-    <article class="inv-card" id="inv-062">
-      <div class="inv-header">
-        <span class="inv-id">INV-062</span>
-        <span class="inv-badge t2">Tier 2 (UX/Perf)</span>
-      </div>
-      <div class="inv-statement">Interactive targets stay tappable</div>
-      <div class="doc-article" style="font-size:14.5px;color:var(--mu);margin-bottom:12px">
-        Controls meet the 44px minimum and survive narrow viewports without clipping
-(e.g. the practice-exit target, pill heights, action sheets scroll).
-      </div>
-      <div class="inv-meta">
-        <span>• Oracle: size/viewport widget tests.</span>
-<span>• Gates: design suites, review screen suite.</span>
-<span>• Tier: T2. History: 12px exit label, 23px pills, clipped delete action.</span>
-<span>• Covering: `test/design/practice_exit_test.dart`,</span>
-      </div>
-    </article>
-  
-    </section>
-  
     
     <nav class="doc-pagination" aria-label="Document pagination">
       <a class="doc-page-card prev" href="architecture.html">
@@ -1040,10 +832,20 @@ squares keep their ordering in dark mode.
     <aside class="doc-toc-aside" aria-label="Table of contents">
       <div class="doc-toc-title">On This Page</div>
       <div class="doc-toc-list">
-        <div class="doc-toc-item"><a href="#spec-philosophy">The SPEC Contract</a></div>
-<div class="doc-toc-item"><a href="#tier-0">Tier 0: Persistence & Security</a></div>
-<div class="doc-toc-item"><a href="#tier-1">Tier 1: Behavioral Correctness</a></div>
-<div class="doc-toc-item"><a href="#tier-2">Tier 2: UX & Performance</a></div>
+        <div class="doc-toc-item"><a href="#spec-what-must-always-be-true">SPEC: what must always be true</a></div>
+<div class="doc-toc-item"><a href="#a-persistence-and-integrity-t0">A. Persistence and integrity (T0)</a></div>
+<div class="doc-toc-item"><a href="#b-import-pipeline-t0t1">B. Import pipeline (T0/T1)</a></div>
+<div class="doc-toc-item"><a href="#c-review-engine-and-srs-t1">C. Review engine and SRS (T1)</a></div>
+<div class="doc-toc-item"><a href="#d-architecture-and-determinism-t1">D. Architecture and determinism (T1)</a></div>
+<div class="doc-toc-item"><a href="#e-performance-budgets-t2">E. Performance budgets (T2)</a></div>
+<div class="doc-toc-item"><a href="#f-review-ux-contract-t1t2">F. Review UX contract (T1/T2)</a></div>
+<div class="doc-toc-item"><a href="#change-log">Change log</a></div>
+<div class="doc-toc-item"><a href="#appendix-quality-invariants-baseline">Appendix: Quality Invariants Baseline</a></div>
+<div class="doc-toc-item"><a href="#quality-amp-engineering-invariants">Quality &amp; Engineering Invariants</a></div>
+<div class="doc-toc-item"><a href="#1-architectural-invariants">1. Architectural Invariants</a></div>
+<div class="doc-toc-item"><a href="#2-domain-amp-chess-invariants">2. Domain &amp; Chess Invariants</a></div>
+<div class="doc-toc-item"><a href="#3-reliability-amp-error-invariants">3. Reliability &amp; Error Invariants</a></div>
+<div class="doc-toc-item"><a href="#4-performance-invariants">4. Performance Invariants</a></div>
       </div>
     </aside>
 </div>

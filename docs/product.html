@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Product Definition & User Journeys — ChessSRS Documentation</title>
+<meta name="description" content="Core premise, target user personas, 5 core user journeys, functional requirements, and MVP boundaries.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F5F3EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F0D0B" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://cassandre60.github.io/chesssrs-site/docs/product.html">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Product Definition & User Journeys — ChessSRS Documentation">
+<meta property="og:description" content="Core premise, target user personas, 5 core user journeys, functional requirements, and MVP boundaries.">
+<meta property="og:url" content="https://cassandre60.github.io/chesssrs-site/docs/product.html">
+<meta property="og:image" content="https://cassandre60.github.io/chesssrs-site/assets/og.jpg">
+<link rel="stylesheet" href="../assets/demo-tokens.css">
+<link rel="stylesheet" href="../assets/demo-reference.css">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="docs.css">
+<script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="doc-page">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></symbol>
+<symbol id="i-th" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.900 4.900l1.400 1.400m11.400 11.400 1.400 1.400M2 12h2m16 0h2M4.900 19.100l1.400-1.400M17.700 6.300l1.400-1.400"/></symbol>
+<symbol id="i-mn" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-lg" viewBox="0 0 22 22">
+  <defs><pattern id="h-brand-doc" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".9" height="2.4" fill="currentColor"/></pattern></defs>
+  <rect x=".75" y=".75" width="20.5" height="20.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <rect x="11" y="1.5" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+  <rect x="1.5" y="11" width="9.5" height="9.5" fill="url(#h-brand-doc)"/>
+</symbol>
+</defs></svg>
+<a class="mk-sr" href="#main">Skip to main content</a>
+
+<header class="hd" id="top"><div class="c">
+  <a class="logo" href="../index.html" aria-label="ChessSRS home"><svg class="ic" aria-hidden="true" style="width:22px;height:22px"><use href="#i-lg"/></svg>ChessSRS</a>
+  <nav class="nv" aria-label="Primary">
+    <a href="../index.html">Home</a>
+    <a href="index.html" style="font-weight:600;color:var(--ac)">Docs</a>
+    <a href="../index.html#demo">Live Demo</a>
+    <a href="../index.html#how">How it works</a>
+    <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">GitHub</a>
+    <button class="ib" id="theme" type="button" aria-label="Switch colour theme"><svg class="ic" aria-hidden="true"><use href="#i-th"/></svg></button>
+    <a class="btn p sm" href="../index.html#download">Download</a>
+    <details class="mm"><summary class="ib" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-mn"/></svg></summary><div>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Documentation Hub</a>
+      <a href="product.html">Product Vision</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="fsrs-algorithm.html">FSRS Algorithm</a>
+      <a href="graph-coordinator.html">Graph Coordinator</a>
+      <a href="specifications.html">Specifications & Invariants</a>
+      <a href="https://github.com/cassandre60/ChessSRS" target="_blank" rel="noopener">Source Code</a>
+      <a href="../index.html#download">Download</a>
+    </div></details>
+  </nav>
+</div></header>
+
+<div class="doc-wrap">
+  <nav class="doc-sidebar" aria-label="Documentation navigation">
+    <div class="doc-sidebar-nav">
+      
+    <div>
+      <div class="doc-nav-group-title">Getting Started</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="index.html">
+            <span>Documentation Hub</span>
+            
+          </a>
+
+          <a class="doc-nav-link active" href="product.html">
+            <span>Product Definition & Journeys</span>
+            <span class="doc-nav-badge">Current</span>
+          </a>
+
+          <a class="doc-nav-link " href="domain-model.html">
+            <span>Domain Model & Schemas</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Architecture & Engineering</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="architecture.html">
+            <span>System Architecture</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="specifications.html">
+            <span>System Invariants (SPEC)</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="testing-strategy.html">
+            <span>Testing & Quality Gates</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Algorithms & Training Engine</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="fsrs-algorithm.html">
+            <span>FSRS Spaced Repetition</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="graph-coordinator.html">
+            <span>Graph-Aware Coordinator</span>
+            
+          </a>
+
+          <a class="doc-nav-link " href="pgn-pipeline.html">
+            <span>PGN & Study Ingestion</span>
+            
+          </a>
+      </div>
+    </div>
+  
+
+    <div>
+      <div class="doc-nav-group-title">Development & Operations</div>
+      <div class="doc-nav-list">
+        
+          <a class="doc-nav-link " href="developer-guide.html">
+            <span>Developer Guide</span>
+            
+          </a>
+      </div>
+    </div>
+  
+    </div>
+  </nav>
+
+  <main class="doc-article" id="main">
+    <div class="doc-breadcrumb">
+      <a href="../index.html">Home</a> / <a href="index.html">Documentation</a> / <span>Product Definition & User Journeys</span>
+    </div>
+    <span class="doc-kicker">Product Vision</span>
+    <h1 class="doc-title">Product Definition & User Journeys</h1>
+    <p class="doc-lede">Core premise, target user personas, 5 core user journeys, functional requirements, and MVP boundaries.</p>
+    
+    <div class="doc-meta-bar">
+      
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/PRODUCT.md" target="_blank" rel="noopener"><code>PRODUCT.md</code></a>
+      </div>
+
+      <div class="doc-meta-item">
+        <strong>Source in app repo:</strong>
+        <a href="https://github.com/cassandre60/ChessSRS/blob/main/MVP.md" target="_blank" rel="noopener"><code>MVP.md</code></a>
+      </div>
+      <div class="doc-meta-item">
+        <strong>App version:</strong> <code>v1.4.0</code>
+      </div>
+      <div class="doc-meta-item">
+        <strong>Licence:</strong> <code>GPL-3.0</code>
+      </div>
+    </div>
+    <h2 id="product-definition">Product Definition</h2>
+<h2 id="1-vision-amp-core-value">1. Vision &amp; Core Value</h2>
+<p><strong>Chess Repertoire SRS</strong> is a focused, local-first chess learning application for <strong>memorizing and retaining opening and middlegame repertoires through active spaced repetition</strong>.</p>
+<p>The core premise:</p>
+<div class="callout spec">
+<p><strong>Show the player a position from their own repertoire and ask them to play what they have learned.</strong></p>
+</div>
+<p>The application is not a general tactics trainer, an engine analysis cockpit, or a social network. Its purpose is to turn a player&#39;s curated repertoire material into <strong>instant, reliable, retrievable memory</strong>.</p>
+<hr>
+<h2 id="2-target-users">2. Target Users</h2>
+<ul>
+<li><strong>Tournament and competitive chess players</strong> preparing structured opening repertoires.</li>
+<li><strong>Club players and students</strong> who study PGN files or coach-provided material and need to remember lines under game conditions.</li>
+<li><strong>Players tired of feature bloat</strong> who want a minimal, zero-latency review utility that opens directly into active practice.</li>
+</ul>
+<hr>
+<h2 id="3-core-user-journeys">3. Core User Journeys</h2>
+<h3 id="journey-1-daily-repertoire-review-default">Journey 1: Daily Repertoire Review (Default)</h3>
+<ol>
+<li>User opens the application.</li>
+<li>The app immediately presents the chessboard on the first due position across all active imported studies.</li>
+<li>User recalls and makes their prepared move on the board. (Crucial: move comments and annotations are strictly hidden during recall to prevent move spoilers).</li>
+<li>If correct: subtle positive feedback, automatic traversal through already-learned opponent/user continuations, and stopping at the next due decision. Any explanatory move comment is revealed post-move. (With <code>Line continuity</code> set to Full line instead: every line is played whole from its first move to its last, even when steps are not yet due, and a lapse acknowledged without retry continues down the same line.)</li>
+<li>If incorrect: non-blocking feedback indicating the expected repertoire continuation with an on-board arrow, recording a lapse, and keeping the board interactive so the user can immediately reguess and play the correct move.</li>
+<li>User reviews as long as they wish; when all items are up to date, a calm idle state is displayed with options to explore moves or start pre-match rehearsal.</li>
+</ol>
+<h3 id="journey-2-first-launch-amp-pgn-import">Journey 2: First Launch &amp; PGN Import</h3>
+<ol>
+<li>User opens the app for the very first time (zero studies exist).</li>
+<li>The app presents a clean, focused import interface.</li>
+<li>User supplies a PGN file containing one or many games/chapters with variations, comments, and annotations.</li>
+<li>The system validates chess legality, preserves full variation trees, normalizes chapters, and derives scheduled decision points.</li>
+<li>User is immediately transitioned into Review of the newly imported material (active scope automatically switches to the new study).</li>
+</ol>
+<h3 id="journey-3-constrained-review-scope-amp-opening-hubs">Journey 3: Constrained Review Scope &amp; Opening Hubs</h3>
+<ol>
+<li>User is preparing for a specific opening (e.g. against 1.e4) and wants to focus on their Sicilian repertoire.</li>
+<li>User opens the lightweight study/opening filter drawer.</li>
+<li>User selects a target study or an Opening Hub (e.g. &quot;Sicilian Defense&quot; which aggregates lines across multiple studies automatically classified by standard opening name/ECO/FEN).</li>
+<li>The Review scene updates its active pool to only test due positions matching that filter.</li>
+</ol>
+<h3 id="journey-4-pre-match-rehearsal-cram-mode-custom-review">Journey 4: Pre-Match Rehearsal / Cram Mode (Custom Review)</h3>
+<ol>
+<li>User has an upcoming tournament or match in 20 minutes and wants to rehearse lines in a specific repertoire.</li>
+<li>The system indicates 0 positions are due for review.</li>
+<li>User enters Rehearsal Mode for the chosen repertoire.</li>
+<li>The app actively tests the user on the board through the lines, giving feedback and reguess opportunities.</li>
+<li>Invariant: Rehearsal Mode is non-destructive — it does not update SRS intervals, increment repetitions, or record lapses in the SRS database.</li>
+</ol>
+<h3 id="journey-5-active-review-pool-focus-deck-suspension">Journey 5: Active Review Pool Focus (Deck Suspension)</h3>
+<ol>
+<li>User maintains multiple repertoires over time (e.g. alternate defenses against 1.e4 or experimental openings).</li>
+<li>User toggles specific studies active or inactive in their daily review pool.</li>
+<li>The &quot;All Studies&quot; review queue and due count only pull from active repertoires, preventing review fatigue from sidelines not currently in play.</li>
+<li>Inactive studies remain fully accessible for individual review, explore mode, or cram mode at any time.</li>
+</ol>
+<hr>
+<h2 id="4-functional-requirements">4. Functional Requirements</h2>
+<ol>
+<li><p><strong>PGN Pipeline</strong>:</p>
+<ul>
+<li>Accept standard and non-standard PGNs with single or multiple games/chapters.</li>
+<li>Preserve recursive annotation variations (RAVs) as first-class branching trees.</li>
+<li>Support arbitrary starting FEN positions.</li>
+<li>Extract move comments and NAGs without corrupting tree structure.</li>
+</ul>
+</li>
+<li><p><strong>Repertoire Training Model</strong>:</p>
+<ul>
+<li>Training evaluates whether the player remembered <strong>their repertoire</strong>, not whether the move is engine-optimal.</li>
+<li>Opponent mistakes and prepared punishments are first-class repertoire content.</li>
+<li>Player decision points are derived for the user&#39;s perspective.</li>
+<li>Move comments and annotations are strictly hidden during recall to prevent giving away the move, and revealed post-guess or during explore mode.</li>
+<li>Mistakes allow immediate reguess on the board without modal locking.</li>
+</ul>
+</li>
+<li><p><strong>Spaced Repetition System (SRS) &amp; Review Modes</strong>:</p>
+<ul>
+<li>Every repertoire decision maintains its own SRS state (repetition count, lapse count, stability/interval, next due timestamp).</li>
+<li>Non-due (already learned) positions are automatically traversed during review so the user is only tested on what is currently due.</li>
+<li>Previously learned moves return as active testable questions once their interval elapses.</li>
+<li>Scheduler algorithm is replaceable behind an abstract contract.</li>
+<li>Dual review modes: Standard SRS mode (updates intervals and logs recall events) and Pre-Match Rehearsal mode (trains positions on the board without altering SRS intervals or history).</li>
+<li>Studies can be toggled active or inactive in the daily review pool.</li>
+</ul>
+</li>
+<li><p><strong>Opening Hubs &amp; Classification</strong>:</p>
+<ul>
+<li>Openings are automatically classified from standard PGN headers (Event, ECO, Opening) or position FEN.</li>
+<li>Openings form lightweight virtual review scopes aggregating lines across multiple studies without data duplication.</li>
+</ul>
+</li>
+<li><p><strong>Offline &amp; Performance</strong>:</p>
+<ul>
+<li>The entire review and move-validation loop is 100% local and requires zero network access.</li>
+<li>Perceived interaction latency must be effectively zero (&lt;16ms on mobile and desktop).</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="5-visual-identity">5. Visual Identity</h2>
+<p>ChessSRS ships its own visual identity (&quot;Diagram&quot;), independent of Lichess Mobile&#39;s look. The full
+specification lives in <code>design/</code>:
+<code>design/docs/01-identity.md</code> (principles and voice), <code>design/docs/02-tokens.md</code> (colour, type, motion),
+<code>design/docs/03-components.md</code> (component specs), <code>design/docs/04-screens-and-flows.md</code> (screens and states).
+The visual identity is intentionally decoupled from Lichess Mobile&#39;s theme — see decision D016.</p>
+<p>Lichess Mobile remains the <strong>technical</strong> foundation only (board rendering via chessground, chess rules via
+dartchess, the Riverpod/domain architecture). See <code>CUT_PROPOSALS.md</code> for what technical foundation is kept.</p>
+<ul>
+<li><strong>The Product is Review</strong>: The chessboard is the primary and dominant interface element.</li>
+<li><strong>Quiet &amp; Fast Feedback</strong>: Move confirmation is immediate with subtle tactile/audio feedback cues; incorrect moves reveal the expected line without modals.</li>
+<li><strong>No Mandatory Session Boundary</strong>: Review is an ongoing utility. Users can stop anytime without penalty.</li>
+<li><strong>Restrained Visual Aesthetic</strong>: Subtle typography, generous negative space, high-contrast board pieces, no gamer aesthetics.</li>
+</ul>
+<hr>
+<h2 id="6-non-goals-explicit-exclusions">6. Non-Goals (Explicit Exclusions)</h2>
+<ul>
+<li>No tactics puzzle generator or arbitrary position solver.</li>
+<li>No real-time chess engine judging review moves (engine evaluation does not dictate repertoire correctness).</li>
+<li>No multiplayer, matchmaking, or social leaderboards.</li>
+<li>No mandatory daily gamification streaks or XP badges.</li>
+<li>No cloud dependency for core move validation.</li>
+</ul>
+<hr>
+<h2 id="7-future-horizons-post-mvp">7. Future Horizons (Post-MVP)</h2>
+<ul>
+<li><strong>Lichess Integration</strong>: Authenticate and directly import/sync user&#39;s Lichess studies.</li>
+<li><strong>Full Local Backup &amp; Restore</strong>: Export all studies (PGN) plus all SRS data, and re-import it (see P-EXPORT-ALL). Local file/share only; no cloud dependency.</li>
+<li><strong>Cross-Device Async Sync</strong>: Background synchronization of study content and SRS review history across mobile, web, and desktop.</li>
+<li><strong>Advisory Import Health Check</strong>: Optional asynchronous one-time engine pass warning users of severe evaluation collapses in their own lines (advisory only, never blocking).</li>
+<li><strong>Cross-Study Opening Categorization</strong>: Aggregate repertoire positions by opening family across separate study files.</li>
+</ul>
+<hr>
+<h2 id="5-mvp-scope-boundaries">5. MVP Scope Boundaries</h2>
+<h2 id="mvp-scope-amp-specifications">MVP Scope &amp; Specifications</h2>
+<h2 id="1-mvp-goal">1. MVP Goal</h2>
+<p>Deliver a functional, local-first Flutter application (built on the Lichess
+Mobile foundation) that executes the complete loop:</p>
+<p><strong>PGN Import → Normalized Repertoire Tree → Active Review Scene → Local SRS Persistence</strong>.</p>
+<hr>
+<h2 id="2-included-capabilities">2. Included Capabilities</h2>
+<div class="doc-table-wrap" tabindex="0"><table class="doc-table">
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Local PGN Import</strong></td>
+<td>Multi-game, multi-chapter PGN import (via dartchess <code>PgnParser</code>) supporting recursive variations (RAVs), comments, NAGs, and starting FENs.</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td><strong>Repertoire Normalization</strong></td>
+<td>Converts PGN trees into domain <code>Study</code> → <code>Chapter</code> → repertoire tree graphs with deterministic FEN keys.</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td><strong>Decision Point Derivation</strong></td>
+<td>Derives <code>RepertoireDecision</code> units for positions requiring user recall (player&#39;s perspective).</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td><strong>Active Recall Review</strong></td>
+<td>Lichess-quality interactive board scene where users input moves to answer due repertoire positions.</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td><strong>Move Validation</strong></td>
+<td>Immediate local validation against expected repertoire continuation moves (any valid branch accepted).</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td><strong>Automatic Traversal</strong></td>
+<td>Automated traversal through opponent replies and already-learned user moves until the next due decision (never a permanent exclusion).</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td><strong>Replaceable SRS Scheduler</strong></td>
+<td><code>Scheduler</code> contract + <code>SimpleScheduler</code> exponential interval ladder with lapse recovery and deterministic testing support.</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td><strong>Local Persistence</strong></td>
+<td>sqflite-backed repository storing studies, decisions, review states, and review events.</td>
+<td>Phase 2</td>
+</tr>
+<tr>
+<td><strong>Lichess-derived UX foundation</strong></td>
+<td>Lichess Mobile theme, board (chessground/dartchess), navigation, settings.</td>
+<td>Phase 1</td>
+</tr>
+</tbody></table></div>
+<h2 id="3-excluded-capabilities-unchanged">3. Excluded Capabilities (unchanged)</h2>
+<pre tabindex="0"><code class="language-text">PRODUCT SCOPE
+├── Local PGN Import               [MVP / Phase 2]
+├── Recursive Variation Trees      [MVP / Phase 2]
+├── Review-First Active Recall     [MVP / Phase 2]
+├── Automatic Traversal            [MVP / Phase 2]
+├── Replaceable SRS Engine         [MVP / Phase 2]
+├── Local Persistence              [MVP / Phase 2]
+├── Listudy training behaviors     [Phase 4 — isolated module]
+├── chessrs scheduler behaviors    [Phase 5 — isolated module]
+├── Advisory Engine Health Check   [later, isolated at import]
+├── Cross-Study Opening Filter     [later]
+├── Lichess study import/sync      [EXCLUDED for MVP]
+├── Cloud sync / accounts / social [EXCLUDED]
+└── Tactics / Social / Gamify      [EXCLUDED]
+</code></pre>
+<h2 id="4-acceptance-criteria-unchanged-product-requirements">4. Acceptance Criteria (unchanged product requirements)</h2>
+<ol>
+<li><strong>Clean Import</strong>: Importing a PGN containing multiple chapters and nested
+variations produces a fully intact hierarchy where no variation branch is
+discarded.</li>
+<li><strong>Deterministic Correctness</strong>: Playing a move that matches an active
+repertoire branch is accepted immediately; playing any other move (even
+legal chess moves) is marked incorrect.</li>
+<li><strong>SRS Interval Progression</strong>:<ul>
+<li>A position is due only after it has been presented. New items are
+<strong>not</strong> due; they are introduced gradually, after due work, and
+only then enter the SRS ladder (SPEC INV-068).</li>
+<li>Successful recalls increase the interval (1 day → 2 days → 4 days → ...).</li>
+<li>Failed recalls reset the repetition streak and schedule a
+short-interval retry.</li>
+</ul>
+</li>
+<li><strong>Zero-Lag Interaction</strong>: Move legality and repertoire lookup happen
+synchronously in memory without blocking UI rendering.</li>
+<li><strong>No Modal Interruptions</strong>: Incorrect moves reveal the expected line and
+allow progression without requiring modal dismissals.</li>
+<li><strong>Persistence Durability</strong>: Review states and study structures survive
+application restarts.</li>
+<li><strong>Runtime-Verified UX</strong>: The review scene must look and feel like a
+coherent Lichess-derived mobile application (runtime validation, not just
+tests).</li>
+</ol>
+<h2 id="5-known-limitations-mvp">5. Known Limitations (MVP)</h2>
+<ul>
+<li>Default player orientation heuristic is White unless specified in chapter
+metadata or custom FEN; per-chapter orientation from PGN metadata follows
+in refinement.</li>
+<li>Import sources are local PGN files only (Lichess import is an explicit
+future horizon, never a dependency).</li>
+</ul>
+
+    
+    <nav class="doc-pagination" aria-label="Document pagination">
+      <a class="doc-page-card prev" href="index.html">
+              <span class="doc-page-dir">← Previous</span>
+              <span class="doc-page-label">Documentation Hub</span>
+            </a>
+      <a class="doc-page-card next" href="domain-model.html">
+              <span class="doc-page-dir">Next →</span>
+              <span class="doc-page-label">Domain Model & Schemas</span>
+            </a>
+    </nav>
+  </main>
+
+  
+    <aside class="doc-toc-aside" aria-label="Table of contents">
+      <div class="doc-toc-title">On This Page</div>
+      <div class="doc-toc-list">
+        <div class="doc-toc-item"><a href="#product-definition">Product Definition</a></div>
+<div class="doc-toc-item"><a href="#1-vision-amp-core-value">1. Vision &amp; Core Value</a></div>
+<div class="doc-toc-item"><a href="#2-target-users">2. Target Users</a></div>
+<div class="doc-toc-item"><a href="#3-core-user-journeys">3. Core User Journeys</a></div>
+<div class="doc-toc-item"><a href="#4-functional-requirements">4. Functional Requirements</a></div>
+<div class="doc-toc-item"><a href="#5-visual-identity">5. Visual Identity</a></div>
+<div class="doc-toc-item"><a href="#6-non-goals-explicit-exclusions">6. Non-Goals (Explicit Exclusions)</a></div>
+<div class="doc-toc-item"><a href="#7-future-horizons-post-mvp">7. Future Horizons (Post-MVP)</a></div>
+<div class="doc-toc-item"><a href="#5-mvp-scope-boundaries">5. MVP Scope Boundaries</a></div>
+<div class="doc-toc-item"><a href="#mvp-scope-amp-specifications">MVP Scope &amp; Specifications</a></div>
+<div class="doc-toc-item"><a href="#1-mvp-goal">1. MVP Goal</a></div>
+<div class="doc-toc-item"><a href="#2-included-capabilities">2. Included Capabilities</a></div>
+<div class="doc-toc-item"><a href="#3-excluded-capabilities-unchanged">3. Excluded Capabilities (unchanged)</a></div>
+<div class="doc-toc-item"><a href="#4-acceptance-criteria-unchanged-product-requirements">4. Acceptance Criteria (unchanged product requirements)</a></div>
+<div class="doc-toc-item"><a href="#5-known-limitations-mvp">5. Known Limitations (MVP)</a></div>
+      </div>
+    </aside>
+</div>
+
+<footer class="ft" id="footer"><div class="c fb">
+  <span>© 2026 ChessSRS. Free & open-source under GPL-3.0. Built on the Lichess Mobile foundation.</span>
+  <div style="display:flex;gap:18px">
+    <a href="index.html">Documentation</a>
+    <a href="../credits.html">Credits & Licences</a>
+    <a href="../privacy.html">Privacy Policy</a>
+  </div>
+</div></footer>
+<script>
+(() => {
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("theme");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    });
+  }
+})();
+</script>
+</body>
+</html>
